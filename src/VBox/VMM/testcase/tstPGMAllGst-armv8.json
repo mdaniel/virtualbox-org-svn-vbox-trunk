@@ -1,0 +1,63 @@
+/* $Id$ */
+/** @file
+ * PGM page table walking testcase - ARMv8 variant.
+ */
+
+/*
+ * Copyright (C) 2025 Oracle and/or its affiliates.
+ *
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+[
+    {
+        Name:      "No MMU",
+        SCTLR_EL1: 0,
+        TCR_EL1:   0,
+        TTBR0_EL1: 0,
+        TTBR1_EL1: 0,
+
+        AddressSpace: { },
+
+        Tests:
+        {
+            /* GCPtr: { Expected Result } */
+            0x0:      { GCPhys:    0x0, Level: 0, fFailed: 0x0, Effective: 0x7 },
+            0xffff:   { GCPhys: 0xf000, Level: 0, fFailed: 0x0, Effective: 0x7 },
+        }
+    },
+    {
+        Name:      "4K Granules",
+        SCTLR_EL1: 0x1,
+        TCR_EL1:   0,
+        TTBR0_EL1: 0x0,
+        TTBR1_EL1: 0x1000,
+
+        AddressSpace:
+        {
+            0x0:    0x0000000000001fff,
+            0x1000: 0x0000c000000000fd,
+        },
+
+        Tests:
+        {
+            /* GCPtr: { Expected Result } */
+            0x0:      { GCPhys: 0x0000c00000000000, Level: 0, GigantPage: true, fFailed: 0x0, Effective: 0x0 },
+        }
+    }
+]

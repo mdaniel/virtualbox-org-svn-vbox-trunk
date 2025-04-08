@@ -1,10 +1,10 @@
 /* $Id$ */
 /** @file
- * PDM Queue Testcase.
+ * PGM page table walking testcase - ARMv8 variant.
  */
 
 /*
- * Copyright (C) 2022-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -53,6 +53,8 @@
 #include <iprt/thread.h>
 #include <iprt/test.h>
 #include <iprt/zero.h>
+
+#include "tstPGMAllGst-armv8-tests.h"
 
 
 /*********************************************************************************************************************************
@@ -241,21 +243,6 @@ static void tstMmuCfgDestroy(PTSTPGMARMV8MMU pMmuCfg)
 }
 
 
-static void tstBasic(void)
-{
-    /*
-     * Create an fake VM structure.
-     */
-    int rc = tstMmuCfgInit(&g_MmuCfg);
-    if (RT_FAILURE(rc))
-        return;
-
-    /** @todo */
-
-    tstMmuCfgDestroy(&g_MmuCfg);
-}
-
-
 static int tstTestcaseMmuMemoryWrite(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, uint64_t GCPhysAddr, const void *pvData, size_t cbData)
 {
     size_t cbLeft = cbData;
@@ -416,6 +403,8 @@ static int tstTestcaseAddressSpacePrepare(RTTEST hTest, RTJSONVAL hTestcase)
                 rc = VINF_SUCCESS;
             RTJsonIteratorFree(hIt);
         }
+        else if (rc == VERR_JSON_IS_EMPTY) /* Empty address space is valid. */
+            rc = VINF_SUCCESS;
         else
             RTTestFailed(hTest, "Failed to traverse JSON object with %Rrc", rc);
 
@@ -520,6 +509,127 @@ static int tstTestcaseMmuConfigPrepare(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, RT
 }
 
 
+DECLINLINE(int) tstResultQueryBoolDef(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, bool *pf, bool fDef)
+{
+    int rc = RTJsonValueQueryBooleanByName(hMemResult, pszName, pf);
+    if (rc == VERR_NOT_FOUND)
+    {
+        *pf = fDef;
+        rc = VINF_SUCCESS;
+    }
+    else if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+
+    return rc;
+}
+
+
+DECLINLINE(int) tstResultQueryGCPhysDef(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, RTGCPHYS *pGCPhys, RTGCPHYS GCPhysDef)
+{
+    int64_t i64 = 0;
+    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
+    if (rc == VERR_NOT_FOUND)
+    {
+        *pGCPhys = GCPhysDef;
+        rc = VINF_SUCCESS;
+    }
+    else if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+    else
+        *pGCPhys = (RTGCPHYS)i64;
+
+    return rc;
+}
+
+
+DECLINLINE(int) tstResultQueryGCPhys(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, RTGCPHYS *pGCPhys)
+{
+    int64_t i64 = 0;
+    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
+    if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+    else
+        *pGCPhys = (RTGCPHYS)i64;
+
+    return rc;
+}
+
+
+DECLINLINE(int) tstResultQueryU8(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint8_t *pu8)
+{
+    int64_t i64 = 0;
+    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
+    if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+    else if (i64 < 0 || i64 > UINT8_MAX)
+        RTTestFailed(hTest, "Value %#RI64 for '%s' is out of bounds", i64, pszName);
+    else
+        *pu8 = (uint8_t)i64;
+
+    return rc;
+}
+
+
+DECLINLINE(int) tstResultQueryU32(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint32_t *pu32)
+{
+    int64_t i64 = 0;
+    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
+    if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+    else if (i64 < 0 || i64 > UINT32_MAX)
+        RTTestFailed(hTest, "Value %#RI64 for '%s' is out of bounds", i64, pszName);
+    else
+        *pu32 = (uint32_t)i64;
+
+    return rc;
+}
+
+
+DECLINLINE(int) tstResultQueryU64(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint64_t *pu64)
+{
+    int64_t i64 = 0;
+    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
+    if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
+    else
+        *pu64 = (uint64_t)i64;
+
+    return rc;
+}
+
+
+static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALK pWalkResult)
+{
+    int rc = tstResultQueryBoolDef(hTest, hMemResult, "Succeeded", &pWalkResult->fSucceeded, true);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "IsSlat", &pWalkResult->fIsSlat, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "IsLinearAddrValid", &pWalkResult->fIsLinearAddrValid, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "NotPresent", &pWalkResult->fNotPresent, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "BadPhysAddr", &pWalkResult->fBadPhysAddr, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "RsvdError", &pWalkResult->fRsvdError, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "BigPage", &pWalkResult->fBigPage, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryBoolDef(hTest, hMemResult, "GigantPage", &pWalkResult->fGigantPage, false);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryGCPhysDef(hTest, hMemResult, "GCPhysNested", &pWalkResult->GCPhysNested, 0);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryU8(hTest, hMemResult, "Level", &pWalkResult->uLevel);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryU32(hTest, hMemResult, "fFailed", &pWalkResult->fFailed);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryU64(hTest, hMemResult, "Effective", &pWalkResult->fEffective);
+
+    return rc;
+}
+
+
 static void tstExecute(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, RTJSONVAL hMemResult)
 {
     PVMCPUCC pVCpu = pVM->apCpusR3[0];
@@ -529,13 +639,50 @@ static void tstExecute(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, RTJSONVAL hMemResul
                     ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
                     : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
 
-    PGMPTWALK Walk;
+    PGMPTWALK Walk; RT_ZERO(Walk);
     AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
     AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnGetPage);
     int rc = g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, &Walk);
     if (RT_SUCCESS(rc))
     {
-        RT_NOREF(hMemResult);
+        PGMPTWALK WalkResult; RT_ZERO(WalkResult);
+        WalkResult.GCPtr = GCPtr;
+
+        rc = tstResultInit(hTest, hMemResult, &WalkResult);
+        if (RT_SUCCESS(rc))
+        {
+            if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
+            {
+                if (Walk.GCPtr != WalkResult.GCPtr)
+                    RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
+                if (Walk.GCPhysNested != WalkResult.GCPhysNested)
+                    RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
+                if (Walk.GCPhys != WalkResult.GCPhys)
+                    RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
+                if (Walk.fSucceeded != WalkResult.fSucceeded)
+                    RTTestFailed(hTest, "Result fSucceeded=%RTbool != Expected fSucceeded=%RTbool", Walk.fSucceeded, WalkResult.fSucceeded);
+                if (Walk.fIsSlat != WalkResult.fIsSlat)
+                    RTTestFailed(hTest, "Result fIsSlat=%RTbool != Expected fIsSlat=%RTbool", Walk.fIsSlat, WalkResult.fIsSlat);
+                if (Walk.fIsLinearAddrValid != WalkResult.fIsLinearAddrValid)
+                    RTTestFailed(hTest, "Result fIsLinearAddrValid=%RTbool != Expected fIsLinearAddrValid=%RTbool", Walk.fIsLinearAddrValid, WalkResult.fIsLinearAddrValid);
+                if (Walk.uLevel != WalkResult.uLevel)
+                    RTTestFailed(hTest, "Result uLevel=%RU8 != Expected uLevel=%RU8", Walk.uLevel, WalkResult.uLevel);
+                if (Walk.fNotPresent != WalkResult.fNotPresent)
+                    RTTestFailed(hTest, "Result fNotPresent=%RTbool != Expected fNotPresent=%RTbool", Walk.fNotPresent, WalkResult.fNotPresent);
+                if (Walk.fBadPhysAddr != WalkResult.fBadPhysAddr)
+                    RTTestFailed(hTest, "Result fBadPhysAddr=%RTbool != Expected fBadPhysAddr=%RTbool", Walk.fBadPhysAddr, WalkResult.fBadPhysAddr);
+                if (Walk.fRsvdError != WalkResult.fRsvdError)
+                    RTTestFailed(hTest, "Result fRsvdError=%RTbool != Expected fRsvdError=%RTbool", Walk.fRsvdError, WalkResult.fRsvdError);
+                if (Walk.fBigPage != WalkResult.fBigPage)
+                    RTTestFailed(hTest, "Result fBigPage=%RTbool != Expected fBigPage=%RTbool", Walk.fBigPage, WalkResult.fBigPage);
+                if (Walk.fGigantPage != WalkResult.fGigantPage)
+                    RTTestFailed(hTest, "Result fGigantPage=%RTbool != Expected fGigantPage=%RTbool", Walk.fGigantPage, WalkResult.fGigantPage);
+                if (Walk.fFailed != WalkResult.fFailed)
+                    RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
+                if (Walk.fEffective != WalkResult.fEffective)
+                    RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
+            }
+        }
     }
     else
         RTTestFailed(hTest, "Resolving virtual address %#RX64 to physical address failed with %Rrc", GCPtr, rc);
@@ -624,7 +771,7 @@ static void tstExecuteTestcase(RTTEST hTest, RTJSONVAL hTestcase)
 }
 
 
-static void tstLoadFromFile(RTTEST hTest, const char *pszFilename)
+static void tstLoadAndRun(RTTEST hTest, RTJSONVAL hRoot)
 {
     int rc = tstMmuCfgInit(&g_MmuCfg);
     if (RT_FAILURE(rc))
@@ -633,52 +780,57 @@ static void tstLoadFromFile(RTTEST hTest, const char *pszFilename)
         return;
     }
 
+    RTJSONVALTYPE enmType = RTJsonValueGetType(hRoot);
+    if (enmType == RTJSONVALTYPE_ARRAY)
+    {
+        /* Array of testcases. */
+        RTJSONIT hIt = NIL_RTJSONIT;
+        rc = RTJsonIteratorBeginArray(hRoot, &hIt);
+        if (RT_SUCCESS(rc))
+        {
+            for (;;)
+            {
+                RTJSONVAL hTestcase = NIL_RTJSONVAL;
+                rc = RTJsonIteratorQueryValue(hIt, &hTestcase, NULL /*ppszName*/);
+                if (RT_SUCCESS(rc))
+                {
+                    tstExecuteTestcase(hTest, hTestcase);
+                    RTJsonValueRelease(hTestcase);
+                }
+                else
+                    RTTestFailed(hTest, "Failed to retrieve testcase with %Rrc", rc);
+
+                rc = RTJsonIteratorNext(hIt);
+                if (RT_FAILURE(rc))
+                    break;
+            }
+            if (rc == VERR_JSON_ITERATOR_END)
+                rc = VINF_SUCCESS;
+            RTJsonIteratorFree(hIt);
+        }
+        else  /* An empty array is also an error */
+            RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
+    }
+    else if (enmType == RTJSONVALTYPE_OBJECT)
+    {
+        /* Single testcase. */
+        tstExecuteTestcase(hTest, hRoot);
+    }
+    else
+        RTTestFailed(hTest, "JSON root is not an array or object containing a testcase");
+    RTJsonValueRelease(hRoot);
+    tstMmuCfgDestroy(&g_MmuCfg);
+}
+
+
+static void tstLoadFromFile(RTTEST hTest, const char *pszFilename)
+{
     /* Load the configuration from the JSON config file. */
     RTERRINFOSTATIC ErrInfo;
     RTJSONVAL hRoot = NIL_RTJSONVAL;
-    rc = RTJsonParseFromFile(&hRoot, RTJSON_PARSE_F_JSON5, pszFilename, RTErrInfoInitStatic(&ErrInfo));
+    int rc = RTJsonParseFromFile(&hRoot, RTJSON_PARSE_F_JSON5, pszFilename, RTErrInfoInitStatic(&ErrInfo));
     if (RT_SUCCESS(rc))
-    {
-        RTJSONVALTYPE enmType = RTJsonValueGetType(hRoot);
-        if (enmType == RTJSONVALTYPE_ARRAY)
-        {
-            /* Array of testcases. */
-            RTJSONIT hIt = NIL_RTJSONIT;
-            rc = RTJsonIteratorBeginArray(hRoot, &hIt);
-            if (RT_SUCCESS(rc))
-            {
-                for (;;)
-                {
-                    RTJSONVAL hTestcase = NIL_RTJSONVAL;
-                    rc = RTJsonIteratorQueryValue(hIt, &hTestcase, NULL /*ppszName*/);
-                    if (RT_SUCCESS(rc))
-                    {
-                        tstExecuteTestcase(hTest, hTestcase);
-                        RTJsonValueRelease(hTestcase);
-                    }
-                    else
-                        RTTestFailed(hTest, "Failed to retrieve testcase with %Rrc", rc);
-
-                    rc = RTJsonIteratorNext(hIt);
-                    if (RT_FAILURE(rc))
-                        break;
-                }
-                if (rc == VERR_JSON_ITERATOR_END)
-                    rc = VINF_SUCCESS;
-                RTJsonIteratorFree(hIt);
-            }
-            else  /* An empty array is also an error */
-                RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
-        }
-        else if (enmType == RTJSONVALTYPE_OBJECT)
-        {
-            /* Single testcase. */
-            tstExecuteTestcase(hTest, hRoot);
-        }
-        else
-            RTTestFailed(hTest, "JSON root is not an array or object containing a testcase");
-        RTJsonValueRelease(hRoot);
-    }
+        tstLoadAndRun(hTest, hRoot);
     else
     {
         if (RTErrInfoIsSet(&ErrInfo.Core))
@@ -688,8 +840,25 @@ static void tstLoadFromFile(RTTEST hTest, const char *pszFilename)
             RTTestFailed(hTest, "RTJsonParseFromFile() for \"%s\" failed with %Rrc",
                          pszFilename, rc);
     }
+}
 
-    tstMmuCfgDestroy(&g_MmuCfg);
+
+static void tstBasic(RTTEST hTest)
+{
+    RTERRINFOSTATIC ErrInfo;
+    RTJSONVAL hRoot = NIL_RTJSONVAL;
+    int rc = RTJsonParseFromBuf(&hRoot, RTJSON_PARSE_F_JSON5,
+                                g_abtstPGMAllGst_armv8_1, g_cbtstPGMAllGst_armv8_1,
+                                RTErrInfoInitStatic(&ErrInfo));
+    if (RT_SUCCESS(rc))
+        tstLoadAndRun(hTest, hRoot);
+    else
+    {
+        if (RTErrInfoIsSet(&ErrInfo.Core))
+            RTTestFailed(hTest, "RTJsonParseFromBuf() failed with %Rrc\n%s", rc, ErrInfo.Core.pszMsg);
+        else
+            RTTestFailed(hTest, "RTJsonParseFromBuf() failed with %Rrc", rc);
+    }
 }
 
 
@@ -709,7 +878,7 @@ int main(int argc, char **argv)
             if (argc == 2)
                 tstLoadFromFile(g_hTest, argv[1]);
             else
-                tstBasic();
+                tstBasic(g_hTest);
             rcExit = RTTestSummaryAndDestroy(g_hTest);
         }
         else

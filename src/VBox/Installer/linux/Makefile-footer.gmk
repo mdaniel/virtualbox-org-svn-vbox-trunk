@@ -115,6 +115,7 @@ VBOXMOD_EXT := ko
 
 # build defs
 EXTRA_CFLAGS += $(VBOXMOD_CFLAGS) $(addprefix -I,$(KERN_INCL) $(VBOXMOD_INCL)) $(VBOXMOD_0_KFLAGS) $(KDEBUG)
+ccflags-y += $(EXTRA_CFLAGS)
 $(VBOXMOD_0_TARGET)-y := $(VBOXMOD_OBJS)
 obj-m += $(VBOXMOD_0_TARGET).o
 

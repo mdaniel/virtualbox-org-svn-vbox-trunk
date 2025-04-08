@@ -1143,7 +1143,7 @@ class DecoderNode(object):
         #
         cInstructions = len(self.aoInstructions)
         if cInstructions <= 4:
-            #assert len(self.dChildren) == 0;
+            assert not self.dChildren;
             uCost = 0;
             # Special case: 1 instruction - leaf.
             if cInstructions <= 1:
@@ -1156,10 +1156,8 @@ class DecoderNode(object):
             # Special case: 2, 3 or 4 instructions - use a sequence of 'if ((uOpcode & fFixedMask) == fFixedValue)' checks.
             else:
                 self.fChildMask = DecoderNode.kChildMaskMultipleOpcodeValueIfs;
-                for i, oInstr in enumerate(self.aoInstructions):
-                    self.dChildren[i] = DecoderNode([oInstr], oInstr.fFixedMask, oInstr.fFixedMask);
                 uCost = 32 * cInstructions * 2;                                         # 32 = kCostMultipleOpcodeValueIfs
-            return uCost #<< uDepth;
+            return uCost;
 
         #
         # The cost of one indirect call is 32, so just bail if we don't have
@@ -1240,7 +1238,6 @@ class DecoderNode(object):
                     # Calculate base cost and check it against uCostBest before continuing.
                     uCostTmp    = 256;                                                  # 256 = kCostIndirectCall
                     uCostTmp   += (len(aaiMaskToIdxAlgo) - 1) * 2;                      #   2 = kCostPerExtraIndexStep
-                    #uCostTmp  <<= uDepth;   # Make the cost exponentially higher with depth. (?)
                     if uCostTmp >= uCostBest:
                         #if uDepth <= 2:
                         #    self.dprint(uDepth, '!!! %#010x too expensive #1: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
@@ -1274,7 +1271,7 @@ class DecoderNode(object):
                     # Add the cost for unused entries under reasonable table population.
                     cNominalFill = 1 << (cMaskBits - 1); # 50% full or better is great.
                     if len(daoTmp) < cNominalFill:
-                        uCostTmp += ((cNominalFill - len(daoTmp)) * 2) #<< uDepth;  # 2 = kCostUnusedTabEntry
+                        uCostTmp += ((cNominalFill - len(daoTmp)) * 2);                 # 2 = kCostUnusedTabEntry
                         if uCostTmp >= uCostBest:
                             #if uDepth <= 2:
                             #    self.dprint(uDepth, '!!! %#010x too expensive #3: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
@@ -1501,7 +1498,8 @@ class IEMArmGenerator(object):
         """
         Handles a leaf node.
         """
-        assert not oNode.dChildren;
+        assert not oNode.dChildren, \
+               'fChildMask=%#x dChildren=%s aoInstr=%s' % (oNode.fChildMask, oNode.dChildren, oNode.aoInstructions,);
 
         asLines = [
             '',
@@ -1526,19 +1524,20 @@ class IEMArmGenerator(object):
         """
         Recursively generates the decoder code.
         """
-        assert oNode.fChildMask != 0 and oNode.fChildMask < (1 << 24), \
+        assert oNode.fChildMask != 0 and oNode.fChildMask not in (0x7fffffff, 0xffffffff, 0x4fffffff), \
             'fChildMask=%s #dChildren=%s aoInstr=%s' % (oNode.fChildMask, len(oNode.dChildren), oNode.aoInstructions,);
         asLines = [];
 
         # First recurse.
         for oChildNode in oNode.dChildren.values():
-            if oChildNode.fChildMask == DecoderNode.kChildMaskMultipleOpcodeValueIfs:
-                asLines += self.generateDecoderCodeMultiIfFunc(oChildNode, uDepth + 1);
-            elif oChildNode.fChildMask != DecoderNode.kChildMaskOpcodeValueIf:
-                assert oChildNode.dChildren;
+            if oChildNode.dChildren:
                 asLines += self.generateDecoderCode(oChildNode, uDepth + 1);
+            elif oChildNode.fChildMask == DecoderNode.kChildMaskMultipleOpcodeValueIfs:
+                assert len(oChildNode.aoInstructions) > 1;
+                asLines += self.generateDecoderCodeMultiIfFunc(oChildNode, uDepth + 1);
             else:
-                assert not oChildNode.dChildren;
+                assert len(oChildNode.aoInstructions) == 1;
+                assert oChildNode.fChildMask in [DecoderNode.kChildMaskOpcodeValueIf, 0];
 
         # Generate the function.
         ## @todo add some table stats here.
@@ -1569,11 +1568,11 @@ class IEMArmGenerator(object):
         aaiAlgo = MaskZipper.compileAlgo(oNode.fChildMask);
         assert aaiAlgo, 'fChildMask=%s #children=%s instrs=%s' % (oNode.fChildMask, len(oNode.dChildren), oNode.aoInstructions,);
         asIdx = [
-            '    uintptr_t const idx = ((uOpcode >> %2u) & %#010x) /* bit %u L %u -> 0 */'
+            '    uintptr_t const idx = ((uOpcode >> %2u) & %#010x) /* bit %2u L %u -> 0 */'
             % (aaiAlgo[0][0], aaiAlgo[0][2], aaiAlgo[0][0], aaiAlgo[0][2].bit_count(), ),
         ];
         for iSrcBit, iDstBit, fMask in aaiAlgo[1:]:
-            asIdx.append('                        | ((uOpcode >> %2u) & %#010x) /* bit %u L %u -> %u */'
+            asIdx.append('                        | ((uOpcode >> %2u) & %#010x) /* bit %2u L %u -> %u */'
                          % (iSrcBit - iDstBit, fMask << iDstBit, iSrcBit, fMask.bit_count(), iDstBit));
         asIdx[-1] += ';';
         asLines += asIdx;

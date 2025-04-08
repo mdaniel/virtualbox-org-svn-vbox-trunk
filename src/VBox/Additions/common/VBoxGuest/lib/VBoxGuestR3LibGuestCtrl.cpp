@@ -1808,15 +1808,15 @@ VBGLR3DECL(int) VbglR3GuestCtrlProcGetStart(PVBGLR3GUESTCTRLCMDCTX pCtx, PVBGLR3
     } while ((   rc == VERR_INTERRUPTED
               || rc == VERR_BUFFER_OVERFLOW) && g_fVbglR3GuestCtrlHavePeekGetCancel);
 
+    LogRel(("VbglR3GuestCtrlProcGetStart: Returning %Rrc (retry %u, cbCmd=%RU32, cbArgs=%RU32, cbEnv=%RU32)\n",
+            rc, cRetries, pStartupInfo->cbCmd, pStartupInfo->cbArgs, pStartupInfo->cbEnv));
+
     if (RT_SUCCESS(rc))
     {
         *ppStartupInfo = pStartupInfo;
     }
     else
         VbglR3GuestCtrlProcStartupInfoFree(pStartupInfo);
-
-    LogRel(("VbglR3GuestCtrlProcGetStart: Returning %Rrc (retry %u, cbCmd=%RU32, cbArgs=%RU32, cbEnv=%RU32)\n",
-            rc, cRetries, pStartupInfo->cbCmd, pStartupInfo->cbArgs, pStartupInfo->cbEnv));
 
     LogFlowFuncLeaveRC(rc);
     return rc;

@@ -136,8 +136,8 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 }
 
 
-#if 0
-static const char * gitsGetCommandName(uint8_t uCmdId)
+#if 1
+static const char *gitsGetCommandName(uint8_t uCmdId)
 {
     switch (uCmdId)
     {
@@ -344,6 +344,8 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
             Assert(cb == 4);
             Assert(!(pGitsDev->uTypeReg.u & GITS_BF_CTRL_REG_TYPER_UMSI_IRQ_MASK));
             pGitsDev->uCtrlReg = uValue & GITS_BF_CTRL_REG_CTLR_RW_MASK;
+            if (RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED))
+                pGitsDev->uCtrlReg &= GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
@@ -418,9 +420,9 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);    /* ITS caches invalidated when clearing
                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
     RT_ZERO(pGitsDev->aItsTableRegs);
-    pGitsDev->uCmdBaseReg.u      = 0;
-    pGitsDev->uCmdReadReg        = 0;
-    pGitsDev->uCmdWriteReg       = 0;
+    pGitsDev->uCmdBaseReg.u = 0;
+    pGitsDev->uCmdReadReg   = 0;
+    pGitsDev->uCmdWriteReg  = 0;
     RT_ZERO(pGitsDev->aCtes);
 }
 
@@ -550,7 +552,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                 /* The write offset has not wrapped around, read them in one go. */
                 cbCmds = offWrite - offRead;
                 Assert(cbCmds <= cbBuf);
-                rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbCmds);
+                rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + offRead, pvBuf, cbCmds);
             }
             else
             {
@@ -558,13 +560,10 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                 uint32_t const cbForward = cbCmdQueue - offRead;
                 uint32_t const cbWrapped = offWrite;
                 Assert(cbForward + cbWrapped <= cbBuf);
-                rc  = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbForward);
+                rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + offRead, pvBuf, cbForward);
                 if (   RT_SUCCESS(rc)
                     && cbWrapped > 0)
-                {
-                    rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + cbForward, (void *)((uintptr_t)pvBuf + cbForward),
-                                               cbWrapped);
-                }
+                    rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, (void *)((uintptr_t)pvBuf + cbForward), cbWrapped);
                 cbCmds = cbForward + cbWrapped;
             }
 
@@ -575,7 +574,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             {
                 /* Indicate to the guest we've fetched all commands. */
                 GITS_CRIT_SECT_ENTER(pDevIns);
-                pGitsDev->uCmdReadReg = RT_BF_SET(pGitsDev->uCmdReadReg, GITS_BF_CTRL_REG_CREADR_OFFSET, offWrite);
+                pGitsDev->uCmdReadReg = offWrite;
 
                 /* Don't hold the critical section while processing commands. */
                 GITS_CRIT_SECT_LEAVE(pDevIns);
@@ -619,9 +618,10 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         }
 
                         default:
-                            //AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u cbCmds=%u\n", uCmdId,
-                            //                        gitsGetCommandName(uCmdId), idxCmd, cCmds, cbCmds));
-                            //break;
+                            AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u cbCmds=%u %u CREADR=%#RX32 CWRITER=%#RX32\n",
+                                                    uCmdId, gitsGetCommandName(uCmdId), idxCmd, cCmds, cbCmds,
+                                                    pGitsDev->StatCmdSync.c + pGitsDev->StatCmdInvall.c + pGitsDev->StatCmdMapc.c,
+                                                    pGitsDev->uCmdReadReg, pGitsDev->uCmdWriteReg));
                             break;
                     }
                 }

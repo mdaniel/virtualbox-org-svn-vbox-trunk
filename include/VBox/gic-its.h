@@ -84,8 +84,7 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CTLR_, UINT32_C(0), UINT32_MAX,
 #define GITS_BF_CTRL_REG_CTLR_RW_MASK                           (UINT32_MAX & ~(  GITS_BF_CTRL_REG_CTLR_IM_DE_MASK      \
                                                                                 | GITS_BF_CTRL_REG_CTLR_RSVD_3_2_MASK   \
                                                                                 | GITS_BF_CTRL_REG_CTLR_ITS_NUMBER_MASK \
-                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_30_9_MASK  \
-                                                                                | GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK))
+                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_30_9_MASK))
 
 /** GITS_IIDR: Implementer and revision register - RO. */
 #define GITS_CTRL_REG_IIDR_OFF                                  0x0004

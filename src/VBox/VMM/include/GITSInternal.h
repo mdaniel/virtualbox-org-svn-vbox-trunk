@@ -95,6 +95,23 @@ AssertCompileSizeAlignment(GITSITSBASE, 8);
 AssertCompileMemberAlignment(GITSITSBASE, AttrShare, 8);
 #endif
 
+/**
+ * GITS Collection Table Entry (CTE).
+ */
+typedef struct GITSCTE
+{
+    /** Whether this entry is valid. */
+    bool        fValid;
+    /** Alignment. */
+    bool        afPadding;
+    /** Target CPU ID (size based on GICR_TYPER.Processor_Number). */
+    uint16_t    idTargetCpu;
+} GITSCTE;
+/** Pointer to a GITS Collection Table Entry (CTE). */
+typedef GITSCTE *PGITSCTE;
+/** Pointer to a const GITS Collection Table Entry (CTE). */
+typedef GITSCTE const *PCGITSCTE;
+AssertCompileSize(GITSCTE, 4);
 
 /**
  * The GIC Interrupt Translation Service device state.
@@ -133,6 +150,13 @@ typedef struct GITSDEV
     uint32_t                uCmdQueueError;
     /** Padding. */
     uint32_t                uPadding0;
+    /** @} */
+
+    /** @name Tables.
+     * @{
+     */
+    /** The collection table. */
+    GITSCTE                 auCt[2048];
     /** @} */
 
     /** @name Configurables.

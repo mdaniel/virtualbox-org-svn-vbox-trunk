@@ -64,6 +64,11 @@
 /** Returns whether the critical section is held. */
 #define GITS_CRIT_SECT_IS_OWNER(a_pDevIns)      PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
 
+/** GITS diagnostic enum description expansion.
+ * The below construct ensures typos in the input to this macro are caught
+ * during compile time. */
+#define GITSDIAG_DESC(a_Name)        RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -80,10 +85,10 @@ typedef struct GITSITE
 } GITSITE;
 AssertCompileSize(GITSITE, 8);
 
-/** GITS diagnostic enum description expansion.
- * The below construct ensures typos in the input to this macro are caught
- * during compile time. */
-#define GITSDIAG_DESC(a_Name)        RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
+
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
 /** GITS diagnostics description for members in GITSDIAG. */
 static const char *const g_apszGitsDiagDesc[] =
 {
@@ -93,11 +98,6 @@ static const char *const g_apszGitsDiagDesc[] =
 };
 AssertCompile(RT_ELEMENTS(g_apszGitsDiagDesc) == kGitsDiag_End);
 #undef GITSDIAG_DESC
-
-
-/*********************************************************************************************************************************
-*   Global Variables                                                                                                             *
-*********************************************************************************************************************************/
 
 
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE
@@ -419,6 +419,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     pGitsDev->uCmdBaseReg.u      = 0;
     pGitsDev->uCmdReadReg        = 0;
     pGitsDev->uCmdWriteReg       = 0;
+    RT_ZERO(pGitsDev->auCt);
 }
 
 
@@ -570,11 +571,26 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         case GITS_CMD_ID_MAPC:
                         {
                             Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA)); /* GITS_TYPER is read-only */
-                            /** @todo Implementing me. Figure out interrupt collection, HCC etc. */
-                            //uint64_t const uDw2 = pCmd->au64[2].u;
-                            //bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
-                            //uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
-                            //uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
+                            uint64_t const uDw2 = pCmd->au64[2].u;
+                            bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
+                            uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
+                            uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
+
+                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCt));
+                            pGitsDev->auCt[uIntrCollectionId].fValid      = fValid;
+                            pGitsDev->auCt[uIntrCollectionId].idTargetCpu = uTargetCpuId;
+                            break;
+                        }
+
+                        case GITS_CMD_ID_SYNC:
+                        {
+                            /* Nothing to do since all previous commands have committed their changes to device state. */
+                            break;
+                        }
+
+                        case GITS_CMD_ID_INVALL:
+                        {
+                            /* Nothing to do as we currently do not cache interrupt mappings. */
                             break;
                         }
 

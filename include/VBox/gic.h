@@ -498,20 +498,21 @@
 # define GIC_REDIST_REG_TYPER_VSGI                      RT_BIT_32(26)
 # define GIC_REDIST_REG_TYPER_VSGI_BIT                  26
 /** Bit 27 - 31 - Indicates the maximum PPI INTID that a GIC implementation can support. */
-# define GIC_REDIST_REG_TYPER_PPI_NUM                  (  RT_BIT_32(27) | RT_BIT_32(28) | RT_BIT_32(29) \
-                                                        | RT_BIT_32(30) | RT_BIT_32(31))
-# define GIC_REDIST_REG_TYPER_PPI_NUM_SET(a_PpiNum)    (((a_PpiNum) << 27) & GIC_REDIST_REG_TYPER_PPI_NUM)
+# define GIC_REDIST_REG_TYPER_PPI_NUM                   (  RT_BIT_32(27) | RT_BIT_32(28) | RT_BIT_32(29) \
+                                                         | RT_BIT_32(30) | RT_BIT_32(31))
+# define GIC_REDIST_REG_TYPER_PPI_NUM_SET(a_PpiNum)     (((a_PpiNum) << 27) & GIC_REDIST_REG_TYPER_PPI_NUM)
 /** Maximum PPI INTID is 31. */
-#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_31          0
+#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_31           0
 /** Maximum PPI INTID is 1087. */
-#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087        1
+#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087         1
 /** Maximum PPI INTID is 1119. */
-#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119        2
+#  define GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119         2
+# define GIC_REDIST_REG_TYPER_CPU_NUMBER_MASK           (GIC_REDIST_REG_TYPER_CPU_NUMBER >> 8)
 
 /** Redistributor Type Register (the affinity value of the 64-bit register) - RO. */
-#define GIC_REDIST_REG_TYPER_AFFINITY_OFF              0x000c
+#define GIC_REDIST_REG_TYPER_AFFINITY_OFF               0x000c
 /** Bit 0 - 31 - The identity of the PE associated with this Redistributor. */
-# define GIC_REDIST_REG_TYPER_AFFINITY_VALUE           UINT32_C(0xffffffff)
+# define GIC_REDIST_REG_TYPER_AFFINITY_VALUE            UINT32_C(0xffffffff)
 # define GIC_REDIST_REG_TYPER_AFFINITY_VALUE_SET(a_Aff) ((a_Aff) & GIC_REDIST_REG_TYPER_AFFINITY_VALUE)
 
 

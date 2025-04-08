@@ -3031,6 +3031,13 @@ typedef struct IEM
 #if defined(VBOX_VMM_TARGET_X86)
 # define IEM_CIMPL_NEEDS_INSTR_LEN
 #endif
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_CIMPL_COMMA_EXTRA_ARGS_CALL    , cbInstr
+# define IEM_CIMPL_COMMA_EXTRA_ARGS         , uint8_t cbInstr
+#else
+# define IEM_CIMPL_COMMA_EXTRA_ARGS_CALL
+# define IEM_CIMPL_COMMA_EXTRA_ARGS
+#endif
 
 /**
  * For typedef'ing or declaring a C instruction implementation function taking
@@ -3038,13 +3045,8 @@ typedef struct IEM
  *
  * @param   a_Name              The name of the type.
  */
-#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
-# define IEM_CIMPL_DECL_TYPE_0(a_Name) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
-#else
-# define IEM_CIMPL_DECL_TYPE_0(a_Name) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
-#endif
+#define IEM_CIMPL_DECL_TYPE_0(a_Name) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS))
 
 /**
  * For defining a C instruction implementation function taking no extra
@@ -3052,23 +3054,13 @@ typedef struct IEM
  *
  * @param   a_Name              The name of the function
  */
-#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
 # define IEM_CIMPL_DEF_0(a_Name) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
-#else
-# define IEM_CIMPL_DEF_0(a_Name) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
-#endif
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS))
 /**
  * Prototype version of IEM_CIMPL_DEF_0.
  */
-#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
-# define IEM_CIMPL_PROTO_0(a_Name) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
-#else
-# define IEM_CIMPL_PROTO_0(a_Name) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
-#endif
+#define IEM_CIMPL_PROTO_0(a_Name) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS))
 /**
  * For calling a C instruction implementation function taking no extra
  * arguments.
@@ -3078,11 +3070,7 @@ typedef struct IEM
  *
  * @param   a_fn                The name of the function.
  */
-#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
-# define IEM_CIMPL_CALL_0(a_fn)            a_fn(pVCpu, cbInstr)
-#else
-# define IEM_CIMPL_CALL_0(a_fn)            a_fn(pVCpu)
-#endif
+#define IEM_CIMPL_CALL_0(a_fn)              a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL)
 
 /** Type for a C instruction implementation function taking no extra
  *  arguments. */
@@ -3099,8 +3087,8 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type0             The argument type.
  * @param   a_Arg0              The argument name.
  */
-# define IEM_CIMPL_DECL_TYPE_1(a_Name, a_Type0, a_Arg0) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0))
+#define IEM_CIMPL_DECL_TYPE_1(a_Name, a_Type0, a_Arg0) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name,(PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0))
 /**
  * For defining a C instruction implementation function taking one extra
  * argument.
@@ -3109,13 +3097,13 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type0             The argument type.
  * @param   a_Arg0              The argument name.
  */
-# define IEM_CIMPL_DEF_1(a_Name, a_Type0, a_Arg0) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0))
+#define IEM_CIMPL_DEF_1(a_Name, a_Type0, a_Arg0) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name,(PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0))
 /**
  * Prototype version of IEM_CIMPL_DEF_1.
  */
-# define IEM_CIMPL_PROTO_1(a_Name, a_Type0, a_Arg0) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0))
+#define IEM_CIMPL_PROTO_1(a_Name, a_Type0, a_Arg0) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name,(PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0))
 /**
  * For calling a C instruction implementation function taking one extra
  * argument.
@@ -3126,7 +3114,7 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_fn                The name of the function.
  * @param   a0                  The name of the 1st argument.
  */
-# define IEM_CIMPL_CALL_1(a_fn, a0)        a_fn(pVCpu, cbInstr, (a0))
+#define IEM_CIMPL_CALL_1(a_fn, a0)      a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL, (a0))
 
 /**
  * For typedef'ing or declaring a C instruction implementation function taking
@@ -3138,8 +3126,8 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type1             The type of the 2nd argument.
  * @param   a_Arg1              The name of the 2nd argument.
  */
-# define IEM_CIMPL_DECL_TYPE_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1))
+#define IEM_CIMPL_DECL_TYPE_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1))
 /**
  * For defining a C instruction implementation function taking two extra
  * arguments.
@@ -3150,13 +3138,13 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type1             The type of the 2nd argument.
  * @param   a_Arg1              The name of the 2nd argument.
  */
-# define IEM_CIMPL_DEF_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1))
+#define IEM_CIMPL_DEF_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1))
 /**
  * Prototype version of IEM_CIMPL_DEF_2.
  */
-# define IEM_CIMPL_PROTO_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1))
+#define IEM_CIMPL_PROTO_2(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1))
 /**
  * For calling a C instruction implementation function taking two extra
  * arguments.
@@ -3168,7 +3156,7 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a0                  The name of the 1st argument.
  * @param   a1                  The name of the 2nd argument.
  */
-# define IEM_CIMPL_CALL_2(a_fn, a0, a1)    a_fn(pVCpu, cbInstr, (a0), (a1))
+#define IEM_CIMPL_CALL_2(a_fn, a0, a1)  a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL, (a0), (a1))
 
 /**
  * For typedef'ing or declaring a C instruction implementation function taking
@@ -3182,8 +3170,8 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type2             The type of the 3rd argument.
  * @param   a_Arg2              The name of the 3rd argument.
  */
-# define IEM_CIMPL_DECL_TYPE_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
+#define IEM_CIMPL_DECL_TYPE_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
 /**
  * For defining a C instruction implementation function taking three extra
  * arguments.
@@ -3196,13 +3184,13 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type2             The type of the 3rd argument.
  * @param   a_Arg2              The name of the 3rd argument.
  */
-# define IEM_CIMPL_DEF_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
+#define IEM_CIMPL_DEF_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
 /**
  * Prototype version of IEM_CIMPL_DEF_3.
  */
-# define IEM_CIMPL_PROTO_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
+#define IEM_CIMPL_PROTO_3(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2))
 /**
  * For calling a C instruction implementation function taking three extra
  * arguments.
@@ -3215,7 +3203,7 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a1                  The name of the 2nd argument.
  * @param   a2                  The name of the 3rd argument.
  */
-# define IEM_CIMPL_CALL_3(a_fn, a0, a1, a2) a_fn(pVCpu, cbInstr, (a0), (a1), (a2))
+#define IEM_CIMPL_CALL_3(a_fn, a0, a1, a2) a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL, (a0), (a1), (a2))
 
 
 /**
@@ -3232,8 +3220,8 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type3             The type of the 4th argument.
  * @param   a_Arg3              The name of the 4th argument.
  */
-# define IEM_CIMPL_DECL_TYPE_4(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2, a_Type3 a_Arg3))
+#define IEM_CIMPL_DECL_TYPE_4(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2, a_Type3 a_Arg3))
 /**
  * For defining a C instruction implementation function taking four extra
  * arguments.
@@ -3248,14 +3236,14 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type3             The type of the 4th argument.
  * @param   a_Arg3              The name of the 4th argument.
  */
-# define IEM_CIMPL_DEF_4(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, \
+#define IEM_CIMPL_DEF_4(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, \
                                              a_Type2 a_Arg2, a_Type3 a_Arg3))
 /**
  * Prototype version of IEM_CIMPL_DEF_4.
  */
 # define IEM_CIMPL_PROTO_4(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, \
                                                a_Type2 a_Arg2, a_Type3 a_Arg3))
 /**
  * For calling a C instruction implementation function taking four extra
@@ -3270,7 +3258,7 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a2                  The name of the 3rd argument.
  * @param   a3                  The name of the 4th argument.
  */
-# define IEM_CIMPL_CALL_4(a_fn, a0, a1, a2, a3) a_fn(pVCpu, cbInstr, (a0), (a1), (a2), (a3))
+#define IEM_CIMPL_CALL_4(a_fn, a0, a1, a2, a3) a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL, (a0), (a1), (a2), (a3))
 
 
 /**
@@ -3289,8 +3277,8 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type4             The type of the 5th argument.
  * @param   a_Arg4              The name of the 5th argument.
  */
-# define IEM_CIMPL_DECL_TYPE_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
-    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, \
+#define IEM_CIMPL_DECL_TYPE_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, \
                                                a_Type0 a_Arg0, a_Type1 a_Arg1, a_Type2 a_Arg2, \
                                                a_Type3 a_Arg3, a_Type4 a_Arg4))
 /**
@@ -3309,14 +3297,14 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a_Type4             The type of the 5th argument.
  * @param   a_Arg4              The name of the 5th argument.
  */
-# define IEM_CIMPL_DEF_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
-    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, \
+#define IEM_CIMPL_DEF_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, \
                                              a_Type2 a_Arg2, a_Type3 a_Arg3, a_Type4 a_Arg4))
 /**
  * Prototype version of IEM_CIMPL_DEF_5.
  */
-# define IEM_CIMPL_PROTO_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
-    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr, a_Type0 a_Arg0, a_Type1 a_Arg1, \
+#define IEM_CIMPL_PROTO_5(a_Name, a_Type0, a_Arg0, a_Type1, a_Arg1, a_Type2, a_Arg2, a_Type3, a_Arg3, a_Type4, a_Arg4) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS, a_Type0 a_Arg0, a_Type1 a_Arg1, \
                                                a_Type2 a_Arg2, a_Type3 a_Arg3, a_Type4 a_Arg4))
 /**
  * For calling a C instruction implementation function taking five extra
@@ -3332,7 +3320,7 @@ typedef FNIEMCIMPL0 *PFNIEMCIMPL0;
  * @param   a3                  The name of the 4th argument.
  * @param   a4                  The name of the 5th argument.
  */
-# define IEM_CIMPL_CALL_5(a_fn, a0, a1, a2, a3, a4) a_fn(pVCpu, cbInstr, (a0), (a1), (a2), (a3), (a4))
+#define IEM_CIMPL_CALL_5(a_fn, a0, a1, a2, a3, a4) a_fn(pVCpu IEM_CIMPL_COMMA_EXTRA_ARGS_CALL, (a0), (a1), (a2), (a3), (a4))
 
 /** @}  */
 

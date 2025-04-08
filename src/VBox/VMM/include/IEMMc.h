@@ -1164,8 +1164,13 @@
  * @param   a_pfnCImpl      The pointer to the C routine.
  * @param   a0              The argument.
  */
-#define IEM_MC_CALL_CIMPL_1(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
+#ifdef IEM_GET_INSTR_LEN
+# define IEM_MC_CALL_CIMPL_1(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0))
+#else
+# define IEM_MC_CALL_CIMPL_1(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0))
+#endif
 
 /**
  * Defers the rest of the instruction emulation to a C implementation routine
@@ -1178,8 +1183,13 @@
  * @param   a0              The first extra argument.
  * @param   a1              The second extra argument.
  */
-#define IEM_MC_CALL_CIMPL_2(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_CALL_CIMPL_2(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1))
+#else
+# define IEM_MC_CALL_CIMPL_2(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1))
+#endif
 
 /**
  * Defers the rest of the instruction emulation to a C implementation routine
@@ -1193,8 +1203,13 @@
  * @param   a1              The second extra argument.
  * @param   a2              The third extra argument.
  */
-#define IEM_MC_CALL_CIMPL_3(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_CALL_CIMPL_3(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1, a2))
+#else
+# define IEM_MC_CALL_CIMPL_3(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1, a2))
+#endif
 
 /**
  * Defers the rest of the instruction emulation to a C implementation routine
@@ -1209,8 +1224,13 @@
  * @param   a2              The third extra argument.
  * @param   a3              The fourth extra argument.
  */
-#define IEM_MC_CALL_CIMPL_4(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_CALL_CIMPL_4(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1, a2, a3))
+#else
+# define IEM_MC_CALL_CIMPL_4(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1, a2, a3))
+#endif
 
 /**
  * Defers the rest of the instruction emulation to a C implementation routine
@@ -1226,8 +1246,13 @@
  * @param   a3              The fourth extra argument.
  * @param   a4              The fifth extra argument.
  */
-#define IEM_MC_CALL_CIMPL_5(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3, a4) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_CALL_CIMPL_5(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3, a4) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1, a2, a3, a4))
+#else
+# define IEM_MC_CALL_CIMPL_5(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3, a4) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1, a2, a3, a4))
+#endif
 
 /**
  * Defers the entire instruction emulation to a C implementation routine and
@@ -1261,8 +1286,13 @@
  * @param   a_pfnCImpl      The pointer to the C routine.
  * @param   a0              The argument.
  */
-#define IEM_MC_DEFER_TO_CIMPL_1_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_DEFER_TO_CIMPL_1_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0))
+#else
+# define IEM_MC_DEFER_TO_CIMPL_1_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0))
+#endif
 
 /**
  * Defers the entire instruction emulation to a C implementation routine and
@@ -1277,8 +1307,13 @@
  * @param   a0              The first extra argument.
  * @param   a1              The second extra argument.
  */
-#define IEM_MC_DEFER_TO_CIMPL_2_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_DEFER_TO_CIMPL_2_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1))
+#else
+# define IEM_MC_DEFER_TO_CIMPL_2_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1))
+#endif
 
 /**
  * Defers the entire instruction emulation to a C implementation routine and
@@ -1294,8 +1329,13 @@
  * @param   a1              The second extra argument.
  * @param   a2              The third extra argument.
  */
-#define IEM_MC_DEFER_TO_CIMPL_3_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
+# define IEM_MC_DEFER_TO_CIMPL_3_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
     IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, IEM_GET_INSTR_LEN(pVCpu), a0, a1, a2))
+#else
+# define IEM_MC_DEFER_TO_CIMPL_3_RET(a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
+    IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, (a_pfnCImpl)(pVCpu, a0, a1, a2))
+#endif
 
 
 

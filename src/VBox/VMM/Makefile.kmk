@@ -571,7 +571,8 @@ ifdef VBOX_WITH_VIRT_ARMV8
   	VMMAll/IEMAllTlb.cpp \
   	VMMAll/target-armv8/IEMAll-armv8.cpp \
   	VMMAll/target-armv8/IEMAllMem-armv8.cpp \
-  	VMMAll/target-armv8/IEMAllXcpt-armv8.cpp
+  	VMMAll/target-armv8/IEMAllXcpt-armv8.cpp \
+  	VMMAll/target-armv8/IEMAllIntprTables-armv8.cpp
  else
   VBoxVMMArm_SOURCES += VMMAll/IEMAllStub.cpp
  endif
@@ -1253,6 +1254,10 @@ $(foreach base,$(notdir $(basename $(wildcard $(PATH_SUB_CURRENT)/VMMR3/cpus/*.h
 #
 # Process python source(s).
 #
+# The code generator for ARM requires python 3.10 (int.bit_count(), ++). So,
+# we ASSUME that VBOX_BLD_PYTHON or something even more recent is used for
+# running pylint below.
+#
 BLDDIRS += $(PATH_TARGET)/pylint
 
 define def_vbox_vmm_py_check
@@ -1272,7 +1277,10 @@ define def_vbox_vmm_py_check
  TESTING += $(name)-py-phony.o
 endef # def_vbox_vmm_py_check
 
-$(foreach py, $(addprefix $(PATH_SUB_CURRENT)/VMMAll/, IEMAllInstPython.py IEMAllThrdPython.py IEMAllN8vePython.py ) \
+$(foreach py, \
+	$(addprefix $(PATH_SUB_CURRENT)/VMMAll/, IEMAllInstPython.py IEMAllThrdPython.py IEMAllN8vePython.py ) \
+	$(if-expr "$(VBOX_BLD_PYTHON_VERSION)" vge "3.8.0"  \
+		,$(PATH_SUB_CURRENT)/VMMAll/target-armv8/bsd-spec-analyze.py,) \
 , $(eval $(def_vbox_vmm_py_check)))
 
 

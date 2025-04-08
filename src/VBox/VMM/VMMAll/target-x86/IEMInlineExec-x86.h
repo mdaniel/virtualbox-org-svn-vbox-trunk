@@ -36,7 +36,7 @@
 
 
 #ifdef IEM_OPCODE_GET_FIRST_U8
-DECL_FORCE_INLINE(VBOXSTRICTRC) iemExecDecodeAndInterpretTargetInstruction(PVMCPUCC pVCpu)
+DECL_FORCE_INLINE_THROW(VBOXSTRICTRC) iemExecDecodeAndInterpretTargetInstruction(PVMCPUCC pVCpu)
 {
     uint8_t b; IEM_OPCODE_GET_FIRST_U8(&b);
     return FNIEMOP_CALL(g_apfnIemInterpretOnlyOneByteMap[b]);

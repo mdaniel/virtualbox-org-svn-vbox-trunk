@@ -3028,27 +3028,47 @@ typedef struct IEM
 /** @name C instruction implementations for anything slightly complicated.
  * @{ */
 
+#if defined(CONFIG_TARGET_X86)
+# define IEM_CIMPL_NEEDS_INSTR_LEN
+#endif
+
 /**
  * For typedef'ing or declaring a C instruction implementation function taking
  * no extra arguments.
  *
  * @param   a_Name              The name of the type.
  */
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
 # define IEM_CIMPL_DECL_TYPE_0(a_Name) \
     IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
+#else
+# define IEM_CIMPL_DECL_TYPE_0(a_Name) \
+    IEM_DECL_IMPL_TYPE(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
+#endif
+
 /**
  * For defining a C instruction implementation function taking no extra
  * arguments.
  *
  * @param   a_Name              The name of the function
  */
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
 # define IEM_CIMPL_DEF_0(a_Name) \
     IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
+#else
+# define IEM_CIMPL_DEF_0(a_Name) \
+    IEM_DECL_IMPL_DEF(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
+#endif
 /**
  * Prototype version of IEM_CIMPL_DEF_0.
  */
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
 # define IEM_CIMPL_PROTO_0(a_Name) \
     IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu, uint8_t cbInstr))
+#else
+# define IEM_CIMPL_PROTO_0(a_Name) \
+    IEM_DECL_IMPL_PROTO(VBOXSTRICTRC, a_Name, (PVMCPUCC pVCpu))
+#endif
 /**
  * For calling a C instruction implementation function taking no extra
  * arguments.
@@ -3058,7 +3078,11 @@ typedef struct IEM
  *
  * @param   a_fn                The name of the function.
  */
+#ifdef IEM_CIMPL_NEEDS_INSTR_LEN
 # define IEM_CIMPL_CALL_0(a_fn)            a_fn(pVCpu, cbInstr)
+#else
+# define IEM_CIMPL_CALL_0(a_fn)            a_fn(pVCpu)
+#endif
 
 /** Type for a C instruction implementation function taking no extra
  *  arguments. */
@@ -3352,6 +3376,9 @@ typedef VBOXSTRICTRC (__attribute__((__fastcall__)) * PFNIEMOPRM)(PVMCPUCC pVCpu
 # define FNIEMOP_DEF_2(a_Name, a_Type0, a_Name0, a_Type1, a_Name1) \
     IEM_STATIC VBOXSTRICTRC __attribute__((__fastcall__, __nothrow__)) a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1)
 
+# define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
+    typedef  VBOXSTRICTRC (__attribute__((__fastcall__, __nothrow__)) * a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0)
+
 #elif defined(_MSC_VER) && defined(RT_ARCH_X86)
 typedef VBOXSTRICTRC (__fastcall * PFNIEMOP)(PVMCPUCC pVCpu);
 typedef VBOXSTRICTRC (__fastcall * PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
@@ -3361,6 +3388,9 @@ typedef VBOXSTRICTRC (__fastcall * PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
     IEM_STATIC /*__declspec(naked)*/ VBOXSTRICTRC __fastcall a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP
 # define FNIEMOP_DEF_2(a_Name, a_Type0, a_Name0, a_Type1, a_Name1) \
     IEM_STATIC /*__declspec(naked)*/ VBOXSTRICTRC __fastcall a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1) IEM_NOEXCEPT_MAY_LONGJMP
+
+# define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
+    typedef VBOXSTRICTRC (__fastcall * a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP
 
 #elif defined(__GNUC__) && !defined(IEM_WITH_THROW_CATCH)
 typedef VBOXSTRICTRC (* PFNIEMOP)(PVMCPUCC pVCpu);
@@ -3372,6 +3402,9 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
 # define FNIEMOP_DEF_2(a_Name, a_Type0, a_Name0, a_Type1, a_Name1) \
     IEM_STATIC VBOXSTRICTRC __attribute__((__nothrow__)) a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1)
 
+# define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
+    typedef VBOXSTRICTRC (* a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0)
+
 #else
 typedef VBOXSTRICTRC (* PFNIEMOP)(PVMCPUCC pVCpu);
 typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
@@ -3382,7 +3415,13 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
 # define FNIEMOP_DEF_2(a_Name, a_Type0, a_Name0, a_Type1, a_Name1) \
     IEM_STATIC IEM_DECL_MSC_GUARD_IGNORE VBOXSTRICTRC a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1) IEM_NOEXCEPT_MAY_LONGJMP
 
+# define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
+    typedef VBOXSTRICTRC (* a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP
+
 #endif
+
+FNIEMOP_TYPE_1(PFIEMOPU32, uint32_t, u32);
+
 #define FNIEMOPRM_DEF(a_Name) FNIEMOP_DEF_1(a_Name, uint8_t, bRm)
 
 /**

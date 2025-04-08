@@ -1090,6 +1090,9 @@ class DecoderNode(object):
         15,     # [2^14 =16384] => 32768
     );
 
+    kChildMaskOpcodeValueIf          = 0x7fffffff;
+    kChildMaskMultipleOpcodeValueIfs = 0xffffffff;
+
     class TooExpensive(Exception):
         def __init__(self):
             Exception.__init__(self, None);
@@ -1145,11 +1148,14 @@ class DecoderNode(object):
             # Special case: 1 instruction - leaf.
             if cInstructions <= 1:
                 if self.aoInstructions[0].fFixedMask & ~self.fCheckedMask != 0:
+                    self.fChildMask = DecoderNode.kChildMaskOpcodeValueIf;
                     uCost = 16;                                                         # 16 = kCostOpcodeValueIf
+                else:
+                    assert self.fChildMask == 0;
 
             # Special case: 2, 3 or 4 instructions - use a sequence of 'if ((uOpcode & fFixedMask) == fFixedValue)' checks.
             else:
-                self.fChildMask = 0xffffffff;
+                self.fChildMask = DecoderNode.kChildMaskMultipleOpcodeValueIfs;
                 for i, oInstr in enumerate(self.aoInstructions):
                     self.dChildren[i] = DecoderNode([oInstr], oInstr.fFixedMask, oInstr.fFixedMask);
                 uCost = 32 * cInstructions * 2;                                         # 32 = kCostMultipleOpcodeValueIfs
@@ -1347,6 +1353,26 @@ class DecoderNode(object):
 
         return uCostBest;
 
+    def setInstrProps(self, uDepth):
+        """
+        Sets the fDecoderLeafCheckNeeded instruction property.
+        """
+        if not self.dChildren:
+            assert len(self.aoInstructions) != 1 or self.fChildMask in (0, DecoderNode.kChildMaskOpcodeValueIf);
+            assert len(self.aoInstructions) == 1 or self.fChildMask == DecoderNode.kChildMaskMultipleOpcodeValueIfs;
+            for oInstr in self.aoInstructions:
+                oInstr.fDecoderLeafCheckNeeded = self.fChildMask == DecoderNode.kChildMaskOpcodeValueIf;
+        else:
+            for oChildNode in self.dChildren.values():
+                oChildNode.setInstrProps(uDepth + 1);
+
+    def getFuncName(self, uDepth):
+        """
+        Returns the function name at the specific depth.
+        """
+        if self.dChildren or len(self.aoInstructions) > 1:
+            return 'iemDecodeA64_%08x_%08x_%u' % (self.fCheckedMask, self.fCheckedValue, uDepth,);
+        return 'iemDecodeA64_%s' % (self.aoInstructions[0].getCName(),);
 
 #
 # Generators
@@ -1366,6 +1392,9 @@ class IEMArmGenerator(object):
                                                key = operator.attrgetter('fFixedMask', 'fFixedValue', 'sName')),
                                         0, 0);
         self.oDecoderRoot.constructNextLevel(0, sys.maxsize);
+
+        # Set the fDecoderLeafCheckNeeded property of the instructions.
+        self.oDecoderRoot.setInstrProps(0);
 
 
     def generateLicenseHeader(self):
@@ -1430,38 +1459,131 @@ class IEMArmGenerator(object):
             asLines.extend([
                 '',
                 '/* %08x/%08x: %s */' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.sAsmDisplay,),
-                'FNIEMOP_DEF_1(iemDecode_%s, uint32_t, uOpcode)' % (sCName,),
+                'FNIEMOP_DEF_1(iemDecodeA64_%s, uint32_t, uOpcode)' % (sCName,),
                 '{',
             ]);
 
             # The final decoding step, if needed.
+            sIndent = '';
+            asTail  = [];
             if oInstr.fDecoderLeafCheckNeeded:
                 asLines.extend([
-                    '    if ((uOpcode & %#x) == %#x) { /* likely */ }' % (oInstr.fFixedMask, oInstr.fFixedValue,),
-                    '    else',
+                    '    if ((uOpcode & %#x) == %#x)' % (oInstr.fFixedMask, oInstr.fFixedValue,),
                     '    {',
-                    '        LogFlow(("Invalid instruction %%#x at %%x\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
-                    '        return IEMOP_RAISE_INVALID_OPCODE_RET();',
-                    '    }',
                 ]);
+                asTail = [
+                    '    }',
+                    '',  # ASSUMES if condition
+                    '    LogFlow(("Invalid instruction %%#x at %%x\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
+                    '    return IEMOP_RAISE_INVALID_OPCODE_RET();',
+                ];
 
             # Decode the fields and prepare for passing them as arguments.
             asArgs  = [];
             sLogFmt = '';
             ## @todo Most of this should be done kept in the instruction.
 
+            ## @todo check for feature and such as specified in the conditions.
             asLines.extend([
-                '    LogFlow(("%s%s\\n"%s));' % (sCName, sLogFmt, ', '.join(asArgs),),
-                '#ifdef HAS_IMPL_%s' % (sCName,),
-                '    return iemImpl_%s(%s);' % (sCName, ', '.join(asArgs),),
-                '#else',
-                '    RT_NOREF(%s);' % (', '.join(asArgs) if asArgs else 'uOpcode') ,
-                '    return VERR_IEM_INSTR_NOT_IMPLEMENTED;',
-                '#endif',
-                '}',
+                '%s    LogFlow(("%s%s\\n"%s));' % (sIndent, sCName, sLogFmt, ', '.join(asArgs),),
+                '%s#ifdef HAS_IMPL_%s' % (sIndent, sCName,),
+                '%s    return iemImpl_%s(%s);' % (sIndent, sCName, ', '.join(asArgs),),
+                '%s#else' % (sIndent,),
+                '%s    RT_NOREF(%s);' % (sIndent, ', '.join(asArgs) if asArgs else 'uOpcode') ,
+                '%s    return VERR_IEM_INSTR_NOT_IMPLEMENTED;' % (sIndent,),
+                '%s#endif' % (sIndent,),
+                '%s}' % (sIndent),
             ]);
+            asLines.extend(asTail);
         return asLines;
 
+    def generateDecoderCodeMultiIfFunc(self, oNode, uDepth):
+        """
+        Handles a leaf node.
+        """
+        assert not oNode.dChildren;
+
+        asLines = [
+            '',
+            '/* %08x/%08x level %u */' % (oNode.fCheckedMask, oNode.fCheckedValue, uDepth,),
+            'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(uDepth),),
+            '{',
+        ];
+        ## @todo check if the masks are restricted to a few bit differences at
+        ## this point and we can skip the iemDecodeA64_Invalid call.
+        for oInstr in oNode.aoInstructions:
+            asLines += [
+                '    if ((uOpcode & %#010x) == %#010x)' % (oInstr.fFixedMask, oInstr.fFixedValue,),
+                '        return iemDecodeA64_%s(pVCpu, uOpcode);' % (oInstr.getCName(),),
+            ];
+        asLines += [
+            '    return iemDecodeA64_Invalid(uOpcode);',
+            '}',
+        ];
+        return asLines;
+
+    def generateDecoderCode(self, oNode, uDepth):
+        """
+        Recursively generates the decoder code.
+        """
+        assert oNode.fChildMask != 0 and oNode.fChildMask < (1 << 24), \
+            'fChildMask=%s #dChildren=%s aoInstr=%s' % (oNode.fChildMask, len(oNode.dChildren), oNode.aoInstructions,);
+        asLines = [];
+
+        # First recurse.
+        for oChildNode in oNode.dChildren.values():
+            if oChildNode.fChildMask == DecoderNode.kChildMaskMultipleOpcodeValueIfs:
+                asLines += self.generateDecoderCodeMultiIfFunc(oChildNode, uDepth + 1);
+            elif oChildNode.fChildMask != DecoderNode.kChildMaskOpcodeValueIf:
+                assert oChildNode.dChildren;
+                asLines += self.generateDecoderCode(oChildNode, uDepth + 1);
+            else:
+                assert not oChildNode.dChildren;
+
+        # Generate the function.
+        ## @todo add some table stats here.
+        asLines += [
+            '',
+            '/* %08x/%08x level %u */' % (oNode.fCheckedMask, oNode.fCheckedValue, uDepth,),
+            'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(uDepth),),
+            '{',
+            '    static PFIEMOPU32 const s_apfn[] = ',
+            '    {',
+        ];
+
+        idxPrev = -1;
+        for idx, oChildNode in oNode.dChildren.items():
+            idxPrev += 1;
+            while idxPrev < idx:
+                asLines.append('        iemDecodeA64_Invalid,');
+                idxPrev += 1;
+            asLines.append('        %s,' % (oChildNode.getFuncName(uDepth + 1),));
+
+        asLines += [
+            '    };',
+            '    AssertCompile(RT_ELEMENTS(s_apfn) == %#x);' % (1 << oNode.fChildMask.bit_count()),
+            '',
+        ];
+
+        # Extract the index from uOpcode.
+        aaiAlgo = MaskZipper.compileAlgo(oNode.fChildMask);
+        assert aaiAlgo, 'fChildMask=%s #children=%s instrs=%s' % (oNode.fChildMask, len(oNode.dChildren), oNode.aoInstructions,);
+        asIdx = [
+            '    uintptr_t const idx = ((uOpcode >> %2u) & %#010x) /* bit %u L %u -> 0 */'
+            % (aaiAlgo[0][0], aaiAlgo[0][2], aaiAlgo[0][0], aaiAlgo[0][2].bit_count(), ),
+        ];
+        for iSrcBit, iDstBit, fMask in aaiAlgo[1:]:
+            asIdx.append('                        | ((uOpcode >> %2u) & %#010x) /* bit %u L %u -> %u */'
+                         % (iSrcBit - iDstBit, fMask << iDstBit, iSrcBit, fMask.bit_count(), iDstBit));
+        asIdx[-1] += ';';
+        asLines += asIdx;
+
+        # Make the call and complete the function.
+        asLines += [
+            '    return s_apfn[idx](pVCpu, uOpcode);',
+            '}'
+        ];
+        return asLines;
 
     def generateDecoderCpp(self, iPartNo):
         """ Generates the decoder data & code. """
@@ -1480,6 +1602,10 @@ class IEMArmGenerator(object):
 
 
         asLines += self.generateDecoderFunctions();
+
+        assert self.oDecoderRoot.dChildren;
+        asLines += self.generateDecoderCode(self.oDecoderRoot, 0);
+
 
         return (True, asLines);
 

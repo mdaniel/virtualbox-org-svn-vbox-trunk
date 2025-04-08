@@ -216,9 +216,19 @@ RT_C_DECLS_BEGIN
  * @see https://developercommunity.visualstudio.com/t/fragile-behavior-of-longjmp-called-from-noexcept-f/1532859
  */
 #if defined(_MSC_VER) || defined(IEM_WITH_THROW_CATCH)
-# define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT_EX(false)
+# define IEM_NOEXCEPT_MAY_LONGJMP           RT_NOEXCEPT_EX(false)
+# if RT_CPLUSPLUS_PREREQ(201700)
+#  define IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF  RT_NOEXCEPT_EX(false)
+# else
+#  define IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF  RT_NOEXCEPT_EX(false)
+# endif
 #else
-# define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT
+# define IEM_NOEXCEPT_MAY_LONGJMP           RT_NOEXCEPT
+# if RT_CPLUSPLUS_PREREQ(201700)
+#  define IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF  RT_NOEXCEPT
+# else
+#  define IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF
+# endif
 #endif
 /* ASM-NOINC-END */
 
@@ -3378,7 +3388,7 @@ typedef VBOXSTRICTRC (__fastcall * PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
     IEM_STATIC /*__declspec(naked)*/ VBOXSTRICTRC __fastcall a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1) IEM_NOEXCEPT_MAY_LONGJMP
 
 # define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
-    typedef VBOXSTRICTRC (__fastcall * a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP
+    typedef VBOXSTRICTRC (__fastcall * a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF
 
 #elif defined(__GNUC__) && !defined(IEM_WITH_THROW_CATCH)
 typedef VBOXSTRICTRC (* PFNIEMOP)(PVMCPUCC pVCpu);
@@ -3404,7 +3414,7 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPUCC pVCpu, uint8_t bRm);
     IEM_STATIC IEM_DECL_MSC_GUARD_IGNORE VBOXSTRICTRC a_Name(PVMCPUCC pVCpu, a_Type0 a_Name0, a_Type1 a_Name1) IEM_NOEXCEPT_MAY_LONGJMP
 
 # define FNIEMOP_TYPE_1(a_TypeName, a_Type0, a_Name0) \
-    typedef VBOXSTRICTRC (* a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP
+    typedef VBOXSTRICTRC (* a_TypeName)(PVMCPUCC pVCpu, a_Type0 a_Name0) IEM_NOEXCEPT_MAY_LONGJMP_TYPEDEF
 
 #endif
 

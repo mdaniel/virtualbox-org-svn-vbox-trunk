@@ -1632,7 +1632,7 @@ void VBoxUsbFltProxyStopped(HVBOXUSBFLTDEV hDev)
     if (pDevice->enmState == VBOXUSBFLT_DEVSTATE_CAPTURED
             || pDevice->enmState == VBOXUSBFLT_DEVSTATE_USED_BY_GUEST)
     {
-        /* this is due to devie was physically removed */
+        /* this is due to the device being physically removed */
         LOG(("The proxy notified proxy stop for the captured device 0x%p, current state %d", pDevice, pDevice->enmState));
         pDevice->enmState = VBOXUSBFLT_DEVSTATE_CAPTURING;
     }

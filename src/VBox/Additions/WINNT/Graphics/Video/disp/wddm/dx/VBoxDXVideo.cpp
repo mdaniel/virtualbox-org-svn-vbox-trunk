@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2023-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2023-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,70 +41,37 @@
 
 static void vboxDXDestroyVideoDeviceAllocation(PVBOXDX_DEVICE pDevice)
 {
-    if (pDevice->VideoDevice.hAllocation)
+    if (pDevice->VideoDevice.pKMResource)
     {
-        D3DDDICB_DEALLOCATE ddiDeallocate;
-        RT_ZERO(ddiDeallocate);
-        ddiDeallocate.NumAllocations = 1;
-        ddiDeallocate.HandleList     = &pDevice->VideoDevice.hAllocation;
-
-        HRESULT hr = pDevice->pRTCallbacks->pfnDeallocateCb(pDevice->hRTDevice.handle, &ddiDeallocate);
-        LogFlowFunc(("pfnDeallocateCb returned %d", hr));
-        AssertStmt(SUCCEEDED(hr), vboxDXDeviceSetError(pDevice, hr));
-
-        pDevice->VideoDevice.hAllocation = 0;
-        pDevice->VideoDevice.cbAllocation = 0;
+        RTListNodeRemove(&pDevice->VideoDevice.pKMResource->nodeResource);
+        vboxDXDeallocateKMResource(pDevice, pDevice->VideoDevice.pKMResource);
+        pDevice->VideoDevice.pKMResource = 0;
     }
+}
+
+
+static void videoDeviceAllocationDesc(VBOXDXALLOCATIONDESC *pDesc, void const *pvInitData)
+{
+    pDesc->enmAllocationType = VBOXDXALLOCATIONTYPE_CO; /* Context Object allocation. */
+    pDesc->cbAllocation      = *(uint32_t *)pvInitData;
 }
 
 
 static bool vboxDXCreateVideoDeviceAllocation(PVBOXDX_DEVICE pDevice, uint32_t cbAllocation)
 {
-    VBOXDXALLOCATIONDESC desc;
-    RT_ZERO(desc);
-    desc.enmAllocationType = VBOXDXALLOCATIONTYPE_CO; /* Context Object allocation. */
-    desc.cbAllocation      = cbAllocation;
+    pDevice->VideoDevice.pKMResource = vboxDXAllocateKMResource(pDevice, 0, videoDeviceAllocationDesc,
+                                                                &cbAllocation, true);
+    if (!pDevice->VideoDevice.pKMResource)
+        return false;
 
-    D3DDDI_ALLOCATIONINFO2 ddiAllocationInfo;
-    RT_ZERO(ddiAllocationInfo);
-    ddiAllocationInfo.pPrivateDriverData    = &desc;
-    ddiAllocationInfo.PrivateDriverDataSize = sizeof(desc);
-
-    D3DDDICB_ALLOCATE ddiAllocate;
-    RT_ZERO(ddiAllocate);
-    ddiAllocate.NumAllocations   = 1;
-    ddiAllocate.pAllocationInfo2 = &ddiAllocationInfo;
-
-    HRESULT hr = pDevice->pRTCallbacks->pfnAllocateCb(pDevice->hRTDevice.handle, &ddiAllocate);
-    LogFlowFunc(("pfnAllocateCb returned %d, hKMResource 0x%X, hAllocation 0x%X", hr, ddiAllocate.hKMResource, ddiAllocationInfo.hAllocation));
-    AssertReturnStmt(SUCCEEDED(hr), vboxDXDeviceSetError(pDevice, hr), false);
-
-    pDevice->VideoDevice.hAllocation = ddiAllocationInfo.hAllocation;
-    pDevice->VideoDevice.cbAllocation = cbAllocation;
-
-    D3DDDICB_LOCK ddiLock;
-    RT_ZERO(ddiLock);
-    ddiLock.hAllocation = ddiAllocationInfo.hAllocation;
-    ddiLock.Flags.WriteOnly = 1;
-    hr = pDevice->pRTCallbacks->pfnLockCb(pDevice->hRTDevice.handle, &ddiLock);
-    if (SUCCEEDED(hr))
-    {
-        memset(ddiLock.pData, 0, cbAllocation);
-
-        D3DDDICB_UNLOCK ddiUnlock;
-        ddiUnlock.NumAllocations = 1;
-        ddiUnlock.phAllocations = &ddiAllocationInfo.hAllocation;
-        hr = pDevice->pRTCallbacks->pfnUnlockCb(pDevice->hRTDevice.handle, &ddiUnlock);
-    }
-    AssertReturnStmt(SUCCEEDED(hr),
-                     vboxDXDestroyVideoDeviceAllocation(pDevice); vboxDXDeviceSetError(pDevice, hr), false);
+    RTListAppend(&pDevice->listResources, &pDevice->VideoDevice.pKMResource->nodeResource);
     return true;
 }
 
 
 static bool vboxDXEnsureVideoDeviceAllocation(PVBOXDX_DEVICE pDevice)
 {
-    if (!pDevice->VideoDevice.hAllocation)
+    if (!pDevice->VideoDevice.pKMResource)
         return vboxDXCreateVideoDeviceAllocation(pDevice, _64K);
     return true;
 }
@@ -119,14 +86,14 @@ static void vboxDXQueryVideoCapability(PVBOXDX_DEVICE pDevice, VBSVGA3dVideoCapa
         return;
 
     uint32 const offsetInBytes = 0;
-    uint32 const sizeInBytes = pDevice->VideoDevice.cbAllocation - offsetInBytes;
+    uint32 const sizeInBytes = pDevice->VideoDevice.pKMResource->AllocationDesc.cbAllocation - offsetInBytes;
     AssertReturnVoid(cbDataIn <= sizeInBytes - RT_UOFFSETOF(VBSVGA3dVideoCapabilityMobLayout, data));
 
     if (cbDataIn)
     {
         D3DDDICB_LOCK ddiLock;
         RT_ZERO(ddiLock);
-        ddiLock.hAllocation = pDevice->VideoDevice.hAllocation;
+        ddiLock.hAllocation = vboxDXGetAllocation(pDevice->VideoDevice.pKMResource);
         ddiLock.Flags.ReadOnly = 1;
         HRESULT hr = pDevice->pRTCallbacks->pfnLockCb(pDevice->hRTDevice.handle, &ddiLock);
         if (SUCCEEDED(hr))
@@ -136,14 +103,14 @@ static void vboxDXQueryVideoCapability(PVBOXDX_DEVICE pDevice, VBSVGA3dVideoCapa
 
             D3DDDICB_UNLOCK ddiUnlock;
             ddiUnlock.NumAllocations = 1;
-            ddiUnlock.phAllocations = &pDevice->VideoDevice.hAllocation;
+            ddiUnlock.phAllocations = &ddiLock.hAllocation;
             hr = pDevice->pRTCallbacks->pfnUnlockCb(pDevice->hRTDevice.handle, &ddiUnlock);
         }
         AssertReturnVoidStmt(SUCCEEDED(hr), vboxDXDeviceSetError(pDevice, hr));
     }
 
     uint64_t const fenceValue = ASMAtomicIncU64(&pDevice->VideoDevice.u64MobFenceValue);
-    vgpu10GetVideoCapability(pDevice, cap, pDevice->VideoDevice.hAllocation, offsetInBytes, sizeInBytes, fenceValue);
+    vgpu10GetVideoCapability(pDevice, cap, pDevice->VideoDevice.pKMResource, offsetInBytes, sizeInBytes, fenceValue);
     vboxDXDeviceFlushCommands(pDevice);
 
     /** @todo Time limit? */
@@ -154,7 +121,7 @@ static void vboxDXQueryVideoCapability(PVBOXDX_DEVICE pDevice, VBSVGA3dVideoCapa
 
         D3DDDICB_LOCK ddiLock;
         RT_ZERO(ddiLock);
-        ddiLock.hAllocation = pDevice->VideoDevice.hAllocation;
+        ddiLock.hAllocation = vboxDXGetAllocation(pDevice->VideoDevice.pKMResource);
         ddiLock.Flags.ReadOnly = 1;
         HRESULT hr = pDevice->pRTCallbacks->pfnLockCb(pDevice->hRTDevice.handle, &ddiLock);
         if (SUCCEEDED(hr))
@@ -180,7 +147,7 @@ static void vboxDXQueryVideoCapability(PVBOXDX_DEVICE pDevice, VBSVGA3dVideoCapa
 
             D3DDDICB_UNLOCK ddiUnlock;
             ddiUnlock.NumAllocations = 1;
-            ddiUnlock.phAllocations = &pDevice->VideoDevice.hAllocation;
+            ddiUnlock.phAllocations = &ddiLock.hAllocation;
             hr = pDevice->pRTCallbacks->pfnUnlockCb(pDevice->hRTDevice.handle, &ddiUnlock);
         }
         AssertReturnVoidStmt(SUCCEEDED(hr), vboxDXDeviceSetError(pDevice, hr));
@@ -497,7 +464,7 @@ HRESULT vboxDXCreateVideoDecoderOutputView(PVBOXDX_DEVICE pDevice, PVBOXDXVIDEOD
     pDesc->Texture2D.ArraySlice = FirstArraySlice;
 
     vgpu10DefineVideoDecoderOutputView(pDevice, pVideoDecoderOutputView->uVideoDecoderOutputViewId,
-                                       vboxDXGetAllocation(pVideoDecoderOutputView->pResource),
+                                       vboxDXGetKMResource(pVideoDecoderOutputView->pResource),
                                        pVideoDecoderOutputView->svga.desc);
 
     pVideoDecoderOutputView->fDefined = true;
@@ -554,19 +521,19 @@ HRESULT vboxDXVideoDecoderBeginFrame(PVBOXDX_DEVICE pDevice, PVBOXDXVIDEODECODER
 HRESULT vboxDXVideoDecoderSubmitBuffers(PVBOXDX_DEVICE pDevice, PVBOXDXVIDEODECODER pVideoDecoder,
                                         UINT BufferCount, D3D11_1DDI_VIDEO_DECODER_BUFFER_DESC const *pBufferDesc)
 {
-    void *pvTmpBuffer = RTMemTmpAlloc(BufferCount * (sizeof(D3DKMT_HANDLE) + sizeof(VBSVGA3dVideoDecoderBufferDesc)));
+    void *pvTmpBuffer = RTMemTmpAlloc(BufferCount * (sizeof(PVBOXDXKMRESOURCE) + sizeof(VBSVGA3dVideoDecoderBufferDesc)));
     if (!pvTmpBuffer)
         return E_OUTOFMEMORY;
 
-    D3DKMT_HANDLE *pahAllocation = (D3DKMT_HANDLE *)pvTmpBuffer;
-    VBSVGA3dVideoDecoderBufferDesc *paBD = (VBSVGA3dVideoDecoderBufferDesc *)((uint8_t *)pvTmpBuffer + BufferCount * sizeof(D3DKMT_HANDLE));
+    PVBOXDXKMRESOURCE *papKMResource = (PVBOXDXKMRESOURCE *)pvTmpBuffer;
+    VBSVGA3dVideoDecoderBufferDesc *paBD = (VBSVGA3dVideoDecoderBufferDesc *)((uint8_t *)pvTmpBuffer + BufferCount * sizeof(PVBOXDXKMRESOURCE));
 
     for (UINT i = 0; i < BufferCount; ++i)
     {
         D3D11_1DDI_VIDEO_DECODER_BUFFER_DESC const *s = &pBufferDesc[i];
 
         PVBOXDX_RESOURCE pBuffer = (PVBOXDX_RESOURCE)s->hResource.pDrvPrivate;
-        pahAllocation[i] = vboxDXGetAllocation(pBuffer);
+        papKMResource[i] = vboxDXGetKMResource(pBuffer);
 
         VBSVGA3dVideoDecoderBufferDesc *d = &paBD[i];
         d->sidBuffer      = SVGA3D_INVALID_ID;
@@ -600,7 +567,7 @@ HRESULT vboxDXVideoDecoderSubmitBuffers(PVBOXDX_DEVICE pDevice, PVBOXDXVIDEODECO
         d->numMBsInBuffer = s->NumMBsInBuffer;
     }
 
-    vgpu10VideoDecoderSubmitBuffers(pDevice, pVideoDecoder->uVideoDecoderId, BufferCount, pahAllocation, paBD);
+    vgpu10VideoDecoderSubmitBuffers(pDevice, pVideoDecoder->uVideoDecoderId, BufferCount, papKMResource, paBD);
     RTMemTmpFree(pvTmpBuffer);
     return S_OK;
 }
@@ -634,7 +601,7 @@ HRESULT vboxDXCreateVideoProcessorInputView(PVBOXDX_DEVICE pDevice, PVBOXDXVIDEO
     pDesc->Texture2D.ArraySlice = FirstArraySlice;
 
     vgpu10DefineVideoProcessorInputView(pDevice, pVideoProcessorInputView->uVideoProcessorInputViewId,
-                                        vboxDXGetAllocation(pVideoProcessorInputView->pResource),
+                                        vboxDXGetKMResource(pVideoProcessorInputView->pResource),
                                         pVideoProcessorInputView->svga.ContentDesc, *pDesc);
 
     pVideoProcessorInputView->fDefined = true;
@@ -669,7 +636,7 @@ HRESULT vboxDXCreateVideoProcessorOutputView(PVBOXDX_DEVICE pDevice, PVBOXDXVIDE
     }
 
     vgpu10DefineVideoProcessorOutputView(pDevice, pVideoProcessorOutputView->uVideoProcessorOutputViewId,
-                                         vboxDXGetAllocation(pVideoProcessorOutputView->pResource),
+                                         vboxDXGetKMResource(pVideoProcessorOutputView->pResource),
                                          pVideoProcessorOutputView->svga.ContentDesc, *pDesc);
 
     pVideoProcessorOutputView->fDefined = true;

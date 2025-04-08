@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -116,17 +116,40 @@ typedef struct VBOXDXELEMENTLAYOUT
 } VBOXDXELEMENTLAYOUT, *PVBOXDXELEMENTLAYOUT;
 
 /*
- * A Context Object Allocation holds up to VBOXDX_COALLOCATION_MAX_OBJECTS objects (queries, etc)
+ * A Context Object Allocation (COA) holds up to VBOXDX_COALLOCATION_MAX_OBJECTS objects (queries, etc)
  */
 #define VBOXDX_COALLOCATION_MAX_OBJECTS (64)                /* Use a 64 bit field as free bitmap. */
-typedef struct VBOXDXCOALLOCATION                           /* Allocation for context objects (query, etc). */
+
+/*
+ * This structure is allocated by the driver. It is used for accounting of allocations
+ * and for storing information which might be needed after the resource is destroyed by D3D runtime.
+ * KM stands for Kernel Mode.
+ */
+typedef struct VBOXDXKMRESOURCE
 {
-    RTLISTNODE                  nodeAllocationsChain;       /* Allocations can be chained. */
-    D3DKMT_HANDLE               hCOAllocation;              /* Allocation handle. */
-    uint32_t                    cbAllocation;               /* Size of this allocation. */
-    uint64_t                    u64Bitmap;                  /* Bitmap of allocated blocks. */
-    uint32_t                    aOffset[VBOXDX_COALLOCATION_MAX_OBJECTS]; /* Start offsets of blocks. */
-} VBOXDXCOALLOCATION, *PVBOXDXCOALLOCATION;
+    RTLISTNODE                     nodeResource;            /* VBOXDX_DEVICE::listResources, listDestroyedResources. */
+    D3DKMT_HANDLE                  hAllocation;
+    struct
+    {
+        uint32_t                   fOpened : 1;
+        uint32_t                   fReserved : 31;
+    } flags;
+    VBOXDXALLOCATIONDESC           AllocationDesc;
+    union
+    {
+        struct /* D3D resource */
+        {
+            struct VBOXDX_RESOURCE *pResource;              /* The structure allocated by D3D runtime. */
+            RTLISTNODE             nodeStaging;             /* VBOXDX_DEVICE::listStagingResources if this resource is a staging buffer. */
+        } resource;
+        struct /* Context object allocation */
+        {
+            RTLISTNODE             nodeAllocationsChain;    /* CO allocations can be chained. */
+            uint64_t               u64Bitmap;               /* Bitmap of allocated blocks. */
+            uint32_t               aOffset[VBOXDX_COALLOCATION_MAX_OBJECTS]; /* Start offsets of blocks. */
+        } co;
+    };
+} VBOXDXKMRESOURCE, *PVBOXDXKMRESOURCE;
 
 typedef struct VBOXDXSHADER
 {
@@ -148,7 +171,7 @@ typedef struct VBOXDXSHADER
         uint32_t                uStreamOutputId;            /* Id of the stream output. */
         uint32_t                offStreamOutputDecls;       /* Offset of the declarations in the CO allocation. */
         uint32_t                cbOutputStreamDecls;
-        PVBOXDXCOALLOCATION     pCOAllocation;
+        PVBOXDXKMRESOURCE       pCOAllocation;
     } gs;                                                   /* For GS. */
     /* shader bytecode */
     /* shader signatures */
@@ -178,32 +201,17 @@ typedef struct VBOXDXQUERY
     VBOXDXQUERYSTATE            enmQueryState;
     uint32_t                    uQueryId;
     uint32_t                    offQuery;                   /* Offset of the query in the query allocation. */
-    PVBOXDXCOALLOCATION         pCOAllocation;
+    PVBOXDXKMRESOURCE           pCOAllocation;
     uint64_t u64Value;
     /* Result for queries in SIGNALED state. */
 } VBOXDXQUERY, *PVBOXDXQUERY;
 
-/*
- * This structure is allocated by the driver. It is used for accounting of resources
- * and for storing information which might be needed after the resource is destroyed by runtime.
- * KM stands for Kernel Mode.
- */
-typedef struct VBOXDXKMRESOURCE
-{
-    RTLISTNODE                  nodeResource;               /* VBOXDX_DEVICE::listResources, listDestroyedResources. */
-    struct VBOXDX_RESOURCE     *pResource;                  /* The structure allocated by D3D runtime. */
-    D3DKMT_HANDLE               hAllocation;
-    RTLISTNODE                  nodeStaging;                /* VBOXDX_DEVICE::listStagingResources if this resource is a staging buffer. */
-} VBOXDXKMRESOURCE, *PVBOXDXKMRESOURCE;
-
 typedef struct VBOXDX_RESOURCE
 {
     PVBOXDXKMRESOURCE              pKMResource;
-    //RTLISTNODE                     nodeResource;            /* VBOXDX_DEVICE::listResources. */
     D3D10DDI_HRTRESOURCE           hRTResource;
     D3D10DDIRESOURCE_TYPE          ResourceDimension;
     D3D10_DDI_RESOURCE_USAGE       Usage;
-    VBOXDXALLOCATIONDESC           AllocationDesc;
     UINT                           cSubresources;
     union
     {
@@ -580,19 +588,18 @@ typedef struct VBOXDX_DEVICE
     RTLISTANCHOR                listStagingResources;       /* List of staging resources for uploads. */
 
     /* Shaders */
-    D3DKMT_HANDLE               hShaderAllocation;          /* Shader allocation for this context. */
-    uint32_t                    cbShaderAllocation;         /* Size of the shader's allocation: SVGA3D_MAX_SHADER_MEMORY_BYTES. */
+    PVBOXDXKMRESOURCE           pShadersKMResource;         /* Shader's allocation: SVGA3D_MAX_SHADER_MEMORY_BYTES. */
     uint32_t                    cbShaderAvailable;          /* How many bytes is free in the shader's allocation. */
     uint32_t                    offShaderFree;              /* Offset of the next free byte in the shader's allocation. */
     RTLISTANCHOR                listShaders;                /* All shaders of this device, to be able to repack them in the shaders allocation. */
 
     /* Queries */
     RTLISTANCHOR                listQueries;                /* All queries of this device, to be able to repack them in the allocation. */
-    RTLISTANCHOR                listCOAQuery;               /* List of VBOXDXCOALLOCATION for all query types. */
+    RTLISTANCHOR                listCOAQuery;               /* List of COA VBOXDXKMRESOURCEs for all query types. */
     uint64_t volatile           u64MobFenceValue;
 
     /* Stream output declarations */
-    RTLISTANCHOR                listCOAStreamOutput;        /* List of VBOXDXCOALLOCATION for stream output declarations. */
+    RTLISTANCHOR                listCOAStreamOutput;        /* List of COA VBOXDXKMRESOURCEs for stream output declarations. */
 
     /* Pipeline state. */
     struct
@@ -613,8 +620,7 @@ typedef struct VBOXDX_DEVICE
     /* Video decoding and processing. */
     struct
     {
-        D3DKMT_HANDLE           hAllocation;                /* For querying capabilities of the host device. */
-        uint32_t                cbAllocation;
+        PVBOXDXKMRESOURCE       pKMResource;                /* For querying capabilities of the host device. */
         uint64_t volatile       u64MobFenceValue;           /* Fence value for host queries. */
 
         bool                    fDecodeProfilesQueried;
@@ -644,12 +650,18 @@ HRESULT vboxDXDeviceFlushCommands(PVBOXDX_DEVICE pDevice);
 void *vboxDXCommandBufferReserve(PVBOXDX_DEVICE pDevice, SVGAFifo3dCmdId enmCmd, uint32_t cbCmd, uint32_t cPatchLocations = 0);
 void vboxDXCommandBufferCommit(PVBOXDX_DEVICE pDevice);
 
-void vboxDXStorePatchLocation(PVBOXDX_DEVICE pDevice, void *pvPatch, VBOXDXALLOCATIONTYPE enmAllocationType,
-                              D3DKMT_HANDLE hAllocation, uint32_t offAllocation, bool fWriteOperation);
+void vboxDXStorePatchLocation(PVBOXDX_DEVICE pDevice, void *pvPatch, PVBOXDXKMRESOURCE pKMResource,
+                              uint32_t offAllocation, bool fWriteOperation);
+
+typedef void FNVBOXDXINITALLOCATIONDESC(VBOXDXALLOCATIONDESC *pDesc, void const *pvInitData);
+typedef FNVBOXDXINITALLOCATIONDESC *PFNVBOXDXINITALLOCATIONDESC;
+PVBOXDXKMRESOURCE vboxDXAllocateKMResource(PVBOXDX_DEVICE pDevice, HANDLE hResource,
+                                           PFNVBOXDXINITALLOCATIONDESC pfnInitAllocationDesc,
+                                           void const *pvInitData, bool fZero);
+void vboxDXDeallocateKMResource(PVBOXDX_DEVICE pDevice, PVBOXDXKMRESOURCE pKMResource);
 
 SVGA3dSurfaceFormat vboxDXDxgiToSvgaFormat(DXGI_FORMAT enmDxgiFormat);
 
-int vboxDXInitResourceData(PVBOXDX_RESOURCE pResource, const D3D11DDIARG_CREATERESOURCE *pCreateResource);
 bool vboxDXCreateResource(PVBOXDX_DEVICE pDevice, PVBOXDX_RESOURCE pResource,
                           const D3D11DDIARG_CREATERESOURCE *pCreateResource);
 bool vboxDXOpenResource(PVBOXDX_DEVICE pDevice, PVBOXDX_RESOURCE pResource,
@@ -710,7 +722,7 @@ void vboxDXResourceUpdateSubresourceUP(PVBOXDX_DEVICE pDevice, PVBOXDX_RESOURCE 
 void vboxDXResourceMap(PVBOXDX_DEVICE pDevice, PVBOXDX_RESOURCE pResource, UINT Subresource,
                               D3D10_DDI_MAP DDIMap, UINT Flags, D3D10DDI_MAPPED_SUBRESOURCE *pMappedSubResource);
 void vboxDXResourceUnmap(PVBOXDX_DEVICE pDevice, PVBOXDX_RESOURCE pResource, UINT Subresource);
-void vboxDXSoSetTargets(PVBOXDX_DEVICE pDevice, uint32_t NumTargets, D3DKMT_HANDLE *paAllocations, uint32_t *paOffsets, uint32_t *paSizes);
+void vboxDXSoSetTargets(PVBOXDX_DEVICE pDevice, uint32_t NumTargets, PVBOXDXKMRESOURCE *papKMResources, uint32_t *paOffsets, uint32_t *paSizes);
 void vboxDXCreateShaderResourceView(PVBOXDX_DEVICE pDevice, PVBOXDXSHADERRESOURCEVIEW pShaderResourceView);
 void vboxDXGenMips(PVBOXDX_DEVICE pDevice, PVBOXDXSHADERRESOURCEVIEW pShaderResourceView);
 void vboxDXDestroyShaderResourceView(PVBOXDX_DEVICE pDevice, PVBOXDXSHADERRESOURCEVIEW pShaderResourceView);
@@ -832,9 +844,29 @@ DECLINLINE(void) vboxDXDeviceSetError(PVBOXDX_DEVICE pDevice, HRESULT hr)
     pDevice->pUMCallbacks->pfnSetErrorCb(pDevice->hRTCoreLayer, hr);
 }
 
+DECLINLINE(PVBOXDXKMRESOURCE) vboxDXGetKMResource(PVBOXDX_RESOURCE pResource)
+{
+    return pResource ? pResource->pKMResource : 0;
+}
+
+DECLINLINE(D3DKMT_HANDLE) vboxDXGetAllocation(PVBOXDXKMRESOURCE pKMResource)
+{
+    return pKMResource ? pKMResource->hAllocation : 0;
+}
+
 DECLINLINE(D3DKMT_HANDLE) vboxDXGetAllocation(PVBOXDX_RESOURCE pResource)
 {
-    return pResource ? pResource->pKMResource->hAllocation : 0;
+    return pResource ? vboxDXGetAllocation(pResource->pKMResource) : 0;
+}
+
+DECLINLINE(VBOXDXALLOCATIONDESC *) vboxDXGetAllocationDesc(PVBOXDXKMRESOURCE pKMResource)
+{
+    return pKMResource ? &pKMResource->AllocationDesc : 0;
+}
+
+DECLINLINE(VBOXDXALLOCATIONDESC *) vboxDXGetAllocationDesc(PVBOXDX_RESOURCE pResource)
+{
+    return pResource ? vboxDXGetAllocationDesc(pResource->pKMResource) : 0;
 }
 
 #endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_dx_VBoxDX_h */

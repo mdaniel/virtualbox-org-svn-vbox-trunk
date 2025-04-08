@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2022-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -655,7 +655,7 @@ int vgpu10DefineStreamOutputWithMob(PVBOXDX_DEVICE pDevice,
 
 int vgpu10BindStreamOutput(PVBOXDX_DEVICE pDevice,
                            SVGA3dStreamOutputId soid,
-                           D3DKMT_HANDLE hAllocation,
+                           PVBOXDXKMRESOURCE pKMResource,
                            uint32 offsetInBytes,
                            uint32 sizeInBytes)
 {
@@ -670,8 +670,8 @@ int vgpu10BindStreamOutput(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(offsetInBytes);
     SET_CMD_FIELD(sizeInBytes);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->mobid, VBOXDXALLOCATIONTYPE_CO,
-                             hAllocation, offsetInBytes, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->mobid, pKMResource,
+                             offsetInBytes, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -711,7 +711,7 @@ int vgpu10DestroyShader(PVBOXDX_DEVICE pDevice,
 
 int vgpu10BindShader(PVBOXDX_DEVICE pDevice,
                      uint32_t shid,
-                     D3DKMT_HANDLE hAllocation,
+                     PVBOXDXKMRESOURCE pKMResource,
                      uint32_t offsetInBytes)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_BIND_SHADER,
@@ -725,8 +725,8 @@ int vgpu10BindShader(PVBOXDX_DEVICE pDevice,
     cmd->mobid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(offsetInBytes);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->mobid, VBOXDXALLOCATIONTYPE_SHADERS,
-                             hAllocation, offsetInBytes, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->mobid, pKMResource,
+                             offsetInBytes, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -752,7 +752,7 @@ int vgpu10SetShader(PVBOXDX_DEVICE pDevice,
 int vgpu10SetVertexBuffers(PVBOXDX_DEVICE pDevice,
                            uint32_t startBuffer,
                            uint32_t numBuffers,
-                           D3DKMT_HANDLE *paAllocations,
+                           PVBOXDXKMRESOURCE *papKMResources,
                            const UINT *paStrides,
                            const UINT *paOffsets)
 {
@@ -772,8 +772,8 @@ int vgpu10SetVertexBuffers(PVBOXDX_DEVICE pDevice,
         pVertexBuffer->sid    = SVGA3D_INVALID_ID;
         pVertexBuffer->stride = paStrides[i];
         pVertexBuffer->offset = paOffsets[i];
-        vboxDXStorePatchLocation(pDevice, &pVertexBuffer->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                                 paAllocations[i], 0, false);
+        vboxDXStorePatchLocation(pDevice, &pVertexBuffer->sid, papKMResources[i],
+                                 0, false);
     }
 
     vboxDXCommandBufferCommit(pDevice);
@@ -781,7 +781,7 @@ int vgpu10SetVertexBuffers(PVBOXDX_DEVICE pDevice,
 }
 
 int vgpu10SetIndexBuffer(PVBOXDX_DEVICE pDevice,
-                         D3DKMT_HANDLE hAllocation,
+                         PVBOXDXKMRESOURCE pKMResource,
                          SVGA3dSurfaceFormat format,
                          uint32_t offset)
 {
@@ -794,8 +794,8 @@ int vgpu10SetIndexBuffer(PVBOXDX_DEVICE pDevice,
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(format);
     SET_CMD_FIELD(offset);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -803,7 +803,7 @@ int vgpu10SetIndexBuffer(PVBOXDX_DEVICE pDevice,
 
 int vgpu10SoSetTargets(PVBOXDX_DEVICE pDevice,
                        uint32_t numTargets,
-                       D3DKMT_HANDLE *paAllocations,
+                       PVBOXDXKMRESOURCE *papKMResources,
                        uint32_t *paOffsets,
                        uint32_t *paSizes)
 {
@@ -823,8 +823,8 @@ int vgpu10SoSetTargets(PVBOXDX_DEVICE pDevice,
         pSoTarget->sid         = SVGA3D_INVALID_ID;
         pSoTarget->offset      = paOffsets[i];
         pSoTarget->sizeInBytes = paSizes[i];
-        vboxDXStorePatchLocation(pDevice, &pSoTarget->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                                 paAllocations[i], 0, true);
+        vboxDXStorePatchLocation(pDevice, &pSoTarget->sid, papKMResources[i],
+                                 0, true);
     }
 
     vboxDXCommandBufferCommit(pDevice);
@@ -834,7 +834,7 @@ int vgpu10SoSetTargets(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineShaderResourceView(PVBOXDX_DEVICE pDevice,
                                    SVGA3dShaderResourceViewId shaderResourceViewId,
-                                   D3DKMT_HANDLE hAllocation,
+                                   PVBOXDXKMRESOURCE pKMResource,
                                    SVGA3dSurfaceFormat format,
                                    SVGA3dResourceType resourceDimension,
                                    SVGA3dShaderResourceViewDesc const *pDesc)
@@ -850,8 +850,8 @@ int vgpu10DefineShaderResourceView(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(format);
     SET_CMD_FIELD(resourceDimension);
     cmd->desc = *pDesc;
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -892,7 +892,7 @@ int vgpu10DestroyShaderResourceView(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineRenderTargetView(PVBOXDX_DEVICE pDevice,
                                  SVGA3dRenderTargetViewId renderTargetViewId,
-                                 D3DKMT_HANDLE hAllocation,
+                                 PVBOXDXKMRESOURCE pKMResource,
                                  SVGA3dSurfaceFormat format,
                                  SVGA3dResourceType resourceDimension,
                                  SVGA3dRenderTargetViewDesc const *pDesc)
@@ -908,8 +908,8 @@ int vgpu10DefineRenderTargetView(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(format);
     SET_CMD_FIELD(resourceDimension);
     cmd->desc = *pDesc;
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1025,7 +1025,7 @@ int vgpu10DestroyRenderTargetView(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineDepthStencilView(PVBOXDX_DEVICE pDevice,
                                  SVGA3dDepthStencilViewId depthStencilViewId,
-                                 D3DKMT_HANDLE hAllocation,
+                                 PVBOXDXKMRESOURCE pKMResource,
                                  SVGA3dSurfaceFormat format,
                                  SVGA3dResourceType resourceDimension,
                                  uint32 mipSlice,
@@ -1047,8 +1047,8 @@ int vgpu10DefineDepthStencilView(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(firstArraySlice);
     SET_CMD_FIELD(arraySize);
     SET_CMD_FIELD(flags);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1145,7 +1145,7 @@ int vgpu10SetShaderResources(PVBOXDX_DEVICE pDevice,
 int vgpu10SetSingleConstantBuffer(PVBOXDX_DEVICE pDevice,
                                   uint32 slot,
                                   SVGA3dShaderType type,
-                                  D3DKMT_HANDLE hAllocation,
+                                  PVBOXDXKMRESOURCE pKMResource,
                                   uint32 offsetInBytes,
                                   uint32 sizeInBytes)
 {
@@ -1160,8 +1160,8 @@ int vgpu10SetSingleConstantBuffer(PVBOXDX_DEVICE pDevice,
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(offsetInBytes);
     SET_CMD_FIELD(sizeInBytes);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1169,7 +1169,7 @@ int vgpu10SetSingleConstantBuffer(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10UpdateSubResource(PVBOXDX_DEVICE pDevice,
-                            D3DKMT_HANDLE hAllocation,
+                            PVBOXDXKMRESOURCE pKMResource,
                             uint32 subResource,
                             const SVGA3dBox *pBox)
 {
@@ -1182,8 +1182,8 @@ int vgpu10UpdateSubResource(PVBOXDX_DEVICE pDevice,
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(subResource);
     cmd->box = *pBox;
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1191,7 +1191,7 @@ int vgpu10UpdateSubResource(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10ReadbackSubResource(PVBOXDX_DEVICE pDevice,
-                              D3DKMT_HANDLE hAllocation,
+                              PVBOXDXKMRESOURCE pKMResource,
                               uint32 subResource)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_READBACK_SUBRESOURCE,
@@ -1206,8 +1206,8 @@ int vgpu10ReadbackSubResource(PVBOXDX_DEVICE pDevice,
     /* fWriteOperation == true should make sure that DXGK waits until the command is completed
      * before getting the allocation data in pfnLockCb.
      */
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1215,11 +1215,11 @@ int vgpu10ReadbackSubResource(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10TransferFromBuffer(PVBOXDX_DEVICE pDevice,
-                             D3DKMT_HANDLE hSrcAllocation,
+                             PVBOXDXKMRESOURCE pSrcKMResource,
                              uint32 srcOffset,
                              uint32 srcPitch,
                              uint32 srcSlicePitch,
-                             D3DKMT_HANDLE hDstAllocation,
+                             PVBOXDXKMRESOURCE pDstKMResource,
                              uint32 destSubResource,
                              SVGA3dBox const &destBox)
 {
@@ -1236,10 +1236,10 @@ int vgpu10TransferFromBuffer(PVBOXDX_DEVICE pDevice,
     cmd->destSid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(destSubResource);
     SET_CMD_FIELD(destBox);
-    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hSrcAllocation, 0, false);
-    vboxDXStorePatchLocation(pDevice, &cmd->destSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, pSrcKMResource,
+                             0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->destSid, pDstKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1247,12 +1247,12 @@ int vgpu10TransferFromBuffer(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10ResourceCopyRegion(PVBOXDX_DEVICE pDevice,
-                             D3DKMT_HANDLE hDstAllocation,
+                             PVBOXDXKMRESOURCE pDstKMResource,
                              uint32 dstSubResource,
                              uint32 dstX,
                              uint32 dstY,
                              uint32 dstZ,
-                             D3DKMT_HANDLE hSrcAllocation,
+                             PVBOXDXKMRESOURCE pSrcKMResource,
                              uint32 srcSubResource,
                              SVGA3dBox const &srcBox)
 {
@@ -1276,10 +1276,10 @@ int vgpu10ResourceCopyRegion(PVBOXDX_DEVICE pDevice,
     cmd->box.srcy = srcBox.y;
     cmd->box.srcz = srcBox.z;
 
-    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstAllocation, 0, true);
-    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hSrcAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, pDstKMResource,
+                             0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, pSrcKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1287,8 +1287,8 @@ int vgpu10ResourceCopyRegion(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10ResourceCopy(PVBOXDX_DEVICE pDevice,
-                       D3DKMT_HANDLE hDstAllocation,
-                       D3DKMT_HANDLE hSrcAllocation)
+                       PVBOXDXKMRESOURCE pDstKMResource,
+                       PVBOXDXKMRESOURCE pSrcKMResource)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_PRED_COPY,
                                              sizeof(SVGA3dCmdDXPredCopy), 2);
@@ -1299,10 +1299,10 @@ int vgpu10ResourceCopy(PVBOXDX_DEVICE pDevice,
     cmd->dstSid = SVGA3D_INVALID_ID;
     cmd->srcSid = SVGA3D_INVALID_ID;
 
-    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstAllocation, 0, true);
-    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hSrcAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, pDstKMResource,
+                             0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, pSrcKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1310,9 +1310,9 @@ int vgpu10ResourceCopy(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10ResolveCopy(PVBOXDX_DEVICE pDevice,
-                      D3DKMT_HANDLE hDstAllocation,
+                      PVBOXDXKMRESOURCE pDstKMResource,
                       uint32 dstSubResource,
-                      D3DKMT_HANDLE hSrcAllocation,
+                      PVBOXDXKMRESOURCE pSrcKMResource,
                       uint32 srcSubResource,
                       SVGA3dSurfaceFormat copyFormat)
 {
@@ -1328,10 +1328,10 @@ int vgpu10ResolveCopy(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(srcSubResource);
     SET_CMD_FIELD(copyFormat);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstAllocation, 0, true);
-    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hSrcAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, pDstKMResource,
+                             0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, pSrcKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1340,7 +1340,7 @@ int vgpu10ResolveCopy(PVBOXDX_DEVICE pDevice,
 
 int vgpu10MobFence64(PVBOXDX_DEVICE pDevice,
                      uint64 value,
-                     D3DKMT_HANDLE hAllocation,
+                     PVBOXDXKMRESOURCE pKMResource,
                      uint32 mobOffset)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_MOB_FENCE_64,
@@ -1353,8 +1353,8 @@ int vgpu10MobFence64(PVBOXDX_DEVICE pDevice,
     cmd->mobId = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(mobOffset);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->mobId, VBOXDXALLOCATIONTYPE_CO,
-                             hAllocation, mobOffset, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->mobId, pKMResource,
+                             mobOffset, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1399,7 +1399,7 @@ int vgpu10DestroyQuery(PVBOXDX_DEVICE pDevice,
 
 int vgpu10BindQuery(PVBOXDX_DEVICE pDevice,
                     SVGA3dQueryId queryId,
-                    D3DKMT_HANDLE hAllocation)
+                    PVBOXDXKMRESOURCE pKMResource)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_BIND_QUERY,
                                              sizeof(SVGA3dCmdDXBindQuery), 1);
@@ -1410,8 +1410,8 @@ int vgpu10BindQuery(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(queryId);
     cmd->mobid = SVGA3D_INVALID_ID;
 
-    vboxDXStorePatchLocation(pDevice, &cmd->mobid, VBOXDXALLOCATIONTYPE_CO,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->mobid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1504,7 +1504,7 @@ int vgpu10SetPredication(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineUAView(PVBOXDX_DEVICE pDevice,
                        SVGA3dUAViewId uaViewId,
-                       D3DKMT_HANDLE hAllocation,
+                       PVBOXDXKMRESOURCE pKMResource,
                        SVGA3dSurfaceFormat format,
                        SVGA3dResourceType resourceDimension,
                        const SVGA3dUAViewDesc &desc)
@@ -1520,8 +1520,8 @@ int vgpu10DefineUAView(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(format);
     SET_CMD_FIELD(resourceDimension);
     SET_CMD_FIELD(desc);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1665,7 +1665,7 @@ int vgpu10Dispatch(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10DispatchIndirect(PVBOXDX_DEVICE pDevice,
-                           D3DKMT_HANDLE hAllocation,
+                           PVBOXDXKMRESOURCE pKMResource,
                            uint32 byteOffsetForArgs)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_DISPATCH_INDIRECT,
@@ -1677,8 +1677,8 @@ int vgpu10DispatchIndirect(PVBOXDX_DEVICE pDevice,
     cmd->argsBufferSid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(byteOffsetForArgs);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1686,7 +1686,7 @@ int vgpu10DispatchIndirect(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10DrawIndexedInstancedIndirect(PVBOXDX_DEVICE pDevice,
-                                       D3DKMT_HANDLE hAllocation,
+                                       PVBOXDXKMRESOURCE pKMResource,
                                        uint32 byteOffsetForArgs)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_DRAW_INDEXED_INSTANCED_INDIRECT,
@@ -1698,8 +1698,8 @@ int vgpu10DrawIndexedInstancedIndirect(PVBOXDX_DEVICE pDevice,
     cmd->argsBufferSid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(byteOffsetForArgs);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1707,7 +1707,7 @@ int vgpu10DrawIndexedInstancedIndirect(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10DrawInstancedIndirect(PVBOXDX_DEVICE pDevice,
-                                D3DKMT_HANDLE hAllocation,
+                                PVBOXDXKMRESOURCE pKMResource,
                                 uint32 byteOffsetForArgs)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_DRAW_INSTANCED_INDIRECT,
@@ -1719,8 +1719,8 @@ int vgpu10DrawInstancedIndirect(PVBOXDX_DEVICE pDevice,
     cmd->argsBufferSid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(byteOffsetForArgs);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->argsBufferSid, pKMResource,
+                             0, false);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1729,7 +1729,7 @@ int vgpu10DrawInstancedIndirect(PVBOXDX_DEVICE pDevice,
 
 int vgpu10CopyStructureCount(PVBOXDX_DEVICE pDevice,
                              SVGA3dUAViewId srcUAViewId,
-                             D3DKMT_HANDLE hDstBuffer,
+                             PVBOXDXKMRESOURCE pDstKMResource,
                              uint32 destByteOffset)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, SVGA_3D_CMD_DX_COPY_STRUCTURE_COUNT,
@@ -1742,8 +1742,8 @@ int vgpu10CopyStructureCount(PVBOXDX_DEVICE pDevice,
     cmd->destSid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(destByteOffset);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->destSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstBuffer, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->destSid, pDstKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1751,9 +1751,9 @@ int vgpu10CopyStructureCount(PVBOXDX_DEVICE pDevice,
 
 
 int vgpu10PresentBlt(PVBOXDX_DEVICE pDevice,
-                     D3DKMT_HANDLE hSrcAllocation,
+                     PVBOXDXKMRESOURCE pSrcKMResource,
                      uint32 srcSubResource,
-                     D3DKMT_HANDLE hDstAllocation,
+                     PVBOXDXKMRESOURCE pDstKMResource,
                      uint32 destSubResource,
                      SVGA3dBox const &boxSrc,
                      SVGA3dBox const &boxDest,
@@ -1773,10 +1773,10 @@ int vgpu10PresentBlt(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(boxDest);
     SET_CMD_FIELD(mode);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hSrcAllocation, 0, false);
-    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hDstAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->srcSid, pSrcKMResource,
+                             0, false);
+    vboxDXStorePatchLocation(pDevice, &cmd->dstSid, pDstKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1803,7 +1803,7 @@ int vgpu10DefineVideoProcessor(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineVideoDecoderOutputView(PVBOXDX_DEVICE pDevice,
                                        VBSVGA3dVideoDecoderOutputViewId videoDecoderOutputViewId,
-                                       D3DKMT_HANDLE hAllocation,
+                                       PVBOXDXKMRESOURCE pKMResource,
                                        VBSVGA3dVDOVDesc const &desc)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, VBSVGA_3D_CMD_DX_DEFINE_VIDEO_DECODER_OUTPUT_VIEW,
@@ -1815,8 +1815,8 @@ int vgpu10DefineVideoDecoderOutputView(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(videoDecoderOutputViewId);
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(desc);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1864,7 +1864,7 @@ int vgpu10VideoDecoderBeginFrame(PVBOXDX_DEVICE pDevice,
 int vgpu10VideoDecoderSubmitBuffers(PVBOXDX_DEVICE pDevice,
                                     VBSVGA3dVideoDecoderId videoDecoderId,
                                     uint32 bufferCount,
-                                    D3DKMT_HANDLE const *pahAllocation,
+                                    PVBOXDXKMRESOURCE const *papKMResources,
                                     VBSVGA3dVideoDecoderBufferDesc const *paBufferDesc)
 {
     void *pvCmd = vboxDXCommandBufferReserve(pDevice, VBSVGA_3D_CMD_DX_VIDEO_DECODER_SUBMIT_BUFFERS,
@@ -1882,8 +1882,8 @@ int vgpu10VideoDecoderSubmitBuffers(PVBOXDX_DEVICE pDevice,
 
     for (uint32_t i = 0; i < bufferCount; ++i)
     {
-        vboxDXStorePatchLocation(pDevice, &paCmdBufferDesc[i].sidBuffer, VBOXDXALLOCATIONTYPE_SURFACE,
-                                 pahAllocation[i], 0, false);
+        vboxDXStorePatchLocation(pDevice, &paCmdBufferDesc[i].sidBuffer, papKMResources[i],
+                                 0, false);
     }
 
     vboxDXCommandBufferCommit(pDevice);
@@ -1909,7 +1909,7 @@ int vgpu10VideoDecoderEndFrame(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineVideoProcessorInputView(PVBOXDX_DEVICE pDevice,
                                         VBSVGA3dVideoProcessorInputViewId videoProcessorInputViewId,
-                                        D3DKMT_HANDLE hAllocation,
+                                        PVBOXDXKMRESOURCE pKMResource,
                                         VBSVGA3dVideoProcessorDesc const &contentDesc,
                                         VBSVGA3dVPIVDesc const &desc)
 {
@@ -1923,8 +1923,8 @@ int vgpu10DefineVideoProcessorInputView(PVBOXDX_DEVICE pDevice,
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(contentDesc);
     SET_CMD_FIELD(desc);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -1933,7 +1933,7 @@ int vgpu10DefineVideoProcessorInputView(PVBOXDX_DEVICE pDevice,
 
 int vgpu10DefineVideoProcessorOutputView(PVBOXDX_DEVICE pDevice,
                                          VBSVGA3dVideoProcessorOutputViewId videoProcessorOutputViewId,
-                                         D3DKMT_HANDLE hAllocation,
+                                         PVBOXDXKMRESOURCE pKMResource,
                                          VBSVGA3dVideoProcessorDesc const &contentDesc,
                                          VBSVGA3dVPOVDesc const &desc)
 {
@@ -1947,8 +1947,8 @@ int vgpu10DefineVideoProcessorOutputView(PVBOXDX_DEVICE pDevice,
     cmd->sid = SVGA3D_INVALID_ID;
     SET_CMD_FIELD(contentDesc);
     SET_CMD_FIELD(desc);
-    vboxDXStorePatchLocation(pDevice, &cmd->sid, VBOXDXALLOCATIONTYPE_SURFACE,
-                             hAllocation, 0, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->sid, pKMResource,
+                             0, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;
@@ -2489,7 +2489,7 @@ int vgpu10VideoProcessorSetStreamRotation(PVBOXDX_DEVICE pDevice,
 
 int vgpu10GetVideoCapability(PVBOXDX_DEVICE pDevice,
                              VBSVGA3dVideoCapability capability,
-                             D3DKMT_HANDLE hAllocation,
+                             PVBOXDXKMRESOURCE pKMResource,
                              uint32 offsetInBytes,
                              uint32 sizeInBytes,
                              uint64 fenceValue)
@@ -2506,8 +2506,8 @@ int vgpu10GetVideoCapability(PVBOXDX_DEVICE pDevice,
     SET_CMD_FIELD(sizeInBytes);
     SET_CMD_FIELD(fenceValue);
 
-    vboxDXStorePatchLocation(pDevice, &cmd->mobid, VBOXDXALLOCATIONTYPE_CO,
-                             hAllocation, offsetInBytes, true);
+    vboxDXStorePatchLocation(pDevice, &cmd->mobid, pKMResource,
+                             offsetInBytes, true);
 
     vboxDXCommandBufferCommit(pDevice);
     return VINF_SUCCESS;

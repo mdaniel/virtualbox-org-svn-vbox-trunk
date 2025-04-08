@@ -3028,7 +3028,7 @@ typedef struct IEM
 /** @name C instruction implementations for anything slightly complicated.
  * @{ */
 
-#if defined(CONFIG_TARGET_X86)
+#if defined(VBOX_VMM_TARGET_X86)
 # define IEM_CIMPL_NEEDS_INSTR_LEN
 #endif
 

@@ -44,7 +44,7 @@
     {
         Name:      "4K Granules",
         SCTLR_EL1: 0x1,
-        TCR_EL1:   0,
+        TCR_EL1:   { IPS: '64G', TG0: '4K', TG1: '4K' },
         TTBR0_EL1: 0x0,
         TTBR1_EL1: 0x1000,
 

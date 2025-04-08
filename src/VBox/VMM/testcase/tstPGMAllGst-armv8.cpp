@@ -62,6 +62,38 @@
 *********************************************************************************************************************************/
 
 /**
+ * Named value.
+ */
+typedef struct TSTCFGNAMEDVALUE
+{
+    /** The name of the value. */
+    const char *pszName;
+    /** The integer value. */
+    uint64_t   u64Val;
+} TSTCFGNAMEDVALUE;
+typedef TSTCFGNAMEDVALUE *PTSTCFGNAMEDVALUE;
+typedef const TSTCFGNAMEDVALUE *PCTSTCFGNAMEDVALUE;
+
+
+/**
+ * A config bitfield.
+ */
+typedef struct TSTCFGBITFIELD
+{
+    /** The bitfield name. */
+    const char          *pszName;
+    /** The bitfield offset. */
+    uint8_t             offBitfield;
+    /** Number of bits for the bitfield. */
+    uint8_t             cBits;
+    /** Optional array of named values. */
+    PCTSTCFGNAMEDVALUE  paNamedValues;
+} TSTCFGBITFIELD;
+typedef TSTCFGBITFIELD *PTSTCFGBITFIELD;
+typedef const TSTCFGBITFIELD *PCTSTCFGBITFIELD;
+
+
+/**
  * Chunk of physical memory containing data.
  */
 typedef struct TSTMEMCHUNK
@@ -207,6 +239,125 @@ static int tstMmuCfgInit(PTSTPGMARMV8MMU pMmuCfg)
 }
 
 
+static int tstMmuCfgReadBitfieldU64(RTTEST hTest, RTJSONVAL hObj, PCTSTCFGBITFIELD paBitfields, uint64_t *pu64Result)
+{
+    uint64_t u64 = 0;
+
+    uint32_t idx = 0;
+    while (paBitfields[idx].pszName)
+    {
+        RTJSONVAL hValue = NIL_RTJSONVAL;
+        int rc = RTJsonValueQueryByName(hObj, paBitfields[idx].pszName, &hValue);
+        if (rc == VERR_NOT_FOUND)
+        {
+            idx++;
+            continue;
+        }
+        if (RT_FAILURE(rc))
+        {
+            RTTestFailed(hTest, "Failed to query \"%s\" with %Rrc", paBitfields[idx].pszName, rc);
+            return rc;
+        }
+
+        RTJSONVALTYPE enmType = RTJsonValueGetType(hValue);
+        switch (enmType)
+        {
+            case RTJSONVALTYPE_INTEGER:
+            {
+                int64_t i64Tmp = 0;
+                rc = RTJsonValueQueryInteger(hValue, &i64Tmp);
+                if (RT_FAILURE(rc))
+                {
+                    RTTestFailed(hTest, "Failed to query \"%s\" as an integer with %Rrc", paBitfields[idx].pszName, rc);
+                    break;
+                }
+                else if (   i64Tmp < 0
+                         || (uint64_t)i64Tmp > (RT_BIT_64(paBitfields[idx].cBits) - 1))
+                {
+                    RTTestFailed(hTest, "Value of \"%s\" is out of bounds, got %#RX64, maximum is %#RX64",
+                                 paBitfields[idx].pszName, (uint64_t)i64Tmp, (RT_BIT_64(paBitfields[idx].cBits) - 1));
+                    rc = VERR_INVALID_PARAMETER;
+                }
+                else
+                    u64 |= ((uint64_t)i64Tmp) << paBitfields[idx].offBitfield;
+                break;
+            }
+            case RTJSONVALTYPE_STRING:
+            {
+                if (paBitfields[idx].paNamedValues)
+                {
+                    const char *pszNamedValue = RTJsonValueGetString(hValue);
+                    PCTSTCFGNAMEDVALUE pNamedValue = &paBitfields[idx].paNamedValues[0];
+                    while (pNamedValue->pszName)
+                    {
+                        if (!RTStrICmp(pszNamedValue, pNamedValue->pszName))
+                        {
+                            u64 |= pNamedValue->u64Val << paBitfields[idx].offBitfield;
+                            break;
+                        }
+                        pNamedValue++;
+                    }
+                    if (!pNamedValue->pszName)
+                    {
+                        RTTestFailed(hTest, "\"%s\" ist not a known named value for bitfield '%s'", pszNamedValue, paBitfields[idx].pszName);
+                        rc = VERR_NOT_FOUND;
+                    }
+                }
+                else
+                {
+                    RTTestFailed(hTest, "Bitfield \"%s\" doesn't support named values", paBitfields[idx].pszName);
+                    rc = VERR_NOT_SUPPORTED;
+                }
+                break;
+            }
+            default:
+                rc = VERR_NOT_SUPPORTED;
+                RTTestFailed(hTest, "JSON value type %d is not supported\n", enmType);
+                break;
+        }
+        RTJsonValueRelease(hValue);
+
+        if (RT_FAILURE(rc))
+            return rc;
+
+        idx++;
+    }
+
+    *pu64Result = u64;
+    return VINF_SUCCESS;
+}
+
+
+static int tstMmuCfgReadU64(RTTEST hTest, RTJSONVAL hObj, const char *pszName, PCTSTCFGBITFIELD paBitfields, uint64_t *pu64Result)
+{
+    RTJSONVAL hValue = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hObj, pszName, &hValue);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to query \"%s\" with %Rrc", pszName, rc);
+        return rc;
+    }
+
+    RTJSONVALTYPE enmType = RTJsonValueGetType(hValue);
+    switch (enmType)
+    {
+        case RTJSONVALTYPE_INTEGER:
+            rc = RTJsonValueQueryInteger(hValue, (int64_t *)pu64Result);
+            break;
+        case RTJSONVALTYPE_OBJECT:
+            rc = tstMmuCfgReadBitfieldU64(hTest, hValue, paBitfields, pu64Result);
+            break;
+        default:
+            rc = VERR_NOT_SUPPORTED;
+            RTTestFailed(hTest, "JSON value type %d is not supported\n", enmType);
+            break;
+    }
+
+    RTJsonValueRelease(hValue);
+    return rc;
+}
+
+
 static DECLCALLBACK(int) tstZeroChunk(PAVLRU64NODECORE pCore, void *pvParam)
 {
     RT_NOREF(pvParam);
@@ -230,11 +381,6 @@ static DECLCALLBACK(int) tstDestroyChunk(PAVLRU64NODECORE pCore, void *pvParam)
 }
 
 
-/**
- * Destroy the VM structure.
- *
- * @param   pVM     Pointer to the VM.
- */
 static void tstMmuCfgDestroy(PTSTPGMARMV8MMU pMmuCfg)
 {
     RTMemPageFree(pMmuCfg->pVM->pUVM, sizeof(*pMmuCfg->pVM->pUVM));
@@ -422,39 +568,92 @@ static int tstTestcaseMmuConfigPrepare(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, RT
     PVMCPUCC pVCpu = pMmuCfg->pVM->apCpusR3[0];
 
     /* Set MMU config (SCTLR, TCR, TTBR, etc.). */
-    int64_t i64Tmp = 0;
-    int rc = RTJsonValueQueryIntegerByName(hTestcase, "SCTLR_EL1", &i64Tmp);
+    uint64_t u64RegSctlrEl1 = 0;
+    int rc = tstMmuCfgReadU64(hTest, hTestcase, "SCTLR_EL1", NULL, &u64RegSctlrEl1);
     if (RT_FAILURE(rc))
-    {
-        RTTestFailed(hTest, "Failed to query \"SCTLR_EL1\" with %Rrc", rc);
         return rc;
-    }
-    uint64_t const u64RegSctlrEl1 = (uint64_t)i64Tmp;
 
-    rc = RTJsonValueQueryIntegerByName(hTestcase, "TCR_EL1", &i64Tmp);
+    uint64_t u64RegTcrEl1 = 0;
+    static const TSTCFGNAMEDVALUE s_aTgSizes[] =
+    {
+        { "4K",  0 },
+        { "64K", 1 },
+        { "16K", 2 },
+        { NULL,  0 }
+    };
+    static const TSTCFGNAMEDVALUE s_aIpsSizes[] =
+    {
+        { "4G",   0 },
+        { "64G",  1 },
+        { "1T",   2 },
+        { "4T",   3 },
+        { "16T",  4 },
+        { "256T", 5 },
+        { "4P",   6 },
+        { "64P",  7 },
+
+        { NULL,  0 }
+    };
+    static const TSTCFGBITFIELD s_aTcrEl1Bitfields[] =
+    {
+#define BITFIELD_CREATE_BOOL(a_Name, a_offBit) \
+        { a_Name, a_offBit, 1, NULL }
+
+        BITFIELD_CREATE_BOOL("MTX1",   61),
+        BITFIELD_CREATE_BOOL("MTX0",   60),
+        BITFIELD_CREATE_BOOL("DS",     59),
+        BITFIELD_CREATE_BOOL("TCMA1",  58),
+        BITFIELD_CREATE_BOOL("TCMA0",  57),
+        BITFIELD_CREATE_BOOL("E0PD1",  56),
+        BITFIELD_CREATE_BOOL("E0PD0",  55),
+        BITFIELD_CREATE_BOOL("NFD1",   54),
+        BITFIELD_CREATE_BOOL("NFD0",   53),
+        BITFIELD_CREATE_BOOL("TBID1",  52),
+        BITFIELD_CREATE_BOOL("TBID0",  51),
+        BITFIELD_CREATE_BOOL("HWU162", 50),
+        BITFIELD_CREATE_BOOL("HWU161", 49),
+        BITFIELD_CREATE_BOOL("HWU160", 48),
+        BITFIELD_CREATE_BOOL("HWU159", 47),
+        BITFIELD_CREATE_BOOL("HWU062", 46),
+        BITFIELD_CREATE_BOOL("HWU061", 45),
+        BITFIELD_CREATE_BOOL("HWU060", 44),
+        BITFIELD_CREATE_BOOL("HWU059", 43),
+        BITFIELD_CREATE_BOOL("HPD1",   42),
+        BITFIELD_CREATE_BOOL("HPD0",   41),
+        BITFIELD_CREATE_BOOL("HD",     40),
+        BITFIELD_CREATE_BOOL("HA",     39),
+        BITFIELD_CREATE_BOOL("TBI1",   38),
+        BITFIELD_CREATE_BOOL("TBI0",   37),
+        { "IPS",   32, 3, &s_aIpsSizes[0] },
+        { "TG1",   30, 2, &s_aTgSizes[0]  },
+        { "SH1",   28, 2, NULL },
+        { "ORGN1", 26, 2, NULL },
+        { "IRGN1", 24, 2, NULL },
+        BITFIELD_CREATE_BOOL("EPD1",   33),
+        BITFIELD_CREATE_BOOL("A1",     22),
+        { "T1SZ",  16, 6, NULL },
+
+        { "TG0",   14, 2, &s_aTgSizes[0] },
+        { "SH0",   12, 2, NULL },
+        { "ORGN0", 10, 2, NULL },
+        { "IRGN0",  8, 2, NULL },
+        BITFIELD_CREATE_BOOL("EPD0",    7),
+        { "T0SZ",   0, 6, NULL },
+        { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+    };
+    rc = tstMmuCfgReadU64(hTest, hTestcase, "TCR_EL1", &s_aTcrEl1Bitfields[0], &u64RegTcrEl1);
     if (RT_FAILURE(rc))
-    {
-        RTTestFailed(hTest, "Failed to query \"TCR_EL1\" with %Rrc", rc);
         return rc;
-    }
-    uint64_t const u64RegTcrEl1 = (uint64_t)i64Tmp;
 
-    rc = RTJsonValueQueryIntegerByName(hTestcase, "TTBR0_EL1", &i64Tmp);
+    rc = tstMmuCfgReadU64(hTest, hTestcase, "TTBR0_EL1", NULL, &pVCpu->cpum.s.Guest.Ttbr0.u64);
     if (RT_FAILURE(rc))
-    {
-        RTTestFailed(hTest, "Failed to query \"TTBR0_EL1\" with %Rrc", rc);
         return rc;
-    }
-    pVCpu->cpum.s.Guest.Ttbr0.u64 = (uint64_t)i64Tmp;
 
-    rc = RTJsonValueQueryIntegerByName(hTestcase, "TTBR1_EL1", &i64Tmp);
+    rc = tstMmuCfgReadU64(hTest, hTestcase, "TTBR1_EL1", NULL, &pVCpu->cpum.s.Guest.Ttbr1.u64);
     if (RT_FAILURE(rc))
-    {
-        RTTestFailed(hTest, "Failed to query \"TTBR1_EL1\" with %Rrc", rc);
         return rc;
-    }
-    pVCpu->cpum.s.Guest.Ttbr1.u64 = (uint64_t)i64Tmp;
-
 
     uintptr_t const idxNewGstTtbr0 = pgmR3DeduceTypeFromTcr<ARMV8_TCR_EL1_AARCH64_T0SZ_SHIFT, ARMV8_TCR_EL1_AARCH64_TG0_SHIFT,
                                                             ARMV8_TCR_EL1_AARCH64_TBI0_BIT, ARMV8_TCR_EL1_AARCH64_EPD0_BIT, false>

@@ -904,7 +904,6 @@ VBGLR3DECL(void) VbglR3GuestCtrlSessionStartupInfoFree(PVBGLR3GUESTCTRLSESSIONST
     VbglR3GuestCtrlSessionStartupInfoDestroy(pStartupInfo);
 
     RTMemFree(pStartupInfo);
-    pStartupInfo = NULL;
 }
 
 /**

@@ -1088,7 +1088,9 @@ static int vbsf_inode_create(struct inode *parent, struct dentry *dentry, int mo
  * @param   mode    file mode
  * @returns 0 on success, Linux error code otherwise
  */
-#if RTLNX_VER_MIN(6,3,0) || RTLNX_RHEL_RANGE(9,6, 9,99) || defined(DOXYGEN_RUNNING)
+#if RTLNX_VER_MIN(6,15,0)
+static struct dentry *vbsf_inode_mkdir(struct mnt_idmap *idmap, struct inode *parent, struct dentry *dentry, umode_t mode)
+#elif RTLNX_VER_MIN(6,3,0) || RTLNX_RHEL_RANGE(9,6, 9,99) || defined(DOXYGEN_RUNNING)
 static int vbsf_inode_mkdir(struct mnt_idmap *idmap, struct inode *parent, struct dentry *dentry, umode_t mode)
 #elif RTLNX_VER_MIN(5,12,0)
 static int vbsf_inode_mkdir(struct user_namespace *ns, struct inode *parent, struct dentry *dentry, umode_t mode)
@@ -1098,14 +1100,28 @@ static int vbsf_inode_mkdir(struct inode *parent, struct dentry *dentry, umode_t
 static int vbsf_inode_mkdir(struct inode *parent, struct dentry *dentry, int mode)
 #endif
 {
+    int rc;
+#if RTLNX_VER_MIN(6,15,0)
+    /* In 6.15, we need to take a reference to the resulting dentry. */
+    bool fDoLookup = true;
+#else
+    bool fDoLookup = false;
+#endif
+
     TRACE();
     AssertMsg(!(mode & S_IFMT) || (mode & S_IFMT) == S_IFDIR, ("0%o\n", mode));
-    return vbsf_create_worker(parent, dentry, (mode & ~S_IFMT) | S_IFDIR,
-                                SHFL_CF_ACT_CREATE_IF_NEW
-                              | SHFL_CF_ACT_FAIL_IF_EXISTS
-                              | SHFL_CF_ACCESS_READWRITE
-                              | SHFL_CF_DIRECTORY,
-                              false /*fStashHandle*/, false /*fDoLookup*/, NULL /*phHandle*/, NULL /*fCreated*/);
+
+    rc = vbsf_create_worker(parent, dentry, (mode & ~S_IFMT) | S_IFDIR,
+                              SHFL_CF_ACT_CREATE_IF_NEW
+                            | SHFL_CF_ACT_FAIL_IF_EXISTS
+                            | SHFL_CF_ACCESS_READWRITE
+                            | SHFL_CF_DIRECTORY,
+                            false /*fStashHandle*/, fDoLookup, NULL /*phHandle*/, NULL /*fCreated*/);
+#if RTLNX_VER_MIN(6,15,0)
+    return RT_SUCCESS(rc) ? dentry : ERR_PTR(rc);
+#else
+    return rc;
+#endif
 }
 
 

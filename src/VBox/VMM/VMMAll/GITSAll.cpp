@@ -537,7 +537,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             {
                 /* The write offset has wrapped around, read till end of buffer followed by wrapped-around data. */
                 uint32_t const cbForward = cbCmdQueue - offRead;
-                uint32_t const cbWrapped = offWrite;
+                uint32_t const cbWrapped = offRead;
                 Assert(cbForward + cbWrapped <= cbBuf);
                 rc  = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbForward);
                 if (   RT_SUCCESS(rc)
@@ -570,15 +570,17 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                     {
                         case GITS_CMD_ID_MAPC:
                         {
-                            Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA)); /* GITS_TYPER is read-only */
                             uint64_t const uDw2 = pCmd->au64[2].u;
                             bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
                             uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
                             uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
+                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCt)); /** @todo later figure ideal/correct CT size. */
 
-                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCt));
+                            GITS_CRIT_SECT_ENTER(pDevIns);
+                            Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
                             pGitsDev->auCt[uIntrCollectionId].fValid      = fValid;
                             pGitsDev->auCt[uIntrCollectionId].idTargetCpu = uTargetCpuId;
+                            GITS_CRIT_SECT_LEAVE(pDevIns);
                             break;
                         }
 

@@ -1634,7 +1634,7 @@ RTDECL(int) RTTimerCreateEx(PRTTIMER *ppTimer, uint64_t u64NanoInterval, uint32_
 #ifdef RTTIMER_LINUX_WITH_HRTIMER
         if (pTimer->fHighRes)
         {
-#if RTLNX_VER_MIN(4,15,0)
+#if RTLNX_VER_MIN(6,15,0)
             hrtimer_setup(&pTimer->aSubTimers[iCpu].u.Hr.LnxTimer,
                           rtTimerLinuxHrCallback, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 #else

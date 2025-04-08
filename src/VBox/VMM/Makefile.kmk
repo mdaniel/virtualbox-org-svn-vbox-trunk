@@ -1279,7 +1279,7 @@ endef # def_vbox_vmm_py_check
 
 $(foreach py, \
 	$(addprefix $(PATH_SUB_CURRENT)/VMMAll/, IEMAllInstPython.py IEMAllThrdPython.py IEMAllN8vePython.py ) \
-	$(if-expr "$(VBOX_BLD_PYTHON_VERSION)" vge "3.8.0"  \
+	$(if-expr "$(VBOX_BLD_PYTHON_VERSION)" vge "3.8.0" && "$(VBOX_PYLINT_VERSION)" >= 20000 \
 		,$(PATH_SUB_CURRENT)/VMMAll/target-armv8/bsd-spec-analyze.py,) \
 , $(eval $(def_vbox_vmm_py_check)))
 

@@ -1371,7 +1371,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_clip_hg_report_join3_cb(
                     RTMemFree(pvBufOut);
                 }
                 else
-                    VBClLogError("cannot convert '%s' to native format, rc=%Rrc\n", rc);
+                    VBClLogError("cannot convert '%s' to native format, rc=%Rrc\n", pPriv->sMimeType, rc);
             }
             else
                 rc = VERR_TIMEOUT;

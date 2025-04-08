@@ -136,6 +136,7 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 }
 
 
+#if 0
 static const char * gitsGetCommandName(uint8_t uCmdId)
 {
     switch (uCmdId)
@@ -165,6 +166,7 @@ static const char * gitsGetCommandName(uint8_t uCmdId)
             return "<UNKNOWN>";
     }
 }
+#endif
 
 
 static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
@@ -419,7 +421,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     pGitsDev->uCmdBaseReg.u      = 0;
     pGitsDev->uCmdReadReg        = 0;
     pGitsDev->uCmdWriteReg       = 0;
-    RT_ZERO(pGitsDev->auCt);
+    RT_ZERO(pGitsDev->aCtes);
 }
 
 
@@ -497,6 +499,23 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
         pHlp->pfnPrintf(pHlp, "  uCmdWriteReg       = 0x%05RX32 (  retry=%RTbool offset=%RU32)\n", uReg,
                         RT_BF_GET(uReg, GITS_BF_CTRL_REG_CWRITER_RETRY), uReg & GITS_BF_CTRL_REG_CWRITER_OFFSET_MASK);
     }
+
+    /* Interrupt Collection Table. */
+    {
+        pHlp->pfnPrintf(pHlp, "  Collection Table:\n");
+        bool fHasValidCtes = false;
+        for (unsigned i = 0; i < RT_ELEMENTS(pGitsDev->aCtes); i++)
+        {
+            if (pGitsDev->aCtes[i].fValid)
+            {
+                AssertCompile(sizeof(pGitsDev->aCtes[i].idTargetCpu) == sizeof(uint16_t));
+                pHlp->pfnPrintf(pHlp, "    aCtes[%u].idTargetCpu = %#RX16\n", i, pGitsDev->aCtes[i].idTargetCpu);
+                fHasValidCtes = true;
+            }
+        }
+        if (!fHasValidCtes)
+            pHlp->pfnPrintf(pHlp, "    Empty (no valid entries)\n");
+    }
 }
 
 
@@ -512,7 +531,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
         bool const fIsEmpty = gitsCmdQueueIsEmptyEx(pGitsDev, &offRead, &offWrite);
         if (!fIsEmpty)
         {
-            uint32_t const cCmdQueuePages = (pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_SIZE_MASK) + 1;
+            uint32_t const cCmdQueuePages = RT_BF_GET(pGitsDev->uCmdBaseReg.u, GITS_BF_CTRL_REG_CBASER_SIZE) + 1;
             uint32_t const cbCmdQueue     = cCmdQueuePages << GITS_CMD_QUEUE_PAGE_SHIFT;
             AssertRelease(cbCmdQueue <= cbBuf); /** @todo Paranoia; make this a debug assert later. */
 
@@ -537,7 +556,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             {
                 /* The write offset has wrapped around, read till end of buffer followed by wrapped-around data. */
                 uint32_t const cbForward = cbCmdQueue - offRead;
-                uint32_t const cbWrapped = offRead;
+                uint32_t const cbWrapped = offWrite;
                 Assert(cbForward + cbWrapped <= cbBuf);
                 rc  = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbForward);
                 if (   RT_SUCCESS(rc)
@@ -574,30 +593,35 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                             bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
                             uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
                             uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
-                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCt)); /** @todo later figure ideal/correct CT size. */
+                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->aCtes)); /** @todo later figure ideal/correct CT size. */
 
                             GITS_CRIT_SECT_ENTER(pDevIns);
                             Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
-                            pGitsDev->auCt[uIntrCollectionId].fValid      = fValid;
-                            pGitsDev->auCt[uIntrCollectionId].idTargetCpu = uTargetCpuId;
+                            pGitsDev->aCtes[uIntrCollectionId].fValid      = fValid;
+                            pGitsDev->aCtes[uIntrCollectionId].idTargetCpu = uTargetCpuId;
                             GITS_CRIT_SECT_LEAVE(pDevIns);
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdMapc);
                             break;
                         }
 
                         case GITS_CMD_ID_SYNC:
                         {
                             /* Nothing to do since all previous commands have committed their changes to device state. */
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdSync);
                             break;
                         }
 
                         case GITS_CMD_ID_INVALL:
                         {
                             /* Nothing to do as we currently do not cache interrupt mappings. */
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdInvall);
                             break;
                         }
 
                         default:
-                            AssertReleaseMsgFailed(("Cmd=%#x (%s)\n", uCmdId, gitsGetCommandName(uCmdId)));
+                            //AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u cbCmds=%u\n", uCmdId,
+                            //                        gitsGetCommandName(uCmdId), idxCmd, cCmds, cbCmds));
+                            //break;
                             break;
                     }
                 }

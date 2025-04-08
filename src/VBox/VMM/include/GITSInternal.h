@@ -35,6 +35,7 @@
 #include <VBox/types.h>
 #include <VBox/gic-its.h>
 #include <VBox/vmm/pdmthread.h>
+#include <VBox/vmm/stam.h>
 
 /** @defgroup grp_gits_int       Internal
  * @ingroup grp_gits
@@ -156,7 +157,7 @@ typedef struct GITSDEV
      * @{
      */
     /** The collection table. */
-    GITSCTE                 auCt[2048];
+    GITSCTE                 aCtes[2048];
     /** @} */
 
     /** @name Configurables.
@@ -165,6 +166,15 @@ typedef struct GITSDEV
     uint8_t                 uArchRev;
     /** Padding. */
     uint8_t                 afPadding0[7];
+    /** @} */
+
+    /** @name Statistics.
+     * @{ */
+#ifdef VBOX_WITH_STATISTICS
+    STAMCOUNTER             StatCmdMapc;
+    STAMCOUNTER             StatCmdSync;
+    STAMCOUNTER             StatCmdInvall;
+#endif
     /** @} */
 } GITSDEV;
 /** Pointer to a GITS device. */
@@ -176,6 +186,7 @@ AssertCompileMemberAlignment(GITSDEV, aItsTableRegs, 8);
 AssertCompileMemberAlignment(GITSDEV, uCmdReadReg, 4);
 AssertCompileMemberAlignment(GITSDEV, uCmdWriteReg, 4);
 AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 8);
+AssertCompileMemberAlignment(GITSDEV, aCtes, 8);
 AssertCompileMemberAlignment(GITSDEV, uArchRev, 8);
 
 DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);

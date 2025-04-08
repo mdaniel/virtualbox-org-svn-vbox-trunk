@@ -961,33 +961,44 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * Statistics.
      */
 #ifdef VBOX_WITH_STATISTICS
-# define GIC_REG_COUNTER(a_pvReg, a_pszNameFmt, a_pszDesc) \
+# define GICCPU_REG_COUNTER(a_pvReg, a_pszNameFmt, a_pszDesc) \
          PDMDevHlpSTAMRegisterF(pDevIns, a_pvReg, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES, \
                                 a_pszDesc, a_pszNameFmt, idCpu)
-# define GIC_PROF_COUNTER(a_pvReg, a_pszNameFmt, a_pszDesc) \
+# define GICCPU_PROF_COUNTER(a_pvReg, a_pszNameFmt, a_pszDesc) \
          PDMDevHlpSTAMRegisterF(pDevIns, a_pvReg, STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_TICKS_PER_CALL, \
                                 a_pszDesc, a_pszNameFmt, idCpu)
+# define GIC_REG_COUNTER(a_pvReg, a_pszNameFmt, a_pszDesc) \
+         PDMDevHlpSTAMRegisterF(pDevIns, a_pvReg, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES, \
+                                a_pszDesc, a_pszNameFmt)
 
+    /* Redistributor. */
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
         PVMCPU  pVCpu   = pVM->apCpusR3[idCpu];
         PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
-        GIC_REG_COUNTER(&pGicCpu->StatMmioReadR3,    "%u/MmioRead",     "Number of MMIO reads in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatMmioWriteR3,   "%u/MmioWrite",    "Number of MMIO writes in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatSysRegReadR3,  "%u/SysRegRead",   "Number of system register reads in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatSysRegWriteR3, "%u/SysRegWrite",  "Number of system register writes in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatSetSpiR3,      "%u/SetSpi",       "Number of set SPI callbacks in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatSetPpiR3,      "%u/SetPpi",       "Number of set PPI callbacks in R3.");
-        GIC_REG_COUNTER(&pGicCpu->StatSetSgiR3,      "%u/SetSgi",       "Number of SGIs generated in R3.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatMmioRead,    "%u/MmioRead",     "Number of MMIO reads.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatMmioWrite,   "%u/MmioWrite",    "Number of MMIO writes.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatSysRegRead,  "%u/SysRegRead",   "Number of system register reads.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatSysRegWrite, "%u/SysRegWrite",  "Number of system register writes.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatSetSpi,      "%u/SetSpi",       "Number of set SPI callbacks.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatSetPpi,      "%u/SetPpi",       "Number of set PPI callbacks.");
+        GICCPU_REG_COUNTER(&pGicCpu->StatSetSgi,      "%u/SetSgi",       "Number of SGIs generated.");
 
-        GIC_PROF_COUNTER(&pGicCpu->StatProfIntrAckR3, "%u/Prof/IntrAck", "Profiling of interrupt acknowledge (IAR) in R3.");
-        GIC_PROF_COUNTER(&pGicCpu->StatProfSetSpiR3,  "%u/Prof/SetSpi",  "Profiling of set SPI callback in R3.");
-        GIC_PROF_COUNTER(&pGicCpu->StatProfSetPpiR3,  "%u/Prof/SetPpi",  "Profiling of set PPI callback in R3.");
-        GIC_PROF_COUNTER(&pGicCpu->StatProfSetSgiR3,  "%u/Prof/SetSgi",  "Profiling of SGIs generated in R3.");
+        GICCPU_PROF_COUNTER(&pGicCpu->StatProfIntrAck, "%u/Prof/IntrAck", "Profiling of interrupt acknowledge (IAR).");
+        GICCPU_PROF_COUNTER(&pGicCpu->StatProfSetSpi,  "%u/Prof/SetSpi",  "Profiling of set SPI callback.");
+        GICCPU_PROF_COUNTER(&pGicCpu->StatProfSetPpi,  "%u/Prof/SetPpi",  "Profiling of set PPI callback.");
+        GICCPU_PROF_COUNTER(&pGicCpu->StatProfSetSgi,  "%u/Prof/SetSgi",  "Profiling of SGIs generated.");
     }
-# undef GIC_REG_COUNTER
-# undef GIC_PROF_COUNTER
+
+    /* ITS. */
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+    GIC_REG_COUNTER(&pGitsDev->StatCmdMapc,    "ITS/Commands/MAPC",   "Number of MAPC commands executed.");
+    GIC_REG_COUNTER(&pGitsDev->StatCmdSync,    "ITS/Commands/SYNC",   "Number of SYNC commands executed.");
+    GIC_REG_COUNTER(&pGitsDev->StatCmdInvall,  "ITS/Commands/INVALL", "Number of INVALL commands executed.");
+
+# undef GICCPU_REG_COUNTER
+# undef GICCPU_PROF_COUNTER
 #endif
 
     gicR3Reset(pDevIns);

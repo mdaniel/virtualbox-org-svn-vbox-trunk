@@ -1724,7 +1724,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
     uint8_t  bIntrPriority;
     uint16_t idxIntr;
     PGICCPU  pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
+    STAM_PROFILE_START(&pGicCpu->StatProfIntrAck, x);
     uint16_t const uIntId = gicGetHighestPriorityPendingIntr(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bIntrPriority);
     if (uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT)
     {
@@ -1737,7 +1737,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
          */
         if (bIntrPriority >= pGicCpu->bIntrPriorityMask)
         {
-            STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
+            STAM_PROFILE_STOP(&pGicCpu->StatProfIntrAck, x);
             return GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
         }
 
@@ -1762,7 +1762,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         uint8_t const bIntrGroupPriority    = bIntrPriority    & s_afGroupPriorityMasks[idxPriorityMask];
         if (bIntrGroupPriority >= bRunningGroupPriority)
         {
-            STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
+            STAM_PROFILE_STOP(&pGicCpu->StatProfIntrAck, x);
             return GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
         }
 
@@ -1856,7 +1856,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         Assert(bIntrPriority == GIC_IDLE_PRIORITY);
 
     LogFlowFunc(("uIntId=%u\n", uIntId));
-    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
+    STAM_PROFILE_STOP(&pGicCpu->StatProfIntrAck, x);
     return uIntId;
 }
 
@@ -2588,10 +2588,10 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
 
 #ifdef VBOX_WITH_STATISTICS
     PVMCPU pVCpu = VMMGetCpuById(pVM, 0);
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSpi));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatSetSpi);
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 #endif
-    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetSpi), a);
+    STAM_PROFILE_START(&pGicCpu->StatProfSetSpi, a);
 
     uint16_t const uIntId  = GIC_INTID_RANGE_SPI_START + uSpiIntId;
     uint16_t const idxIntr = gicDistGetIndexFromIntId(uIntId);
@@ -2611,7 +2611,7 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
         ASMBitClear(&pGicDev->bmIntrPending[0], idxIntr);
 
     int const rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pGicDev));
-    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetSpi), a);
+    STAM_PROFILE_STOP(&pGicCpu->StatProfSetSpi, a);
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
     return rc;
@@ -2629,8 +2629,8 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
     PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     PGICCPU    pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetPpi));
-    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetPpi), b);
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatSetPpi);
+    STAM_PROFILE_START(&pGicCpu->StatProfSetPpi, b);
 
     uint32_t const uIntId  = GIC_INTID_RANGE_PPI_START + uPpiIntId;
     uint16_t const idxIntr = gicReDistGetIndexFromIntId(uIntId);
@@ -2650,7 +2650,7 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
         ASMBitClear(&pGicCpu->bmIntrPending[0], idxIntr);
 
     int const rc = VBOXSTRICTRC_VAL(gicReDistUpdateIrqState(pGicDev, pVCpu));
-    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetPpi), b);
+    STAM_PROFILE_STOP(&pGicCpu->StatProfSetPpi, b);
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
     return rc;
@@ -2699,8 +2699,8 @@ static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint6
 {
 #ifdef VBOX_WITH_STATISTICS
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSgi));
-    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetSgi), c);
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatSetSgi);
+    STAM_PROFILE_START(&pGicCpu->StatProfSetSgi, c);
 #else
     PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 #endif
@@ -2755,7 +2755,7 @@ static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint6
         Assert(RT_SUCCESS(rcStrict)); RT_NOREF_PV(rcStrict);
     }
 
-    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetSgi), c);
+    STAM_PROFILE_STOP(&pGicCpu->StatProfSetSgi, c);
     return VINF_SUCCESS;
 }
 
@@ -2771,7 +2771,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
     VMCPU_ASSERT_EMT(pVCpu);
     Assert(pu64Value);
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSysRegRead));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatSysRegRead);
 
     *pu64Value = 0;
     PGICCPU    pGicCpu = VMCPU_TO_GICCPU(pVCpu);
@@ -2899,7 +2899,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
     VMCPU_ASSERT_EMT(pVCpu);
     LogFlowFunc(("pVCpu=%p u32Reg=%#x{%s} u64Value=%RX64\n", pVCpu, u32Reg, gicIccGetRegDescription(u32Reg), u64Value));
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSysRegWrite));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatSysRegWrite);
 
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
@@ -3196,7 +3196,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioRead(PPDMDEVINS pDevIns, void *pvU
     uint16_t offReg = off & 0xfffc;
     uint32_t uValue = 0;
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatMmioRead));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatMmioRead);
 
     VBOXSTRICTRC rc = VBOXSTRICTRC_VAL(gicDistReadRegister(pDevIns, pVCpu, offReg, &uValue));
     *(uint32_t *)pv = uValue;
@@ -3219,7 +3219,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioWrite(PPDMDEVINS pDevIns, void *pv
     uint16_t offReg = off & 0xfffc;
     uint32_t uValue = *(uint32_t *)pv;
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatMmioWrite));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatMmioWrite);
     LogFlowFunc(("[%u]: offReg=%#RX16 (%s) uValue=%#RX32\n", pVCpu->idCpu, offReg, gicDistGetRegDescription(offReg), uValue));
 
     return gicDistWriteRegister(pDevIns, pVCpu, offReg, uValue);
@@ -3247,7 +3247,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioRead(PPDMDEVINS pDevIns, void *p
     Assert(idReDist < pVM->cCpus);
     PVMCPUCC pVCpu = pVM->CTX_SUFF(apCpus)[idReDist];
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatMmioRead));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatMmioRead);
 
     /* Redistributor or SGI/PPI frame? */
     uint16_t const offReg = off & 0xfffc;
@@ -3288,7 +3288,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioWrite(PPDMDEVINS pDevIns, void *
     Assert(idReDist < pVM->cCpus);
     PVMCPUCC pVCpu = pVM->CTX_SUFF(apCpus)[idReDist];
 
-    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatMmioWrite));
+    STAM_COUNTER_INC(&pVCpu->gic.s.StatMmioWrite);
 
     /* Redistributor or SGI/PPI frame? */
     uint16_t const offReg = off & 0xfffc;

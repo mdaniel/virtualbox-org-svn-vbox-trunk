@@ -392,6 +392,9 @@ static struct drm_driver driver = {
 #if RTLNX_VER_MAX(6,14,0)
 	.date = DRIVER_DATE,
 #endif
+#if RTLNX_VER_MIN(6,15,0)
+	.fbdev_probe = vboxfb_create,
+#endif
 	.major = DRIVER_MAJOR,
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,

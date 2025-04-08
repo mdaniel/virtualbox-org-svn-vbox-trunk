@@ -433,6 +433,8 @@ int vbox_framebuffer_init(struct drm_device *dev,
 #endif
 			  struct drm_gem_object *obj);
 
+int vboxfb_create(struct drm_fb_helper *helper, struct drm_fb_helper_surface_size *sizes);
+
 int vbox_fbdev_init(struct drm_device *dev);
 void vbox_fbdev_fini(struct drm_device *dev);
 void vbox_fbdev_set_base(struct vbox_private *vbox, unsigned long gpu_addr);

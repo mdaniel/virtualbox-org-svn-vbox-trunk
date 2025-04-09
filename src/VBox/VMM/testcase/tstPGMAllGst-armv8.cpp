@@ -358,6 +358,19 @@ static int tstMmuCfgReadU64(RTTEST hTest, RTJSONVAL hObj, const char *pszName, P
 }
 
 
+static int tstMmuCfgReadU32(RTTEST hTest, RTJSONVAL hObj, const char *pszName, PCTSTCFGBITFIELD paBitfields, uint32_t *pu32Result)
+{
+    uint64_t u64 = 0;
+    int rc = tstMmuCfgReadU64(hTest, hObj, pszName, paBitfields, &u64);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    *pu32Result = (uint32_t)u64;
+
+    return VINF_SUCCESS;
+}
+
+
 static DECLCALLBACK(int) tstZeroChunk(PAVLRU64NODECORE pCore, void *pvParam)
 {
     RT_NOREF(pvParam);
@@ -784,19 +797,6 @@ DECLINLINE(int) tstResultQueryU32(RTTEST hTest, RTJSONVAL hMemResult, const char
 }
 
 
-DECLINLINE(int) tstResultQueryU64(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint64_t *pu64)
-{
-    int64_t i64 = 0;
-    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
-    if (RT_FAILURE(rc))
-        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
-    else
-        *pu64 = (uint64_t)i64;
-
-    return rc;
-}
-
-
 static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALK pWalkResult)
 {
     int rc = tstResultQueryBoolDef(hTest, hMemResult, "Succeeded", &pWalkResult->fSucceeded, true);
@@ -823,7 +823,27 @@ static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALK pWalkRes
     if (RT_SUCCESS(rc))
         rc = tstResultQueryU32(hTest, hMemResult, "fFailed", &pWalkResult->fFailed);
     if (RT_SUCCESS(rc))
-        rc = tstResultQueryU64(hTest, hMemResult, "Effective", &pWalkResult->fEffective);
+    {
+        static const TSTCFGBITFIELD s_aPtAttrs[] =
+        {
+#define BITFIELD_CREATE_BOOL(a_Name) \
+            { #a_Name, PGM_PTATTRS_##a_Name##_SHIFT, 1, NULL }
+
+            BITFIELD_CREATE_BOOL(PR),
+            BITFIELD_CREATE_BOOL(PW),
+            BITFIELD_CREATE_BOOL(PX),
+            BITFIELD_CREATE_BOOL(PGCS),
+            BITFIELD_CREATE_BOOL(UR),
+            BITFIELD_CREATE_BOOL(UW),
+            BITFIELD_CREATE_BOOL(UX),
+            BITFIELD_CREATE_BOOL(UGCS),
+            { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+        };
+
+        rc = tstMmuCfgReadU64(hTest, hMemResult, "Effective", &s_aPtAttrs[0], &pWalkResult->fEffective);
+    }
 
     return rc;
 }
@@ -888,10 +908,10 @@ static void tstExecute(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, RTJSONVAL hMemResul
 }
 
 
-static int tstTestcaseMmuRun(RTTEST hTest, RTJSONVAL hTestcase)
+static int tstTestcaseMmuRunGetPage(RTTEST hTest, RTJSONVAL hTestcase)
 {
     RTJSONVAL hVal = NIL_RTJSONVAL;
-    int rc = RTJsonValueQueryByName(hTestcase, "Tests", &hVal);
+    int rc = RTJsonValueQueryByName(hTestcase, "GetPage", &hVal);
     if (RT_SUCCESS(rc))
     {
         RTJSONIT hIt = NIL_RTJSONIT;
@@ -934,6 +954,217 @@ static int tstTestcaseMmuRun(RTTEST hTest, RTJSONVAL hTestcase)
 
         RTJsonValueRelease(hVal);
     }
+    else if (rc == VERR_NOT_FOUND)
+        rc = VINF_SUCCESS;
+    else
+        RTTestFailed(hTest, "Failed to query \"Tests\" %Rrc", rc);
+
+    return rc;
+}
+
+
+static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult)
+{
+    int rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryGCPhysDef(hTest, hMemResult, "GCPhysNested", &pWalkResult->GCPhysNested, 0);
+    if (RT_SUCCESS(rc))
+    {
+        static const TSTCFGBITFIELD s_aInfo[] =
+        {
+#define BITFIELD_CREATE_BOOL(a_Name, a_offBit) \
+            { #a_Name, a_offBit, 1, NULL }
+            BITFIELD_CREATE_BOOL(Succeeded,          0),
+            BITFIELD_CREATE_BOOL(IsSlat,             1),
+            BITFIELD_CREATE_BOOL(BigPage,            7),
+            BITFIELD_CREATE_BOOL(GiganticPage,       8),
+            BITFIELD_CREATE_BOOL(IsLinearAddrValid, 10),
+            { NULL,     0, 0, NULL }
+        };
+        AssertCompile(PGM_WALKINFO_SUCCEEDED            == RT_BIT_32(0));
+        AssertCompile(PGM_WALKINFO_IS_SLAT              == RT_BIT_32(1));
+        AssertCompile(PGM_WALKINFO_BIG_PAGE             == RT_BIT_32(7));
+        AssertCompile(PGM_WALKINFO_GIGANTIC_PAGE        == RT_BIT_32(8));
+        AssertCompile(PGM_WALKINFO_IS_LINEAR_ADDR_VALID == RT_BIT_32(10));
+
+        rc = tstMmuCfgReadU32(hTest, hMemResult, "Info", &s_aInfo[0], &pWalkResult->fInfo);
+    }
+    if (RT_SUCCESS(rc))
+    {
+        static const TSTCFGBITFIELD s_aFailed[] =
+        {
+            BITFIELD_CREATE_BOOL(NotPresent,          0),
+            BITFIELD_CREATE_BOOL(ReservedBits,        1),
+            BITFIELD_CREATE_BOOL(BadPhysicalAddress,  2),
+            BITFIELD_CREATE_BOOL(NotWritable,         6),
+            BITFIELD_CREATE_BOOL(NotExecutable,       7),
+            BITFIELD_CREATE_BOOL(NotAccessibleByMode, 8),
+            { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+        };
+        AssertCompile(PGM_WALKFAIL_NOT_PRESENT            == RT_BIT_32(0));
+        AssertCompile(PGM_WALKFAIL_RESERVED_BITS          == RT_BIT_32(1));
+        AssertCompile(PGM_WALKFAIL_BAD_PHYSICAL_ADDRESS   == RT_BIT_32(2));
+        AssertCompile(PGM_WALKFAIL_NOT_WRITABLE           == RT_BIT_32(6));
+        AssertCompile(PGM_WALKFAIL_NOT_EXECUTABLE         == RT_BIT_32(7));
+        AssertCompile(PGM_WALKFAIL_NOT_ACCESSIBLE_BY_MODE == RT_BIT_32(8));
+
+        rc = tstMmuCfgReadU32(hTest, hMemResult, "Failed", &s_aFailed[0], &pWalkResult->fFailed);
+    }
+    if (RT_SUCCESS(rc))
+    {
+        static const TSTCFGBITFIELD s_aPtAttrs[] =
+        {
+#define BITFIELD_CREATE_BOOL(a_Name) \
+            { #a_Name, PGM_PTATTRS_##a_Name##_SHIFT, 1, NULL }
+
+            BITFIELD_CREATE_BOOL(PR),
+            BITFIELD_CREATE_BOOL(PW),
+            BITFIELD_CREATE_BOOL(PX),
+            BITFIELD_CREATE_BOOL(PGCS),
+            BITFIELD_CREATE_BOOL(UR),
+            BITFIELD_CREATE_BOOL(UW),
+            BITFIELD_CREATE_BOOL(UX),
+            BITFIELD_CREATE_BOOL(UGCS),
+            { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+        };
+
+        rc = tstMmuCfgReadU64(hTest, hMemResult, "Effective", &s_aPtAttrs[0], &pWalkResult->fEffective);
+    }
+
+    return rc;
+}
+
+
+static void tstExecuteQueryPageFast(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint32_t fFlags, RTJSONVAL hMemResult)
+{
+    PVMCPUCC pVCpu = pVM->apCpusR3[0];
+
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+
+    PGMPTWALKFAST Walk; PGMPTWALKFAST_ZERO(&Walk);
+    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
+    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnQueryPageFast);
+    int rc = g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, &Walk);
+    if (RT_SUCCESS(rc))
+    {
+        PGMPTWALKFAST WalkResult; PGMPTWALKFAST_ZERO(&WalkResult);
+        WalkResult.GCPtr = GCPtr;
+
+        rc = tstResultQueryPageFastInit(hTest, hMemResult, &WalkResult);
+        if (RT_SUCCESS(rc))
+        {
+            if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
+            {
+                if (Walk.GCPtr != WalkResult.GCPtr)
+                    RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
+                if (Walk.GCPhys != WalkResult.GCPhys)
+                    RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
+                if (Walk.GCPhysNested != WalkResult.GCPhysNested)
+                    RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
+                if (Walk.fInfo != WalkResult.fInfo)
+                    RTTestFailed(hTest, "Result fInfo=%#RX32 != Expected fInfo=%#RX32", Walk.fInfo, WalkResult.fInfo);
+                if (Walk.fFailed != WalkResult.fFailed)
+                    RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
+                if (Walk.fEffective != WalkResult.fEffective)
+                    RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
+            }
+        }
+    }
+    else
+        RTTestFailed(hTest, "Resolving virtual address %#RX64 to physical address failed with %Rrc", GCPtr, rc);
+}
+
+
+static int tstTestcaseMmuRunQueryPageFast(RTTEST hTest, RTJSONVAL hTestcase)
+{
+    RTJSONVAL hVal = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hTestcase, "QueryPageFast", &hVal);
+    if (RT_SUCCESS(rc))
+    {
+        RTJSONIT hIt = NIL_RTJSONIT;
+        rc = RTJsonIteratorBeginArray(hVal, &hIt);
+        if (RT_SUCCESS(rc))
+        {
+            for (;;)
+            {
+                RTJSONVAL hMemObj = NIL_RTJSONVAL;
+                rc = RTJsonIteratorQueryValue(hIt, &hMemObj, NULL);
+                if (RT_SUCCESS(rc))
+                {
+                    uint64_t GCPtr = 0;
+                    rc = RTJsonValueQueryIntegerByName(hMemObj, "GCPtr", (int64_t *)&GCPtr);
+                    if (rc == VINF_SUCCESS)
+                    {
+                        static const TSTCFGBITFIELD s_aQPage[] =
+                        {
+#define BITFIELD_CREATE_BOOL(a_Name, a_offBit) \
+                            { #a_Name, a_offBit, 1, NULL }
+
+                            BITFIELD_CREATE_BOOL(READ,    0),
+                            BITFIELD_CREATE_BOOL(WRITE,   1),
+                            BITFIELD_CREATE_BOOL(EXECUTE, 2),
+                            BITFIELD_CREATE_BOOL(USER,    3),
+                            { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+                        };
+                        AssertCompile(PGMQPAGE_F_READ      == RT_BIT_32(0));
+                        AssertCompile(PGMQPAGE_F_WRITE     == RT_BIT_32(1));
+                        AssertCompile(PGMQPAGE_F_EXECUTE   == RT_BIT_32(2));
+                        AssertCompile(PGMQPAGE_F_USER_MODE == RT_BIT_32(3));
+
+                        uint32_t fFlags = 0;
+                        rc = tstMmuCfgReadU32(hTest, hMemObj, "Flags", &s_aQPage[0], &fFlags);
+                        if (RT_SUCCESS(rc))
+                        {
+                            RTJSONVAL hMemResult = NIL_RTJSONVAL;
+                            rc = RTJsonValueQueryByName(hMemObj, "Result", &hMemResult);
+                            if (RT_SUCCESS(rc))
+                            {
+                                tstExecuteQueryPageFast(hTest, g_MmuCfg.pVM, GCPtr, fFlags, hMemResult);
+                                RTJsonValueRelease(hMemResult);
+                            }
+                            else
+                            {
+                                RTTestFailed(hTest, "Querying 'Result' failed with %Rrc", rc);
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        RTTestFailed(hTest, "Querying 'GCPtr' failed with %Rrc", rc);
+                        break;
+                    }
+
+                    RTJsonValueRelease(hMemObj);
+                }
+                else
+                    RTTestFailed(hTest, "Failed to retrieve memory range with %Rrc", rc);
+
+                rc = RTJsonIteratorNext(hIt);
+                if (RT_FAILURE(rc))
+                    break;
+            }
+            if (rc == VERR_JSON_ITERATOR_END)
+                rc = VINF_SUCCESS;
+            RTJsonIteratorFree(hIt);
+        }
+        else
+            RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
+
+
+        RTJsonValueRelease(hVal);
+    }
+    else if (rc == VERR_NOT_FOUND)
+        rc = VINF_SUCCESS;
     else
         RTTestFailed(hTest, "Failed to query \"Tests\" %Rrc", rc);
 
@@ -959,7 +1190,9 @@ static void tstExecuteTestcase(RTTEST hTest, RTJSONVAL hTestcase)
             if (RT_SUCCESS(rc))
                 rc = tstTestcaseMmuConfigPrepare(hTest, &g_MmuCfg, hTestcase);
             if (RT_SUCCESS(rc))
-                rc = tstTestcaseMmuRun(hTest, hTestcase);
+                rc = tstTestcaseMmuRunGetPage(hTest, hTestcase);
+            if (RT_SUCCESS(rc))
+                rc = tstTestcaseMmuRunQueryPageFast(hTest, hTestcase);
         }
         else
             RTTestFailed(hTest, "The testcase name is not a string");

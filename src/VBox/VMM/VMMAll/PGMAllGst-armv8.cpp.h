@@ -132,7 +132,8 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneGetPage)(PVMCPUCC pVCpu, RTGCPTR GCP
     pWalk->fSucceeded = true;
     pWalk->GCPtr      = GCPtr;
     pWalk->GCPhys     = GCPtr & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
-    pWalk->fEffective = X86_PTE_P | X86_PTE_RW | X86_PTE_US; /** @todo */
+    pWalk->fEffective =   PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_PX_MASK | PGM_PTATTRS_PGCS_MASK
+                        | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_UX_MASK | PGM_PTATTRS_UGCS_MASK;
     return VINF_SUCCESS;
 }
 
@@ -146,7 +147,8 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneQueryPageFast)(PVMCPUCC pVCpu, RTGCP
     pWalk->GCPhysNested = 0;
     pWalk->fInfo        = PGM_WALKINFO_SUCCEEDED;
     pWalk->fFailed      = PGM_WALKFAIL_SUCCESS;
-    pWalk->fEffective   = X86_PTE_P | X86_PTE_RW | X86_PTE_US | X86_PTE_A | X86_PTE_D; /** @todo */
+    pWalk->fEffective =   PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_PX_MASK | PGM_PTATTRS_PGCS_MASK
+                        | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_UX_MASK | PGM_PTATTRS_UGCS_MASK;
     return VINF_SUCCESS;
 }
 

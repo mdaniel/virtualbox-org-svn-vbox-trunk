@@ -34,11 +34,11 @@
 
         AddressSpace: { },
 
-        Tests:
+        GetPage:
         {
             /* GCPtr: { Expected Result } */
-            0x0:      { GCPhys:    0x0, Level: 0, fFailed: 0x0, Effective: 0x7 },
-            0xffff:   { GCPhys: 0xf000, Level: 0, fFailed: 0x0, Effective: 0x7 },
+            0x0:      { GCPhys:    0x0, Level: 0, fFailed: 0x0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} },
+            0xffff:   { GCPhys: 0xf000, Level: 0, fFailed: 0x0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} },
         }
     },
     {
@@ -54,10 +54,19 @@
             0x1000: 0x0000c000000000fd,
         },
 
-        Tests:
+        GetPage:
         {
             /* GCPtr: { Expected Result } */
             0x0:      { GCPhys: 0x0000c00000000000, Level: 0, GigantPage: true, fFailed: 0x0, Effective: 0x0 },
-        }
+        },
+
+        QueryPageFast:
+        [
+            {
+                GCPtr: 0x0,
+                Flags: { READ: 1, USER: 1 },
+                Result: { GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: 0 },
+            }
+        ]
     }
 ]

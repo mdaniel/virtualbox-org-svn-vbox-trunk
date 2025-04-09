@@ -3499,6 +3499,21 @@ FNIEMOP_TYPE_1(PFIEMOPU32, uint32_t, u32);
     return VERR_IEM_ASPECT_NOT_IMPLEMENTED
 #endif
 
+/**
+ * Returns a (const) pointer to the CPUMFEATURES for the guest CPU.
+ * @returns PCCPUMFEATURES
+ * @param   a_pVCpu         The cross context virtual CPU structure of the calling thread.
+ */
+#define IEM_GET_GUEST_CPU_FEATURES(a_pVCpu) (&((a_pVCpu)->CTX_SUFF(pVM)->cpum.ro.GuestFeatures))
+
+/**
+ * Returns a (const) pointer to the CPUMFEATURES for the host CPU.
+ * @returns PCCPUMFEATURES
+ * @param   a_pVCpu         The cross context virtual CPU structure of the calling thread.
+ */
+#define IEM_GET_HOST_CPU_FEATURES(a_pVCpu)  (&g_CpumHostFeatures.s)
+
+
 
 /** @} */
 

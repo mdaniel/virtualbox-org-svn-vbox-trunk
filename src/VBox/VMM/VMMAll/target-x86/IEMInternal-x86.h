@@ -2473,20 +2473,6 @@ IEM_DECL_IMPL_PROTO(uint32_t, iemAImpl_vcvtpd2dq_u128_u256_fallback,(uint32_t uM
     do { (a_pVCpu)->iem.s.fExec = ((a_pVCpu)->iem.s.fExec & ~IEM_F_X86_CPL_MASK) | ((a_uCpl) << IEM_F_X86_CPL_SHIFT); } while (0)
 
 /**
- * Returns a (const) pointer to the CPUMFEATURES for the guest CPU.
- * @returns PCCPUMFEATURES
- * @param   a_pVCpu         The cross context virtual CPU structure of the calling thread.
- */
-#define IEM_GET_GUEST_CPU_FEATURES(a_pVCpu) (&((a_pVCpu)->CTX_SUFF(pVM)->cpum.ro.GuestFeatures))
-
-/**
- * Returns a (const) pointer to the CPUMFEATURES for the host CPU.
- * @returns PCCPUMFEATURES
- * @param   a_pVCpu         The cross context virtual CPU structure of the calling thread.
- */
-#define IEM_GET_HOST_CPU_FEATURES(a_pVCpu)  (&g_CpumHostFeatures.s)
-
-/**
  * Evaluates to true if we're presenting an Intel CPU to the guest.
  */
 #define IEM_IS_GUEST_CPU_INTEL(a_pVCpu)     ( (a_pVCpu)->iem.s.enmCpuVendor == CPUMCPUVENDOR_INTEL )

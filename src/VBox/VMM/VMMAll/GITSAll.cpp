@@ -315,14 +315,14 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
         if (!(offReg & 7))
         {
             if (cb == 8)
-                pGitsDev->aItsTableRegs[idxReg].u = uValue;
+                pGitsDev->aItsTableRegs[idxReg].u = uValue & GITS_CTRL_REG_BASER_RW_MASK;
             else
-                pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue;
+                pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue & RT_LO_U32(GITS_CTRL_REG_BASER_RW_MASK);
         }
         else
         {
             Assert(cb == 4);
-            pGitsDev->aItsTableRegs[idxReg].s.Hi = uValue;
+            pGitsDev->aItsTableRegs[idxReg].s.Hi = uValue & RT_HI_U32(GITS_CTRL_REG_BASER_RW_MASK);
         }
         return;
     }
@@ -410,11 +410,14 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
     Assert(RT_ELEMENTS(pGitsDev->auCtes) >= RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_HCC));
     RT_ZERO(pGitsDev->aItsTableRegs);
-    //pGitsDev->aItsTableRegs[0].u = RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_ENTRY_SIZE, )
 
-    pGitsDev->uCmdBaseReg.u = 0;
-    pGitsDev->uCmdReadReg   = 0;
-    pGitsDev->uCmdWriteReg  = 0;
+    pGitsDev->aItsTableRegs[0].u = RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_ENTRY_SIZE, GITS_ITE_SIZE - 1)
+                                 | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_TYPE,       GITS_BASER_TYPE_DEVICES)
+                                 | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_VALID,      1);
+
+    pGitsDev->uCmdBaseReg.u   = 0;
+    pGitsDev->uCmdReadReg     = 0;
+    pGitsDev->uCmdWriteReg    = 0;
     RT_ZERO(pGitsDev->auCtes);
 
     pGitsDev->cCmdQueueErrors = 0;

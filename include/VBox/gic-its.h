@@ -317,6 +317,18 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CREADR_, UINT64_C(0), UINT64_MAX,
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_BASER_, UINT64_C(0), UINT64_MAX,
                             (SIZE, PAGESIZE, SHAREABILITY, PHYS_ADDR, ENTRY_SIZE, OUTER_CACHE, TYPE, INNER_CACHE, INDIRECT,
                              VALID));
+/** GITS_BASER: Mask of valid read-write bits. */
+#define GITS_CTRL_REG_BASER_RW_MASK                             (UINT64_MAX & ~(  GITS_BF_CTRL_REG_BASER_ENTRY_SIZE_MASK \
+                                                                                | GITS_BF_CTRL_REG_BASER_TYPE_MASK))
+
+/** GITS_BASER: Table type - Unimplemented (not a table). */
+#define GITS_BASER_TYPE_UNIMPL                                  0
+/** GITS_BASER: Table type - Devices. */
+#define GITS_BASER_TYPE_DEVICES                                 1
+/** GITS_BASER: Table type - vPE. */
+#define GITS_BASER_TYPE_VPES                                    2
+/** GITS_BASER: Table type - Interrupt Collections. */
+#define GITS_BASER_TYPE_INTR_COLLECTION                         3
 
 /** GITS_PIDR2: ITS Peripheral ID2 register - RO. */
 #define GITS_CTRL_REG_PIDR2_OFF                                 0xffe8

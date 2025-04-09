@@ -2969,6 +2969,40 @@ typedef const ARMV8VMSA64DESC *PCARMV8VMSA64DESC;
 #define ARMV8_VMSA64_DESC_F_TBL_OR_PG                           RT_BIT_64(1)
 #define ARMV8_VMSA64_DESC_F_TBL_OR_PG_BIT                       1
 
+/** @name Upper Attributes for block or page descriptors.
+ * @{ */
+/** Bit 54 - Execute never (XN) when only a single privilege level is supported by the translation regime. */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_1PRIV_XN_BIT            54
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_1PRIV_XN                RT_BIT_64(ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_1PRIV_XN_BIT)
+/** Bit 54 - Unprivileged execute never (UXN) when the translation regime supports two privilege levels. */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_UXN_BIT           54
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_UXN               RT_BIT_64(ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_UXN_BIT)
+/** Bit 54 - Privileged execute never (PXN) when the EL1&0 translation regime is active and HCR_EL2.{NV,NV1} is {1, 1}. */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_EL10_2PRIV_PXN_BIT      54
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_EL10_2PRIV_PXN          RT_BIT_64(ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_EL10_2PRIV_PXN_BIT)
+/** Bit 53 - Privileged execute neveer (PXN) when the translation regime supports two privilege levels. */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_PXN_BIT           53
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_PXN               RT_BIT_64(ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_PXN_BIT)
+/** @} */
+
+/** @name Lower Attributes for block or page descriptors.
+ * @{ */
+/** Bit 10 - Access flag (AF). */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AF_BIT                  10
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AF                      RT_BIT_64(ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AF_BIT)
+/** Bit 6 - 7 Access permissions (AP) (when indirect permissions are disables and stage1 translation supports two exception levels). */
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_MASK                 (RT_BIT_64(7) | RT_BIT_64(6))
+#define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_SHIFT                6
+/** Privileged Read and Write (PrivRead, PrivWrite). */
+# define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_PRIV_RW             0
+/** Unprivileged Read and Write (PrivRead, PrivWrite, UnprivRead, UnprivWrite). */
+# define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_PRIV_RW_UNPRIV_RW   1
+/** Privileged Read (PrivRead) */
+# define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_PRIV_R              2
+/** Privileged and Unprivileged Read (PrivRead, UnprivRead) */
+# define ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP_PRIV_R_UNPRIV_R     3
+/** @} */
+
 /** @} */
 
 #if (!defined(VBOX_FOR_DTRACE_LIB) && defined(__cplusplus) && !defined(ARMV8_WITHOUT_MK_INSTR)) || defined(DOXYGEN_RUNNING)

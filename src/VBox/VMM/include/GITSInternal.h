@@ -104,9 +104,12 @@ typedef enum GITSDIAG
     /* No error, this must be zero! */
     kGitsDiag_None = 0,
 
-    /* Command queue errors. */
-    kGitsDiag_CmdQueue_Unknown_Cmd,
-    kGitsDiag_CmdQueue_Invalid_PhysAddr,
+    /* Command queue: basic operation errors. */
+    kGitsDiag_CmdQueue_Basic_Unknown_Cmd,
+    kGitsDiag_CmdQueue_Basic_Invalid_PhysAddr,
+
+    /* Command queue: command errors. */
+    kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
 
     /* Member for determining array index limit. */
     kGitsDiag_End,
@@ -149,10 +152,8 @@ typedef struct GITSDEV
     R3PTRTYPE(PPDMTHREAD)   pCmdQueueThread;
     /** The event semaphore the command-queue thread waits on. */
     SUPSEMEVENT             hEvtCmdQueue;
-    /** Errors while processing command-queue. */
-    uint32_t                uCmdQueueError;
-    /** Padding. */
-    uint32_t                uPadding0;
+    /** Number of errors while processing commands (resets on VM reset). */
+    uint64_t                cCmdQueueErrors;
     /** @} */
 
     /** @name Tables.

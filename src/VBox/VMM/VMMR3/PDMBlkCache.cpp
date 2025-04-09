@@ -2492,8 +2492,6 @@ VMMR3DECL(int) PDMR3BlkCacheDiscard(PPDMBLKCACHE pBlkCache, PCRTRANGE paRanges,
                             STAM_PROFILE_ADV_STOP(&pCache->StatTreeRemove, Cache);
 
                             pdmBlkCacheLockLeave(pCache);
-
-                            RTMemFree(pEntry);
                         }
                         else
                         {
@@ -2508,6 +2506,7 @@ VMMR3DECL(int) PDMR3BlkCacheDiscard(PPDMBLKCACHE pBlkCache, PCRTRANGE paRanges,
 
                         RTSemRWReleaseWrite(pBlkCache->SemRWEntries);
                         pdmBlkCacheEntryRelease(pEntry);
+                        RTMemFree(pEntry);
                     }
                     else /* Dirty bit not set */
                     {

@@ -618,10 +618,8 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         }
 
                         default:
-                            AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u cbCmds=%u %u CREADR=%#RX32 CWRITER=%#RX32\n",
-                                                    uCmdId, gitsGetCommandName(uCmdId), idxCmd, cCmds, cbCmds,
-                                                    pGitsDev->StatCmdSync.c + pGitsDev->StatCmdInvall.c + pGitsDev->StatCmdMapc.c,
-                                                    pGitsDev->uCmdReadReg, pGitsDev->uCmdWriteReg));
+                            AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u offRead=%#RX32 offWrite=%#RX32\n",
+                                                    uCmdId, gitsGetCommandName(uCmdId), idxCmd, cCmds, offRead, offWrite));
                             break;
                     }
                 }

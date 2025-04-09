@@ -16,11 +16,7 @@
         href="guestadditions.dita#guestadditions"/>, either your VM or the rest of your computer can <i>own</i> the
       keyboard and the mouse. Both cannot own the keyboard and mouse at the same time. You will see a <i>second</i>
       mouse pointer which is always confined to the limits of the VM window. You activate the VM by clicking inside it. </p>
-    <p>To return ownership of keyboard and mouse to your host OS, <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
-      reserves a special key on your keyboard: the <i>Host key</i>. By default, this is the <i>right Ctrl key</i> on
-      your keyboard. On a Mac host, the default Host key is the left Command key. You can change this default using the
-      Preferences window. See <xref href="preferences.dita#preferences"/>. The current setting for the Host key is
-      always displayed at the bottom right of your VM window. </p>
+    <p>To return ownership of keyboard and mouse to your host OS, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> reserves a special key on your keyboard: the <i>Host key</i>. By default, this is the <i>right Ctrl key</i> on your keyboard. On a Mac host, the default Host key is the left Command key. You can change this default using the Preferences window. See <xref href="preferences.dita"/>. The current setting for the Host key is always displayed at the bottom right of your VM window. </p>
     <fig id="fig-host-key">
       <title>Host Key Setting on the Virtual Machine Status Bar</title>
       <xref href="images/vm-hostkey.png" format="png" platform="htmlhelp">

@@ -64,8 +64,7 @@
             outputclass="bold">Preferences</b>, <b outputclass="bold">Input</b>. </p>
                      </li>
                      <li>
-                        <p>A soft keyboard can be used to input key combinations in the guest. See <xref
-            href="soft-keyb.dita#soft-keyb"/>. </p>
+                        <p>A soft keyboard can be used to input key combinations in the guest. See <xref href="soft-keyb-using.dita"/>.</p>
                      </li>
                   </ul>
                </body>

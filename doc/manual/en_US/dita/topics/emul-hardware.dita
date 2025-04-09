@@ -57,9 +57,7 @@
           enables the use of remote USB devices. </p>
       </li>
       <li>
-        <p><b outputclass="bold">Audio.</b> See
-          <xref href="settings-audio.dita#settings-audio"/>.
-        </p>
+        <p><b outputclass="bold">Audio.</b> See <xref href="settings-audio.dita"/>.</p>
       </li>
     </ul>
   </body>

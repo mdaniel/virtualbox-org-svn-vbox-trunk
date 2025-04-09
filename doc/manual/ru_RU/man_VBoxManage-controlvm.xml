@@ -1246,7 +1246,7 @@
         <literal>disabled</literal>, <literal>hosttoguest</literal>,
         <literal>guesttohost</literal> и <literal>bidirectional</literal>.
         Значение по умолчанию <literal>disabled</literal>. Смотрите
-        <xref linkend="generalsettings" />.
+        <xref linkend="ct_generalsettings" />.
       </para>
       <para>
         Этот функционал требует наличия Дополнений Гостевой ОС &product-name;,

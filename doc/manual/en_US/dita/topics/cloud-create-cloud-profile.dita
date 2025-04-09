@@ -70,8 +70,7 @@
       </p>
     <ul>
       <li>
-        <p>Automatically, by using the <b outputclass="bold">Cloud Profile Manager</b>. See <xref
-            href="cloud-using-cloud-profile-manager.dita#cloud-using-cloud-profile-manager"/>. </p>
+        <p>Automatically, by using the <b outputclass="bold">Cloud Profile Manager</b>. See <xref href="cloud-using-cloud-profile-manager.dita"/>.</p>
         <p>The Cloud Profile Manager is a <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> tool that enables you to
           create, edit, and manage cloud profiles for your cloud service accounts. </p>
       </li>

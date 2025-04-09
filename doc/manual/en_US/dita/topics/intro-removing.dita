@@ -21,7 +21,7 @@
         <p>You can also use the <userinput>VBoxManage movevm</userinput> command to move a VM. See <xref href="../cli_topics/vboxmanage-movevm.dita"/>.</p>
       </li>
     </ul>
-    <p>For information about removing or moving a disk image file from <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, see <xref href="virtual-media-manager.dita#virtual-media-manager"/>.</p>
+    <p>For information about removing or moving a disk image file from <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, see <xref href="virtual-media-manager.dita"/>.</p>
   </body>
   
 </topic>

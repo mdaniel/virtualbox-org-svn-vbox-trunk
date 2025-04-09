@@ -1,13 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="create-virtual-hard-disk-image">
+<topic xml:lang="en-us" id="tk_create-virtual-hard-disk-image">
   <title>Creating a Virtual Hard Disk Image </title>
-  
   <body>
     <ol>
       <li>
-        <p>Display the <b outputclass="bold">Hard Disks</b> tab in Virtual Media Manager and click <b outputclass="bold"
-            >Create</b>. </p>
+        <p>Display the <b outputclass="bold">Hard Disks</b> tab in Virtual Media Manager and click <b outputclass="bold">Create</b>. </p>
       </li>
       <li>
         <p>Select a file type for the new virtual hard disk image. </p>
@@ -16,13 +14,10 @@
         <p>Select dynamically allocated or fixed size storage for the virtual hard disk. </p>
       </li>
       <li>
-        <p>Configure the location of the virtual hard disk file and use the slider to set the size limit for the virtual
-          hard disk. </p>
+        <p>Configure the location of the virtual hard disk file and use the slider to set the size limit for the virtual hard disk. </p>
         <p>Click <b outputclass="bold">Finish</b> to create the virtual hard disk file. </p>
-        <p>The virtual hard disk image is created in the specified location and added to the <b outputclass="bold">Hard
-            Disks</b> tab in Virtual Media Manager. </p>
+        <p>The virtual hard disk image is created in the specified location and added to the <b outputclass="bold">Hard Disks</b> tab in Virtual Media Manager. </p>
       </li>
     </ol>
   </body>
-  
 </topic>

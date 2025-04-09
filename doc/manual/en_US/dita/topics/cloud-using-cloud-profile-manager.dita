@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="cloud-using-cloud-profile-manager">
+<topic xml:lang="en-us" id="tk_using-cloud-profile-manager">
   <title>Using the Cloud Profile Manager</title>
-  
   <body>
     <p>To open the Cloud Profile Manager click <b outputclass="bold">File</b>, <b>Tools</b>, <b outputclass="bold">Cloud Profile Manager</b> in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. </p>
     <p>You can use the Cloud Profile Manager in the following ways: </p>
@@ -11,10 +10,8 @@
         <p>To create a new cloud profile automatically.</p>
       </li>
       <li>
-        <p>To create a cloud profile by importing settings from your <ph conkeyref="vbox-conkeyref-phrases/oci"/>
-          configuration file. </p>
+        <p>To create a cloud profile by importing settings from your <ph conkeyref="vbox-conkeyref-phrases/oci"/> configuration file. </p>
       </li>
     </ul>
   </body>
-  
 </topic>

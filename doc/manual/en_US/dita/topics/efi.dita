@@ -8,7 +8,7 @@
     <pre xml:space="preserve">VBoxManage modifyvm "VM name" --firmware efi</pre>
     <p>To switch back to using the BIOS:</p>
     <pre xml:space="preserve">VBoxManage modifyvm "VM name" --firmware bios</pre>
-    <p>Most modern macOS and Windows releases require UEFI.</p>
+    <p>Most modern macOS and Windows releases require UEFI. All Arm VMs require UEFI.</p>
     <p>Another possible use of UEFI in <ph conkeyref="vbox-conkeyref-phrases/product-name"/> is development and testing of UEFI applications, without booting any OS.</p>
   </body>
 </topic>

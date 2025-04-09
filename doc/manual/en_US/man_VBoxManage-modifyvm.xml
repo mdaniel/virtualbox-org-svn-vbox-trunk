@@ -693,7 +693,7 @@ it unless this changes. -->
       Most of these properties correspond to the VM settings that are
       shown in each VM's <emphasis role="bold">Settings</emphasis>
       dialog in the VirtualBox Manager. See
-      <xref linkend="BasicConcepts" />. However, some settings can only
+      <xref linkend="ct_working-with-vms" />. However, some settings can only
       be viewed and managed with the <command>VBoxManage</command>
       command.
     </para>
@@ -768,7 +768,7 @@ it unless this changes. -->
           <listitem><para>
               Specifies the amount of host system RAM to allocate to the
               VM. The size is in MB. See
-              <xref linkend="create-vm" />.
+              <xref linkend="tk_create-vm" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -785,7 +785,7 @@ it unless this changes. -->
           <term><option>--vram=<replaceable>size</replaceable></option></term>
           <listitem><para>
               Specifies the amount of RAM to allocate to the virtual
-              graphics card. See <xref linkend="settings-display" />.
+              graphics card. See <xref linkend="ct_settings-display" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1780,7 +1780,7 @@ it unless this changes. -->
               modify. Valid values are <literal>off</literal> to disable
               the port or an I/O base address and IRQ. For information
               about the traditional COM port I/O base address and IRQ
-              values, see <xref linkend="serialports" />.
+              values, see <xref linkend="ct_serialports" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1788,7 +1788,7 @@ it unless this changes. -->
           <listitem><para>
               Specifies how &product-name; connects the specified
               virtual serial port to the host system that runs the VM.
-              See <xref linkend="serialports" />.
+              See <xref linkend="ct_serialports" />.
             </para><para>
               Ensure that you first configure the virtual serial port by
               using the
@@ -1971,7 +1971,7 @@ it unless this changes. -->
               <literal>hosttoguest</literal>,
               <literal>guesttohost</literal>, and
               <literal>bidirectional</literal>. See
-              <xref linkend="generalsettings" />.
+              <xref linkend="ct_generalsettings" />.
             </para><para>
               The clipboard feature is available only if you have the
               Guest Additions be installed in the VM.
@@ -2009,7 +2009,7 @@ it unless this changes. -->
           <term><option>--monitor-count=<replaceable>count</replaceable></option></term>
           <listitem><para>
               Enables you to configure multiple monitors. See
-              <xref linkend="settings-display" />.
+              <xref linkend="ct_settings-display" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>

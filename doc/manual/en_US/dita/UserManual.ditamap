@@ -10,7 +10,7 @@
       <publisherinformation>
          <published>
             <completed>
-          <month>March</month>
+          <month>April</month>
           <year>2025</year>
         </completed>
       </published>
@@ -104,7 +104,7 @@
     <topicref href="topics/create-vm-hardware.dita"/>
             <topicref href="topics/unattended-guest-install-example.dita"/>
   </chapter>
-  <chapter href="topics/BasicConcepts.dita" chunk="to-content">
+  <chapter href="topics/working-with-vms.dita" chunk="to-content">
     <topicref href="topics/intro-running.dita">
       <topicref href="topics/intro-starting-vm-first-time.dita"/>
       <topicref href="topics/vm-status-bar.dita"/>

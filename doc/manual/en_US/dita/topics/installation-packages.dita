@@ -28,7 +28,7 @@
       </li>
       <li>
         <p>
-          <b outputclass="bold"><?oxy_comment_start author="Mhari Duncan" timestamp="20241213T115547+0000" comment="Put limitations here, after list?"?>macOS / Intel hosts<?oxy_comment_end?></b>:</p>
+          <b outputclass="bold">macOS / Intel hosts</b>:</p>
         <ul>
           <li>
             <p>14 (Sonoma) with Intel x86_64 processors</p>
@@ -79,11 +79,7 @@
         </ul>
       </li>
       <li>
-        <p><b outputclass="bold">Solaris hosts</b><?oxy_comment_start author="Mhari Duncan" timestamp="20241213T115909+0000" comment="Removed
-The following versions are supported with the restrictions listed in Known Limitations: 
-
-Need to state restrictions somewhere"?> and<?oxy_comment_end?>
-          <b outputclass="bold">Solaris 11 IPS hosts</b></p>
+        <p><b outputclass="bold">Solaris hosts</b> and <b outputclass="bold">Solaris 11 IPS hosts</b></p>
         <ul>
           <li>
             <p> Oracle Solaris 11.4</p>

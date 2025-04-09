@@ -16,9 +16,7 @@
           restrictions on how guests can read from and write to the
           disk. This is the default image mode.
         </p>
-        <p>When you take a snapshot of your virtual machine as described in <xref href="snapshots.dita#snapshots"/>, the
-          state of a normal hard disk is recorded together with the snapshot, and when reverting to the snapshot, its
-          state will be fully reset. </p>
+        <p>When you take a snapshot of your virtual machine as described in <xref href="snapshots.dita"/>, the state of a normal hard disk is recorded together with the snapshot, and when reverting to the snapshot, its state will be fully reset. </p>
         <p>The image file itself is not reset. Instead, when a snapshot is taken, <ph
             conkeyref="vbox-conkeyref-phrases/product-name"/>
           <i>freezes</i> the image file and no longer writes to it. For the write operations from the VM, a second,

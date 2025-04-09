@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="extensions">
+<topic xml:lang="en-us" id="ct_extensions">
   <title>Managing <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Extensions</title>
   <body>
     <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> extension packs (file extension <filepath>.vbox-extpack</filepath>) extend the features of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> on the host machine. For more information on the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>, see <xref href="vbox-components.dita"/></p>

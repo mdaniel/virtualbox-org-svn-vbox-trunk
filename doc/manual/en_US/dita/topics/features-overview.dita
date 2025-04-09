@@ -50,7 +50,7 @@
       <ul>
         <li>
           <p><b outputclass="bold">Multigeneration branched snapshots.</b>
-            <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can save arbitrary snapshots of the state of the VM. You can go back in time and revert the VM to any such snapshot and start an alternative VM configuration from there, effectively creating a whole snapshot tree. This can be useful for experimenting with a computing environment, testing, or troubleshooting without the need for frequent backups and restores. See <xref href="snapshots.dita#snapshots"/>. You can create and delete snapshots while the VM is running.</p>
+            <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can save arbitrary snapshots of the state of the VM. You can go back in time and revert the VM to any such snapshot and start an alternative VM configuration from there, effectively creating a whole snapshot tree. This can be useful for experimenting with a computing environment, testing, or troubleshooting without the need for frequent backups and restores. See <xref href="snapshots.dita"/>. You can create and delete snapshots while the VM is running.</p>
         </li>
         <li>
           <p><b outputclass="bold">VM groups.</b>

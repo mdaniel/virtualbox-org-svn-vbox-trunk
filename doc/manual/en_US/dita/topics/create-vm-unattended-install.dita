@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="create-vm-unattended-install">
+<topic xml:lang="en-us" id="tk_create-vm-unattended-install">
   <title>Configure Unattended Installation of Guest OS</title>
   <body>
     <p>If you chose Unattended Installation, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> you must supply certain configuration options to be used in the installation.</p>

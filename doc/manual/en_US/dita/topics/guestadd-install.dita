@@ -18,7 +18,7 @@
           <p>If this option is not available, or if you prefer to mount the ISO manually:</p>
           <ol>
             <li>
-              <p>From the <uicontrol>Devices</uicontrol> menu, choose <uicontrol>Optical Drives</uicontrol>, and then<uicontrol> Choose/Create a Disk Image</uicontrol>. This displays the <xref href="virtual-media-manager.dita#virtual-media-manager"/>.</p>
+              <p>From the <uicontrol>Devices</uicontrol> menu, choose <uicontrol>Optical Drives</uicontrol>, and then<uicontrol> Choose/Create a Disk Image</uicontrol>. This displays <xref href="virtual-media-manager.dita"/>.</p>
             </li>
             <li>
               <p>In the Virtual Media Manager, click <uicontrol>Add</uicontrol> and browse your host file system for the <filepath>VBoxGuestAdditions.iso</filepath> file.</p>

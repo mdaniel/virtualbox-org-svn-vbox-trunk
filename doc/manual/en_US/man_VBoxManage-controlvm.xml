@@ -1175,7 +1175,7 @@
         <literal>hosttoguest</literal>, <literal>guesttohost</literal>,
         and <literal>bidirectional</literal>. The default value is
         <literal>disabled</literal>. See
-        <xref linkend="generalsettings" />.
+        <xref linkend="ct_generalsettings" />.
       </para>
       <para>
         This feature requires the &product-name; Guest Additions

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="create-vm">
+<topic xml:lang="en-us" id="tk_create-vm">
   <title>Creating a New Virtual Machine</title>
   <body>
     <p>To create a Virtual Machine (VM) using the GUI, follow the steps below. To use VBoxManage, see <xref href="unattended-guest-install-example.dita"/>.</p>

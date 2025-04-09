@@ -215,7 +215,7 @@
       </para>
       <para>
         This command performs the same function as the Virtual Media
-        Manager. See <xref linkend="virtual-media-manager"/>.
+        Manager. See <xref linkend="ct_virtual-media-manager"/>.
       </para>
     </refsect2>
     <refsect2 id="vboxmanage-list-extpacks">
@@ -246,7 +246,7 @@
       </para>
       <para>
         This command performs the same function as the Virtual Media
-        Manager. See <xref linkend="virtual-media-manager"/>.
+        Manager. See <xref linkend="ct_virtual-media-manager"/>.
       </para>
     </refsect2>
     <refsect2 id="vboxmanage-list-groups">
@@ -289,7 +289,7 @@
       </para>
       <para>
         This command performs the same function as the Virtual Media
-        Manager. See <xref linkend="virtual-media-manager"/>.
+        Manager. See <xref linkend="ct_virtual-media-manager"/>.
       </para>
     </refsect2>
     <refsect2 id="vboxmanage-list-hostcpuids">

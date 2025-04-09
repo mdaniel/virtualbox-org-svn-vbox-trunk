@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="Introduction">
+<topic xml:lang="en-us" id="ct_about-virtualbox">
   <title>About <ph conkeyref="vbox-conkeyref-phrases/product-name"/></title>
-  
   <body>
     <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is a cross-platform virtualization application. That means it extends the capabilities of your existing computer so that it can run multiple operating systems, inside multiple virtual machines (VMs), at the same time. As an example, you can run Windows and Linux on your Mac, run Windows Server on your Linux server, run Linux on your Windows PC, and so on, all alongside your existing applications.</p>
     <p>You can install and run as many virtual machines as you like. The only practical limits are disk space and memory. You can also save, copy, export and transfer VMs between hosts, and Oracle Cloud Infrastructure.</p>

@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic xml:lang="en-us" id="preferences">
+<topic xml:lang="en-us" id="tk_preferences">
   <title>Set <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Preferences</title>
-  
   <body>
     <p>Use the <uicontrol>Preferences</uicontrol> to change settings that apply to all virtual machines.</p>
     <note>
@@ -26,7 +25,7 @@
         <p>On the <uicontrol>Update</uicontrol> tab, select the type of software updates you want to install, and how frequently to check for updates.</p>
       </li>
       <li>
-        <p>On the <uicontrol>Language</uicontrol> tab,  choose the language used for menus, labels, and text in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>.</p>
+        <p>On the <uicontrol>Language</uicontrol> tab, choose the language used for menus, labels, and text in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>.</p>
       </li>
       <li>
         <p>On the <uicontrol>Display</uicontrol> tab, specify the display properties for all VM displays.</p>
@@ -36,5 +35,4 @@
       </li>
     </ol>
   </body>
-  
 </topic>

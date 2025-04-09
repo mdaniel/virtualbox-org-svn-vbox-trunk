@@ -653,7 +653,7 @@ it unless this changes. -->
     <para>
       Большинство этих свойств соответствуют настройкам ВМ отображаемых
       в диалоге <emphasis role="bold">Настройки</emphasis> Менеджера
-      VirtualBox для каждой ВМ. Смотрите <xref linkend="BasicConcepts" />.
+      VirtualBox для каждой ВМ. Смотрите <xref linkend="ct_working-with-vms" />.
       Однако, некоторые настройки могут отображаться или управляться
       только командой <command>VBoxManage</command>.
     </para>
@@ -727,7 +727,7 @@ it unless this changes. -->
           <term><option>--memory=<replaceable>размер</replaceable></option></term>
           <listitem><para>
               Задает количество оперативной памяти хоста, выделенной ВМ.
-              Размер в МБ. Смотрите <xref linkend="create-vm" />.
+              Размер в МБ. Смотрите <xref linkend="tk_create-vm" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -744,7 +744,7 @@ it unless this changes. -->
           <term><option>--vram=<replaceable>размер</replaceable></option></term>
           <listitem><para>
               Задает количество оперативной памяти, выделенной
-              графической карте. Смотрите <xref linkend="settings-display" />.
+              графической карте. Смотрите <xref linkend="ct_settings-display" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1756,7 +1756,7 @@ it unless this changes. -->
               последовательный порт. Допустимые значения
               <literal>off</literal>, отключающее порт или базу I/O и
               IRQ. Для информации по значениям базы I/O и IRQ традиционных
-              COM портов смотрите <xref linkend="serialports" />.
+              COM портов смотрите <xref linkend="ct_serialports" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1764,7 +1764,7 @@ it unless this changes. -->
           <listitem><para>
               Указывает, как &product-name; соединяет указанный
               виртуальный последовательный порт к хост-системе, где
-              работает ВМ. Смотрите <xref linkend="serialports" />.
+              работает ВМ. Смотрите <xref linkend="ct_serialports" />.
             </para><para>
               Убедитесь, что сначала настроили виртуальный последовательный
               порт через опцию <option>--uart<replaceable>N</replaceable></option>.
@@ -1944,7 +1944,7 @@ it unless this changes. -->
               <literal>hosttoguest</literal>,
               <literal>guesttohost</literal> и
               <literal>bidirectional</literal>. Смотрите
-              <xref linkend="generalsettings" />.
+              <xref linkend="ct_generalsettings" />.
             </para><para>
               Функционал буфера обмена доступен только если
               Дополнения Гостевой ОС установлены в ВМ.
@@ -1969,7 +1969,7 @@ it unless this changes. -->
           <term><option>--monitor-count=<replaceable>количество</replaceable></option></term>
           <listitem><para>
               Позволяет настроить несколько мониторов. Смотрите
-              <xref linkend="settings-display" />.
+              <xref linkend="ct_settings-display" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>

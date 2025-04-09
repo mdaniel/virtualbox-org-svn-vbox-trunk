@@ -59,31 +59,16 @@
     } while(0)
 
 /** Release the device critical section. */
-#define GITS_CRIT_SECT_LEAVE(a_pDevIns)         PDMDevHlpCritSectLeave((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
+#define GITS_CRIT_SECT_LEAVE(a_pDevIns)             PDMDevHlpCritSectLeave((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
 
 /** Returns whether the critical section is held. */
-#define GITS_CRIT_SECT_IS_OWNER(a_pDevIns)      PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
+#define GITS_CRIT_SECT_IS_OWNER(a_pDevIns)          PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
 
 /** GITS diagnostic enum description expansion.
  * The below construct ensures typos in the input to this macro are caught
  * during compile time. */
-#define GITSDIAG_DESC(a_Name)        RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
-
-
-/*********************************************************************************************************************************
-*   Structures and Typedefs                                                                                                      *
-*********************************************************************************************************************************/
-/**
- * Interrupt Table Entry (ITE).
- */
-typedef struct GITSITE
-{
-    bool        fValid;
-    uint8_t     uType;
-    uint16_t    uIntrCollectId;
-    VMCPUID     idTargetCpu;
-} GITSITE;
-AssertCompileSize(GITSITE, 8);
+#define GITSDIAG_DESC(a_Name)                       RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
+/** @} */
 
 
 /*********************************************************************************************************************************
@@ -93,7 +78,8 @@ AssertCompileSize(GITSITE, 8);
 static const char *const g_apszGitsDiagDesc[] =
 {
     GITSDIAG_DESC(None),
-    GITSDIAG_DESC(CmdQueue_PhysAddr_Invalid),
+    GITSDIAG_DESC(CmdQueue_Unknown_Cmd),
+    GITSDIAG_DESC(CmdQueue_Invalid_PhysAddr),
     /* kGitsDiag_End */
 };
 AssertCompile(RT_ELEMENTS(g_apszGitsDiagDesc) == kGitsDiag_End);
@@ -171,8 +157,7 @@ static const char *gitsGetCommandName(uint8_t uCmdId)
 
 static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
 {
-    Assert(GITS_CRIT_SECT_IS_OWNER(pDevIns));
-    NOREF(pDevIns);
+    GITS_CRIT_SECT_ENTER(pDevIns);
 
     /* Record the error and stall the queue. */
     pGitsDev->uCmdQueueError = enmError;
@@ -181,6 +166,8 @@ static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG
 
     /* Since we don't support SEIs, so there should be nothing more to do here. */
     Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_SEIS));
+
+    GITS_CRIT_SECT_LEAVE(pDevIns);
 }
 
 
@@ -401,7 +388,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     pGitsDev->uTypeReg.u = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)     /* Physical LPIs supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,   0) */  /* Virtual LPIs not supported. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,       0)     /* Collections in memory not supported. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, GITS_ITE_SIZE) /* ITE size in bytes. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,   31)    /* 32-bit event IDs. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,  31)    /* 32-bit device IDs. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */  /* Locally generated errors not recommended. */
@@ -420,10 +407,12 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);    /* ITS caches invalidated when clearing
                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
     RT_ZERO(pGitsDev->aItsTableRegs);
+    //pGitsDev->aItsTableRegs[0].u = RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_ENTRY_SIZE, )
+
     pGitsDev->uCmdBaseReg.u = 0;
     pGitsDev->uCmdReadReg   = 0;
     pGitsDev->uCmdWriteReg  = 0;
-    RT_ZERO(pGitsDev->aCtes);
+    RT_ZERO(pGitsDev->auCtes);
 }
 
 
@@ -506,13 +495,13 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
     {
         pHlp->pfnPrintf(pHlp, "  Collection Table:\n");
         bool fHasValidCtes = false;
-        for (unsigned i = 0; i < RT_ELEMENTS(pGitsDev->aCtes); i++)
+        for (unsigned i = 0; i < RT_ELEMENTS(pGitsDev->auCtes); i++)
         {
-            if (pGitsDev->aCtes[i].fValid)
+            bool const fValid = RT_BF_GET(pGitsDev->auCtes[i], GITS_BF_CTE_VALID);
+            if (fValid)
             {
-                AssertCompile(sizeof(pGitsDev->aCtes[i].idTargetCpu) == sizeof(uint16_t));
-                pHlp->pfnPrintf(pHlp, "    aCtes[%u].idTargetCpu = %#RX16\n", i, pGitsDev->aCtes[i].idTargetCpu);
                 fHasValidCtes = true;
+                pHlp->pfnPrintf(pHlp, "    Target CPUID = %#RX16\n", i, RT_BF_GET(pGitsDev->auCtes[i], GITS_BF_CTE_RDBASE));
             }
         }
         if (!fHasValidCtes)
@@ -574,7 +563,8 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             {
                 /* Indicate to the guest we've fetched all commands. */
                 GITS_CRIT_SECT_ENTER(pDevIns);
-                pGitsDev->uCmdReadReg = offWrite;
+                pGitsDev->uCmdReadReg  = offWrite;
+                pGitsDev->uCmdWriteReg &= ~GITS_BF_CTRL_REG_CWRITER_RETRY_MASK;
 
                 /* Don't hold the critical section while processing commands. */
                 GITS_CRIT_SECT_LEAVE(pDevIns);
@@ -590,14 +580,14 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         {
                             uint64_t const uDw2 = pCmd->au64[2].u;
                             bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
-                            uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
+                            uint16_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
                             uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
-                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->aCtes)); /** @todo later figure ideal/correct CT size. */
+                            AssertRelease(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)); /** @todo later figure ideal/correct CT size. */
 
                             GITS_CRIT_SECT_ENTER(pDevIns);
                             Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
-                            pGitsDev->aCtes[uIntrCollectionId].fValid      = fValid;
-                            pGitsDev->aCtes[uIntrCollectionId].idTargetCpu = uTargetCpuId;
+                            pGitsDev->auCtes[uIntrCollectionId] = RT_BF_MAKE(GITS_BF_CTE_VALID,  fValid)
+                                                                | RT_BF_MAKE(GITS_BF_CTE_RDBASE, uTargetCpuId);
                             GITS_CRIT_SECT_LEAVE(pDevIns);
                             STAM_COUNTER_INC(&pGitsDev->StatCmdMapc);
                             break;
@@ -618,17 +608,19 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         }
 
                         default:
+                        {
+                            gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Unknown_Cmd, true /* fStall */);
                             AssertReleaseMsgFailed(("Cmd=%#x (%s) idxCmd=%u cCmds=%u offRead=%#RX32 offWrite=%#RX32\n",
                                                     uCmdId, gitsGetCommandName(uCmdId), idxCmd, cCmds, offRead, offWrite));
                             break;
+                        }
                     }
                 }
                 return VINF_SUCCESS;
             }
 
             /* Failed to read command queue from the physical address specified by the guest, stall queue and retry later. */
-            gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_PhysAddr_Invalid, true /* fStall */);
-            GITS_CRIT_SECT_LEAVE(pDevIns);
+            gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Invalid_PhysAddr, true /* fStall */);
             return VINF_TRY_AGAIN;
         }
     }

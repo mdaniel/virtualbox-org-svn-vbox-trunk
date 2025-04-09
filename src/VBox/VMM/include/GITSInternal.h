@@ -43,13 +43,61 @@
  * @{
  */
 
+/** @name GITS Device Table Entry (DTE).
+ *  @{ */
+#define GITS_BF_DTE_ITT_RANGE_SHIFT                 0
+#define GITS_BF_DTE_ITT_RANGE_MASK                  UINT64_C(0x000000000000000f)
+#define GITS_BF_DTE_RSVD_11_4_SHIFT                 4
+#define GITS_BF_DTE_RSVD_11_4_MASK                  UINT64_C(0x0000000000000ff0)
+#define GITS_BF_DTE_ITT_ADDR_SHIFT                  12
+#define GITS_BF_DTE_ITT_ADDR_MASK                   UINT64_C(0x000ffffffffff000)
+#define GITS_BF_DTE_RSVD_62_52_SHIFT                52
+#define GITS_BF_DTE_RSVD_62_52_MASK                 UINT64_C(0x7ff0000000000000)
+#define GITS_BF_DTE_VALID_SHIFT                     63
+#define GITS_BF_DTE_VALID_MASK                      UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_DTE_, UINT64_C(0), UINT64_MAX,
+                            (ITT_RANGE, RSVD_11_4, ITT_ADDR, RSVD_62_52, VALID));
+#define GITS_DTE_VALID_MASK                         (UINT64_MAX & ~(GITS_BF_DTE_RSVD_11_4_MASK | GITS_BF_DTE_RSVD_62_52_MASK));
+/** GITS DTE: Size of the DTE in bytes. */
+#define GITS_DTE_SIZE                               8
+/** @} */
+
+/** @name GITS Interrupt Translation Entry (ITE).
+ * @{ */
+#define GITS_BF_ITE_ICID_SHIFT                      0
+#define GITS_BF_ITE_ICID_MASK                       UINT64_C(0x000000000000ffff)
+#define GITS_BF_ITE_INTID_SHIFT                     16
+#define GITS_BF_ITE_INTID_MASK                      UINT64_C(0x00000000ffff0000)
+#define GITS_BF_ITE_RSVD_62_32_SHIFT                32
+#define GITS_BF_ITE_RSVD_62_32_MASK                 UINT64_C(0x7fffffff00000000)
+#define GITS_BF_ITE_VALID_SHIFT                     63
+#define GITS_BF_ITE_VALID_MASK                      UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_, UINT64_C(0), UINT64_MAX,
+                            (ICID, INTID, RSVD_62_32, VALID));
+/** GITS ITE: Size of the ITE in bytes. */
+#define GITS_ITE_SIZE                               8
+/** @} */
+
+/** @name GITS Collection Table Entry (CTE).
+ * @{ */
+#define GITS_BF_CTE_RDBASE_SHIFT                    0
+#define GITS_BF_CTE_RDBASE_MASK                     UINT32_C(0x0000ffff)
+#define GITS_BF_CTE_RSVD_30_16_SHIFT                16
+#define GITS_BF_CTE_RSVD_30_16_MASK                 UINT32_C(0x7fff0000)
+#define GITS_BF_CTE_VALID_SHIFT                     31
+#define GITS_BF_CTE_VALID_MASK                      UINT32_C(0x80000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTE_, UINT32_C(0), UINT32_MAX,
+                            (RDBASE, RSVD_30_16, VALID));
+/** GITS CTE: Size of the CTE in bytes. */
+#define GITS_CTE_SIZE                               4
+
 /**
  * GITS error diagnostics.
  * Sorted alphabetically so it's easier to add and locate items, no other reason.
  *
- * @note Members of this enum are used as array indices, so no gaps in enum
- *       values are not allowed. Update g_apszItsDiagDesc when you modify
- *       fields in this enum.
+ * @note Members of this enum are used as array indices, so no gaps in enum values
+ *       are not allowed. Update g_apszGitsDiagDesc when you modify fields in this
+ *       enum.
  */
 typedef enum GITSDIAG
 {
@@ -57,7 +105,8 @@ typedef enum GITSDIAG
     kGitsDiag_None = 0,
 
     /* Command queue errors. */
-    kGitsDiag_CmdQueue_PhysAddr_Invalid,
+    kGitsDiag_CmdQueue_Unknown_Cmd,
+    kGitsDiag_CmdQueue_Invalid_PhysAddr,
 
     /* Member for determining array index limit. */
     kGitsDiag_End,
@@ -66,53 +115,6 @@ typedef enum GITSDIAG
     kGitsDiag_32Bit_Hack = 0x7fffffff
 } GITSDIAG;
 AssertCompileSize(GITSDIAG, 4);
-
-#if 0
-/**
- * Interrupt Translation Table Base.
- */
-typedef struct GITSITSBASE
-{
-    /** The physical address of the table. */
-    RTGCPHYS                GCPhys;
-    /** Size of every allocated page in bytes. */
-    uint32_t                cbPageSize;
-    /** Number of pages allocated. */
-    uint8_t                 cPages;
-    /** Size of each entry in bytes. */
-    uint8_t                 cbEntry;
-    /** Whether this is a two-level or flat table. */
-    bool                    fTwoLevel;
-    /** Whether software has memory allocated for the table. */
-    bool                    fValid;
-    /** Memory shareability attributes. */
-    GITSATTRSHARE           AttrShare;
-    /** Memory cacheability attributes (Inner). */
-    GITSATTRMEM             AttrMemInner;
-    /** Memory cacheability attributes (Outer). */
-    GITSATTRMEM             AttrMemOuter;
-} GITSITSBASE;
-AssertCompileSizeAlignment(GITSITSBASE, 8);
-AssertCompileMemberAlignment(GITSITSBASE, AttrShare, 8);
-#endif
-
-/**
- * GITS Collection Table Entry (CTE).
- */
-typedef struct GITSCTE
-{
-    /** Whether this entry is valid. */
-    bool        fValid;
-    /** Alignment. */
-    bool        afPadding;
-    /** Target CPU ID (size based on GICR_TYPER.Processor_Number). */
-    uint16_t    idTargetCpu;
-} GITSCTE;
-/** Pointer to a GITS Collection Table Entry (CTE). */
-typedef GITSCTE *PGITSCTE;
-/** Pointer to a const GITS Collection Table Entry (CTE). */
-typedef GITSCTE const *PCGITSCTE;
-AssertCompileSize(GITSCTE, 4);
 
 /**
  * The GIC Interrupt Translation Service device state.
@@ -157,7 +159,7 @@ typedef struct GITSDEV
      * @{
      */
     /** The collection table. */
-    GITSCTE                 aCtes[2048];
+    uint32_t                auCtes[2048];
     /** @} */
 
     /** @name Configurables.
@@ -186,8 +188,9 @@ AssertCompileMemberAlignment(GITSDEV, aItsTableRegs, 8);
 AssertCompileMemberAlignment(GITSDEV, uCmdReadReg, 4);
 AssertCompileMemberAlignment(GITSDEV, uCmdWriteReg, 4);
 AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 8);
-AssertCompileMemberAlignment(GITSDEV, aCtes, 8);
+AssertCompileMemberAlignment(GITSDEV, auCtes, 8);
 AssertCompileMemberAlignment(GITSDEV, uArchRev, 8);
+AssertCompileMemberSize(GITSDEV, auCtes, RT_ELEMENTS(GITSDEV::auCtes) * GITS_CTE_SIZE);
 
 DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);
 DECL_HIDDEN_CALLBACK(int)          gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc);

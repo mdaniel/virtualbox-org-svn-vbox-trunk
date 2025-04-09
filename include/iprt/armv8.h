@@ -2959,15 +2959,15 @@ typedef const ARMV8VMSA64DESC *PCARMV8VMSA64DESC;
 
 
 /** Bit 0 - Flag whether the table entry is valid. */
-#define ARMV8_VMSA64_TBL_ENTRY_F_VALID                          RT_BIT_64(0)
-#define ARMV8_VMSA64_TBL_ENTRY_F_VALID_BIT                      0
+#define ARMV8_VMSA64_DESC_F_VALID                               RT_BIT_64(0)
+#define ARMV8_VMSA64_DESC_F_VALID_BIT                           0
 /** Bit 1 - Indicates the descriptor type depending on the current lookup level.
  * Basically when set it indicates to continue the lookup at the next level, or at the last level
  * that it is a page (not setting it at the last level is treated as an invalid descriptor).
  * If clear and not at the last lookup level the result will either be a large or gigantic page,
  * depending on the lookup level. */
-#define ARMV8_VMSA64_TBL_ENTRY_F_TBL_OR_PG                      RT_BIT_64(1)
-#define ARMV8_VMSA64_TBL_ENTRY_F_TBL_OR_PG_BIT                  1
+#define ARMV8_VMSA64_DESC_F_TBL_OR_PG                           RT_BIT_64(1)
+#define ARMV8_VMSA64_DESC_F_TBL_OR_PG_BIT                       1
 
 /** @} */
 

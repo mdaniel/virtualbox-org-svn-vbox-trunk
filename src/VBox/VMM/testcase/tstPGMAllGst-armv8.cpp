@@ -589,9 +589,9 @@ static int tstTestcaseMmuConfigPrepare(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, RT
     uint64_t u64RegTcrEl1 = 0;
     static const TSTCFGNAMEDVALUE s_aTgSizes[] =
     {
-        { "4K",  0 },
+        { "4K",  2 },
         { "64K", 1 },
-        { "16K", 2 },
+        { "16K", 3 },
         { NULL,  0 }
     };
     static const TSTCFGNAMEDVALUE s_aIpsSizes[] =

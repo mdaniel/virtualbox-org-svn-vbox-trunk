@@ -835,12 +835,14 @@ class ArmInstruction(object):
     """
     s_oReValidName = re.compile('^[_A-Za-z][_A-Za-z0-9]+$');
 
-    def __init__(self, oJson, sName, sMemonic, aoEncodesets, oCondition):
+    def __init__(self, oJson, sName, sMemonic, sAsmDisplay, aoEncodesets, oCondition):
         assert self.s_oReValidName.match(sName), 'sName=%s' % (sName);
         self.oJson           = oJson;
         self.sName           = sName;
         self.sMnemonic       = sMemonic;
-        self.sAsmDisplay     = '';
+        self.sAsmDisplay     = sAsmDisplay;
+        self.sSet            = None;
+        self.asGroups        = [];
         self.aoEncodesets    = aoEncodesets;
         self.oCondition      = oCondition;
         self.fFixedMask      = 0;
@@ -888,22 +890,114 @@ class ArmInstruction(object):
 # AArch64 Specification Loader.
 #
 
+## The '_meta::version' dictionary from the Instructions.json file.
+g_oArmInstructionVerInfo = None;
+
 ## All the instructions.
 g_aoAllArmInstructions = []             # type: List[ArmInstruction]
 
-## All the instructions by name (not mnemonic.
+## All the instructions by name (not mnemonic).
 g_dAllArmInstructionsByName = {}        # type: Dict[ArmInstruction]
 
-#
-#  Pass #1 - Snoop up all the instructions and their encodings.
-#
-def parseInstructions(aoStack, aoJson):
+## All the instruction by instruction set name.
+g_dAllArmInstructionsBySet = {}         # type: Dict[List[ArmInstruction]]
+
+## All the instruction by instruction group name.
+g_dAllArmInstructionsByGroup = {}       # type: Dict[List[ArmInstruction]]
+
+
+def __asmChoicesFilterOutDefaultAndAbsent(adChoices, ddAsmRules):
+    """
+    Helper that __asmRuleIdToDisplayText uses to filter out any default choice
+    that shouldn't be displayed.
+
+    Returns choice list.
+    """
+    # There are sometime a 'none' tail entry.
+    if adChoices[-1] is None:
+        adChoices = adChoices[:-1];
+    if len(adChoices) > 1:
+        # Typically, one of the choices is 'absent' or 'default', eliminate it before we start...
+        for iChoice, dChoice in enumerate(adChoices):
+            fAllAbsentOrDefault = True;
+            for dSymbol in dChoice['symbols']:
+                if dSymbol['_type'] != 'Instruction.Symbols.RuleReference':
+                    fAllAbsentOrDefault = False;
+                    break;
+                sRuleId = dSymbol['rule_id'];
+                oRule = ddAsmRules[sRuleId];
+                if (   ('display' in oRule and oRule['display'])
+                    or ('symbols' in oRule and oRule['symbols'])):
+                    fAllAbsentOrDefault = False;
+                    break;
+            if fAllAbsentOrDefault:
+                return adChoices[:iChoice] + adChoices[iChoice + 1:];
+    return adChoices;
+
+
+def __asmRuleIdToDisplayText(sRuleId, ddAsmRules, sInstrNm):
+    """
+    Helper that asmSymbolsToDisplayText uses to process assembly rule references.
+    """
+    dRule = ddAsmRules[sRuleId];
+    sRuleType = dRule['_type'];
+    if sRuleType == 'Instruction.Rules.Token':
+        assert dRule['default'], '%s: %s' % (sInstrNm, sRuleId);
+        return dRule['default'];
+    if sRuleType == 'Instruction.Rules.Rule':
+        assert dRule['display'], '%s: %s' % (sInstrNm, sRuleId);
+        return dRule['display'];
+    if sRuleType == 'Instruction.Rules.Choice':
+        # Some of these has display = None and we need to sort it out ourselves.
+        if dRule['display']:
+            return dRule['display'];
+        sText = '{';
+        assert len(dRule['choices']) > 1;
+        for iChoice, dChoice in enumerate(__asmChoicesFilterOutDefaultAndAbsent(dRule['choices'], ddAsmRules)):
+            if iChoice > 0:
+                sText += ' | ';
+            sText += asmSymbolsToDisplayText(dChoice['symbols'], ddAsmRules, sInstrNm);
+        sText += '}';
+
+        # Cache it.
+        dRule['display'] = sText;
+        return sText;
+
+    raise Exception('%s: Unknown assembly rule type: %s for %s' % (sInstrNm, sRuleType, sRuleId));
+
+
+def asmSymbolsToDisplayText(adSymbols, ddAsmRules, sInstrNm):
+    """
+    Translates the 'symbols' array of an instruction's 'assembly' property into
+     a kind of assembly syntax outline.
+    """
+    sText = '';
+    for dSym in adSymbols:
+        sType = dSym['_type'];
+        if sType == 'Instruction.Symbols.Literal':
+            sText += dSym['value'];
+        elif sType == 'Instruction.Symbols.RuleReference':
+            sRuleId = dSym['rule_id'];
+            sText += __asmRuleIdToDisplayText(sRuleId, ddAsmRules, sInstrNm);
+        else:
+            raise Exception('%s: Unknown assembly symbol type: %s' % (sInstrNm, sType,));
+    return sText;
+
+
+def parseInstructions(aoStack, aoJson, ddAsmRules):
     for oJson in aoJson:
         if oJson['_type'] == "Instruction.InstructionSet":
-            parseInstructions([oJson,] + aoStack, oJson['children']);
+            assert oJson['name'];
+            parseInstructions([oJson,] + aoStack, oJson['children'], ddAsmRules);
+
         elif oJson['_type'] == "Instruction.InstructionGroup":
-            parseInstructions([oJson,] + aoStack, oJson['children']);
+            assert oJson['name'];
+            parseInstructions([oJson,] + aoStack, oJson['children'], ddAsmRules);
+
         elif oJson['_type'] == "Instruction.Instruction":
+            #
+            # Start by getting the instruction attributes.
+            #
             sInstrNm = oJson['name'];
 
             (aoEncodesets, fCovered) = ArmEncodesetField.fromJsonEncodeset(oJson['encoding'], [], 0);
@@ -919,11 +1013,51 @@ def parseInstructions(aoStack, aoJson):
             #    print('debug transfer: %s: %s  ---->  %s' % (sInstrNm, sCondBefore, oCondition.toString()));
             _ = fMod;
 
-            oInstr = ArmInstruction(oJson, sInstrNm, sInstrNm, aoEncodesets, oCondition);
+            # Come up with the assembly syntax (sAsmDisplay).
+            if 'assembly' in oJson:
+                oAsm = oJson['assembly'];
+                assert oAsm['_type'] == 'Instruction.Assembly';
+                assert 'symbols' in oAsm;
+                sAsmDisplay = asmSymbolsToDisplayText(oAsm['symbols'], ddAsmRules, sInstrNm);
+            else:
+                sAsmDisplay = sInstrNm;
 
+            # We derive the mnemonic from the assembly display string.
+            sMnemonic = sAsmDisplay.split()[0];
+
+            #
+            # Instantiate it.
+            #
+            oInstr = ArmInstruction(oJson, sInstrNm, sMnemonic, sAsmDisplay, aoEncodesets, oCondition);
+
+            #
+            # Add the instruction to the various lists and dictionaries.
+            # This is where the sSet and asGroups properties are populated.
+            #
             g_aoAllArmInstructions.append(oInstr);
             assert oInstr.sName not in g_dAllArmInstructionsByName;
             g_dAllArmInstructionsByName[oInstr.sName] = oInstr;
+
+            for oParent in reversed(aoStack): ## @todo reversed?
+                sName = oParent['name'];
+                sParentType = oParent['_type'];
+                if sParentType == "Instruction.InstructionSet":
+                    assert not oInstr.sSet;
+                    oInstr.sSet = sName;
+                    if sName in g_dAllArmInstructionsBySet:
+                        g_dAllArmInstructionsBySet[sName].append(oInstr);
+                    else:
+                        g_dAllArmInstructionsBySet[sName] = [oInstr,];
+                elif sParentType == "Instruction.InstructionGroup":
+                    if sName not in oInstr.asGroups: # sve_intx_clamp comes up twice for instance.
+                        oInstr.asGroups.append(sName);
+                        if sName in g_dAllArmInstructionsByGroup:
+                            g_dAllArmInstructionsByGroup[sName].append(oInstr);
+                        else:
+                            g_dAllArmInstructionsByGroup[sName] = [oInstr,];
+                else:
+                    raise Exception('Unexpected stack entry type: %s' % (sParentType,));
+
     return True;
 
 def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstrNm, uDepth = 0, fMod = False):
@@ -1065,87 +1199,16 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
     return (oCondition, fMod);
 
 
-#
-# Pass #2 - Assembly syntax formatting (for display purposes)
-#
-def asmSymbolsToDisplayText(adSymbols, ddAsmRules, oInstr):
-    sText = '';
-    for dSym in adSymbols:
-        sType = dSym['_type'];
-        if sType == 'Instruction.Symbols.Literal':
-            sText += dSym['value'];
-        elif sType == 'Instruction.Symbols.RuleReference':
-            sRuleId = dSym['rule_id'];
-            sText += asmRuleIdToDisplayText(sRuleId, ddAsmRules, oInstr);
-        else:
-            raise Exception('%s: Unknown assembly symbol type: %s' % (oInstr.sMnemonic, sType,));
-    return sText;
-
-def asmChoicesFilterOutDefaultAndAbsent(adChoices, ddAsmRules):
-    # There are sometime a 'none' tail entry.
-    if adChoices[-1] is None:
-        adChoices = adChoices[:-1];
-    if len(adChoices) > 1:
-        # Typically, one of the choices is 'absent' or 'default', eliminate it before we start...
-        for iChoice, dChoice in enumerate(adChoices):
-            fAllAbsentOrDefault = True;
-            for dSymbol in dChoice['symbols']:
-                if dSymbol['_type'] != 'Instruction.Symbols.RuleReference':
-                    fAllAbsentOrDefault = False;
-                    break;
-                sRuleId = dSymbol['rule_id'];
-                oRule = ddAsmRules[sRuleId];
-                if (   ('display' in oRule and oRule['display'])
-                    or ('symbols' in oRule and oRule['symbols'])):
-                    fAllAbsentOrDefault = False;
-                    break;
-            if fAllAbsentOrDefault:
-                return adChoices[:iChoice] + adChoices[iChoice + 1:];
-    return adChoices;
-
-def asmRuleIdToDisplayText(sRuleId, ddAsmRules, oInstr):
-    dRule = ddAsmRules[sRuleId];
-    sRuleType = dRule['_type'];
-    if sRuleType == 'Instruction.Rules.Token':
-        assert dRule['default'], '%s: %s' % (oInstr.sMnemonic, sRuleId);
-        return dRule['default'];
-    if sRuleType == 'Instruction.Rules.Rule':
-        assert dRule['display'], '%s: %s' % (oInstr.sMnemonic, sRuleId);
-        return dRule['display'];
-    if sRuleType == 'Instruction.Rules.Choice':
-        # Some of these has display = None and we need to sort it out ourselves.
-        if dRule['display']:
-            return dRule['display'];
-        sText = '{';
-        assert len(dRule['choices']) > 1;
-        for iChoice, dChoice in enumerate(asmChoicesFilterOutDefaultAndAbsent(dRule['choices'], ddAsmRules)):
-            if iChoice > 0:
-                sText += ' | ';
-            sText += asmSymbolsToDisplayText(dChoice['symbols'], ddAsmRules, oInstr);
-        sText += '}';
-
-        # Cache it.
-        dRule['display'] = sText;
-        return sText;
-
-    raise Exception('%s: Unknown assembly rule type: %s for %s' % (oInstr.sMnemonic, sRuleType, sRuleId));
-
-def parseInstructionsPass2(aoInstructions, ddAsmRules):
-    """
-    Uses the assembly rules to construct some assembly syntax string for each
-    instruction in the array.
-    """
-    for oInstr in aoInstructions:
-        if 'assembly' in oInstr.oJson:
-            oAsm = oInstr.oJson['assembly'];
-            assert oAsm['_type'] == 'Instruction.Assembly';
-            assert 'symbols' in oAsm;
-            oInstr.sAsmDisplay = asmSymbolsToDisplayText(oAsm['symbols'], ddAsmRules, oInstr);
-        else:
-            oInstr.sAsmDisplay = oInstr.sMnemonic;
-    return True;
-
 def LoadArmOpenSourceSpecification(oOptions):
+    """
+    Loads the ARM specifications from a tar file, directory or individual files.
+
+    Note! Currently only processes Instructions.json.
+
+    @todo Need some reworking as it's taking oOptions as input. It should be
+          generic and usable by code other than the decoder generator.
+    """
+
     #
     # Load the files.
     #
@@ -1179,13 +1242,12 @@ def LoadArmOpenSourceSpecification(oOptions):
     # Parse the Instructions.
     #
     print("parsing instructions ...");
-    # Pass #1: Collect the instructions.
-    parseInstructions([], dRawInstructions['instructions']);
-    # Pass #2: Assembly syntax.
-    global g_aoAllArmInstructions;
-    parseInstructionsPass2(g_aoAllArmInstructions, dRawInstructions['assembly_rules']);
+    global g_oArmInstructionVerInfo;
+    g_oArmInstructionVerInfo = dRawInstructions['_meta']['version'];
+    parseInstructions([], dRawInstructions['instructions'], dRawInstructions['assembly_rules']);
 
     # Sort the instruction array by name.
+    global g_aoAllArmInstructions;
     g_aoAllArmInstructions = sorted(g_aoAllArmInstructions, key = operator.attrgetter('sName', 'sAsmDisplay'));
 
     print("Found %u instructions." % (len(g_aoAllArmInstructions),));
@@ -1833,13 +1895,17 @@ class IEMArmGenerator(object):
         self.oDecoderRoot.setInstrProps(0);
 
 
-    def generateLicenseHeader(self):
+    def generateLicenseHeader(self, oVerInfo):
         """
         Returns the lines for a license header.
         """
         return [
             '/*',
             ' * Autogenerated by $Id$ ',
+            ' * from the open source %s specs, build %s (%s)'
+            % (oVerInfo['architecture'], oVerInfo['build'], oVerInfo['ref'],),
+            ' * dated %s.' % (oVerInfo['timestamp'],),
+            ' *',
             ' * Do not edit!',
             ' */',
             '',
@@ -1875,14 +1941,44 @@ class IEMArmGenerator(object):
             ' */',
             '',
             '',
-            '',
         ];
 
-    def generateImplementationStubs(self):
+    def generateImplementationStubHdr(self, sFilename, iPartNo):
         """
         Generate implementation stubs.
         """
-        return [];
+        _ = sFilename; _ = iPartNo;
+        asLines = self.generateLicenseHeader(g_oArmInstructionVerInfo);
+
+        # Organize this by instruction set, groups and instructions.
+        sPrevCategory = '';
+        for oInstr in sorted(g_aoAllArmInstructions, key = operator.attrgetter('sSet', 'asGroups')):
+            # New group/category?
+            sCategory = ' / '.join([oInstr.sSet if oInstr.sSet else 'no-instr-set'] + oInstr.asGroups);
+            if sCategory != sPrevCategory:
+                asLines += [
+                    '',
+                    '',
+                    '/*',
+                    ' *',
+                    ' * Instruction Set & Groups: %s' % (sCategory,),
+                    ' *',
+                    ' */',
+                ];
+                sPrevCategory = sCategory;
+
+            # Emit the instruction stub.
+            asArgs  = [ # Note! Must match generateDecoderFunctions exactly.
+                oField.sName for oField in sorted(oInstr.aoEncodesets, key = operator.attrgetter('iFirstBit')) if oField.sName
+            ];
+            asLines += [
+                '',
+                '/* %s (%08x/%08x) */' % (oInstr.sAsmDisplay, oInstr.fFixedMask, oInstr.fFixedValue,),
+                '//#define IEM_INSTR_IMPL__%s(%s) ' % (oInstr.getCName(), ', '.join(asArgs)),
+                '',
+            ]
+
+        return (True, asLines);
 
     def generateDecoderFunctions(self):
         """
@@ -1919,7 +2015,9 @@ class IEMArmGenerator(object):
             sCName = oInstr.getCName();
             asLines += [
                 '',
-                '/* %08x/%08x: %s */' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.sAsmDisplay,),
+                '/* %08x/%08x: %s' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.sAsmDisplay,),
+                '   Instruction Set: %s%s%s */'
+                % (oInstr.sSet, ' Group: ' if oInstr.asGroups else '', ','.join(oInstr.asGroups),),
                 'FNIEMOP_DEF_1(iemDecodeA64_%s, uint32_t, uOpcode)' % (sCName,),
                 '{',
             ];
@@ -1970,8 +2068,8 @@ class IEMArmGenerator(object):
             # Log and call implementation.
             asLines += [
                 '%s    LogFlow(("%%010x: %s%s\\n",%s));' % (sIndent, sCName, sLogFmt, ', '.join(['uOpcode',] + asArgs),),
-                '#ifdef HAS_IMPL_%s' % (sCName,),
-                '%s    return iemImpl_%s(%s);' % (sIndent, sCName, ', '.join(['pVCpu',] + asArgs),),
+                '#ifdef IEM_INSTR_IMPL__%s' % (sCName,),
+                '%s    IEM_INSTR_IMPL__%s(%s);' % (sIndent, sCName, ', '.join(asArgs),),
                 '#else',
                 '%s    RT_NOREF(%s);' % (sIndent, ', '.join(asArgs + ['pVCpu', 'uOpcode',]),),
                 '%s    return VERR_IEM_INSTR_NOT_IMPLEMENTED;' % (sIndent,),
@@ -2108,8 +2206,8 @@ class IEMArmGenerator(object):
     def generateDecoderCpp(self, sFilename, iPartNo):
         """ Generates the decoder data & code. """
         _ = iPartNo; _ = sFilename;
-        asLines = self.generateLicenseHeader();
-        asLines.extend([
+        asLines = self.generateLicenseHeader(g_oArmInstructionVerInfo);
+        asLines += [
             '#define LOG_GROUP LOG_GROUP_IEM',
             '#define VMCPU_INCL_CPUM_GST_CTX',
             '#include "IEMInternal.h"',
@@ -2127,7 +2225,7 @@ class IEMArmGenerator(object):
             '    LogFlow(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
             '    IEMOP_RAISE_INVALID_OPCODE_RET();',
             '}',
-        ]);
+        ];
 
         asLines += self.generateDecoderFunctions();
 
@@ -2140,7 +2238,7 @@ class IEMArmGenerator(object):
         """ Generates the decoder header file. """
         _ = iPartNo;
 
-        asLines = self.generateLicenseHeader();
+        asLines = self.generateLicenseHeader(g_oArmInstructionVerInfo);
         sBlockerName = re.sub('[.-]', '_', os.path.basename(sFilename));
         asLines += [
             '#ifndef VMM_INCLUDED_SRC_VMMAll_target_armv8_%s' % (sBlockerName,),
@@ -2214,10 +2312,16 @@ class IEMArmGenerator(object):
                                 help    = 'The output C++ file for the decoder.');
         oArgParser.add_argument('--out-decoder-hdr',
                                 metavar = 'file-decoder.h',
-                                dest    = 'sFileDecoderH',
+                                dest    = 'sFileDecoderHdr',
                                 action  = 'store',
                                 default = '-',
                                 help    = 'The output header file for the decoder.');
+        oArgParser.add_argument('--out-stub-hdr',
+                                metavar = 'file-stub.h',
+                                dest    = 'sFileStubHdr',
+                                action  = 'store',
+                                default = '-',
+                                help    = 'The output header file for the implementation stubs.');
         # debug:
         oArgParser.add_argument('--print-instructions',
                                 dest    = 'fPrintInstructions',
@@ -2251,7 +2355,8 @@ class IEMArmGenerator(object):
             #
             aaoOutputFiles = [
                  ( oOptions.sFileDecoderCpp,      self.generateDecoderCpp, 0, ),
-                 ( oOptions.sFileDecoderH,        self.generateDecoderHdr, 0, ), # Must be after generateDecoderCpp!
+                 ( oOptions.sFileDecoderHdr,      self.generateDecoderHdr, 0, ), # Must be after generateDecoderCpp!
+                 ( oOptions.sFileStubHdr,         self.generateImplementationStubHdr, 0, ),
             ];
             fRc = True;
             for sOutFile, fnGenMethod, iPartNo in aaoOutputFiles:

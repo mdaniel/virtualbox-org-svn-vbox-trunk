@@ -65,17 +65,17 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_DTE_, UINT64_C(0), UINT64_MAX,
 /** @name GITS Interrupt Translation Entry (ITE).
  * @{ */
 #define GITS_BF_ITE_ICID_SHIFT                      0
-#define GITS_BF_ITE_ICID_MASK                       UINT64_C(0x000000000000ffff)
-#define GITS_BF_ITE_INTID_SHIFT                     16
-#define GITS_BF_ITE_INTID_MASK                      UINT64_C(0x00000000ffff0000)
-#define GITS_BF_ITE_RSVD_62_32_SHIFT                32
-#define GITS_BF_ITE_RSVD_62_32_MASK                 UINT64_C(0x7fffffff00000000)
-#define GITS_BF_ITE_VALID_SHIFT                     63
-#define GITS_BF_ITE_VALID_MASK                      UINT64_C(0x8000000000000000)
-RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_, UINT64_C(0), UINT64_MAX,
-                            (ICID, INTID, RSVD_62_32, VALID));
+#define GITS_BF_ITE_ICID_MASK                       UINT32_C(0x000000ff)
+#define GITS_BF_ITE_INTID_SHIFT                     8
+#define GITS_BF_ITE_INTID_MASK                      UINT32_C(0x00ffff00)
+#define GITS_BF_ITE_RSVD_30_24_SHIFT                24
+#define GITS_BF_ITE_RSVD_30_24_MASK                 UINT32_C(0x7f000000)
+#define GITS_BF_ITE_VALID_SHIFT                     31
+#define GITS_BF_ITE_VALID_MASK                      UINT32_C(0x80000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_, UINT32_C(0), UINT32_MAX,
+                            (ICID, INTID, RSVD_30_24, VALID));
 /** GITS ITE: Size of the ITE in bytes. */
-#define GITS_ITE_SIZE                               8
+#define GITS_ITE_SIZE                               4
 /** @} */
 
 /** @name GITS Collection Table Entry (CTE).
@@ -159,7 +159,7 @@ typedef struct GITSDEV
      * @{
      */
     /** The collection table. */
-    uint32_t                auCtes[2048];
+    uint32_t                auCtes[256];
     /** @} */
 
     /** @name Configurables.

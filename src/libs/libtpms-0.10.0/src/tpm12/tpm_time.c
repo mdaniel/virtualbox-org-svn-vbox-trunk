@@ -10,6 +10,18 @@
 /* All rights reserved.								*/
 /* 										*/
 /* Redistribution and use in source and binary forms, with or without		*/
+/********************************************************************************/
+/*                                                                              */
+/*                              Time Utilities                                  */
+/*                           Written by Ken Goldman                             */
+/*                     IBM Thomas J. Watson Research Center                     */
+/*            $Id: tpm_time.c 4648 2011-10-25 19:22:18Z kgoldman $              */
+/*                                                                              */
+/* (c) Copyright IBM Corporation 2006, 2010.					*/
+/*										*/
+/* All rights reserved.								*/
+/* 										*/
+/* Redistribution and use in source and binary forms, with or without		*/
 /* modification, are permitted provided that the following conditions are	*/
 /* met:										*/
 /* 										*/
@@ -75,16 +87,17 @@ TPM_RESULT TPM_GetTimeOfDay(uint32_t *tv_sec, uint32_t *tv_usec)
     }
     return rc;
 }
+
 #endif
 #else
 # include <iprt/time.h>
-
+ 
 TPM_RESULT TPM_GetTimeOfDay(uint32_t *tv_sec, uint32_t *tv_usec)
 {
     TPM_RESULT rc = 0;
     RTTIMESPEC Timespec;
     int64_t i64Us;
-
+ 
     RTTimeNow(&Timespec);
     i64Us = RTTimeSpecGetMicro(&Timespec);
     *tv_sec = (uint32_t)(i64Us / RT_US_1SEC);

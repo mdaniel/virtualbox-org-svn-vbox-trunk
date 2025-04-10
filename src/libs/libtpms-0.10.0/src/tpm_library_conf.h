@@ -168,7 +168,6 @@
 #define TPM_MEDIUM_DURATION   (100 * 1000 * 1000)
 #define TPM_LONG_DURATION     (300 * 1000 * 1000)
 
-
 #ifdef VBOX
 # if defined(RT_OS_WINDOWS)
 #  include <iprt/string.h>
@@ -194,4 +193,5 @@ DECLINLINE(int) asprintf(char **ret, const char *format, ...)
 #  endif
 # endif
 #endif
+
 #endif /* TPM_LIBRARY_CONF_H */

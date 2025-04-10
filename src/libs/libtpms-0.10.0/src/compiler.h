@@ -39,15 +39,18 @@
 #define TPMLIB_COMPILER_H
 
 #ifndef VBOX
-#ifndef __clang__
-# define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK) \
-  __attribute__((format (printf, STRING_IDX, FIRST_TO_CHECK)))
+  #ifndef __clang__
+  # define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK) \
+    __attribute__((format (printf, STRING_IDX, FIRST_TO_CHECK)))
+  #else
+  # define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK) \
+    __attribute__((__format__ (__printf__, STRING_IDX, FIRST_TO_CHECK)))
+  #endif
+  #ifdef __GNUC__ /* gcc and clang */
+  # define LIBTPMS_ATTR_UNUSED __attribute__((unused))
+  #endif
 #else
-# define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK) \
-  __attribute__((__format__ (__printf__, STRING_IDX, FIRST_TO_CHECK)))
-#endif
-#else
-# define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK)
+  # define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK)
 #endif
 
 #endif /* TPMLIB_COMPILER_H */

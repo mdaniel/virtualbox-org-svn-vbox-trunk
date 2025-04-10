@@ -520,7 +520,7 @@ TPM_RESULT TPMLIB_SetDebugPrefix(const char *prefix)
 
 int TPMLIB_LogPrintf(const char *format, ...)
 {
-#ifndef VBOX
+#ifndef VBOX    
     unsigned level = debug_level, i;
     va_list args;
     char buffer[256];

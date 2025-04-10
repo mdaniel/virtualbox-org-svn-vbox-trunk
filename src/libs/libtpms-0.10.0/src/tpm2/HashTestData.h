@@ -162,7 +162,7 @@ static const struct CMACTest {
 } CMACTests[] = {
     {
         .key      = &cmac_aeskey.b,
-        .data     = { 0 },
+        .data     = { 0 }, /* VBOX */
         .datalen  = 0,
         .out      = { 0xbb, 0x1d, 0x69, 0x29, 0xe9, 0x59, 0x37, 0x28,
                       0x7f, 0xa3, 0x7d, 0x12, 0x9b, 0x75, 0x67, 0x46},

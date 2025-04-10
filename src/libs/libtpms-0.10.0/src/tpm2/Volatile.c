@@ -44,7 +44,7 @@
 #else
 # include <endian.h>
 #endif
-#endif
+#endif /* VBOX */
 #include <string.h>
 
 #include "config.h"

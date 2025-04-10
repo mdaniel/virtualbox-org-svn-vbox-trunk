@@ -117,12 +117,12 @@ void TPMLIB_LogArray(unsigned int indent, const unsigned char *data,
      TPMLIB_LogPrintfA(~0, "libtpms/tpm12: "format, __VA_ARGS__)
 #define TPMLIB_LogTPM2Error(format, ...) \
      TPMLIB_LogPrintfA(~0, "libtpms/tpm2: "format, __VA_ARGS__)
-#else
+#else /* !VBOX*/
 # define TPMLIB_LogError(format, ...)
 # define TPMLIB_LogTPM12Error(format, ...)
 # define TPMLIB_LogTPM2Error(format, ...)
-#endif
-
+#endif /* !VBOX*/
+     
 int TPMLIB_asprintf(char **strp, const char *fmt, ...);
 
 /* prototypes for TPM2 */

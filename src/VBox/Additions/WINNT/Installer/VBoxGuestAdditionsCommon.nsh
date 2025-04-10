@@ -219,7 +219,7 @@ Function Common_ExtractFiles
       FILE "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys"
     !endif
     FILE "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll"
-    !if $%KBUILD_TARGET_ARCH% == "x86"
+    !if $%KBUILD_TARGET_ARCH% == "amd64" ; Not available on arm64.
       FILE "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll"
     !endif
   ${EndIf}

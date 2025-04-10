@@ -235,118 +235,190 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
 {
     RT_NOREF(pGstWalk); /** @todo */
 
-    /*
-     * Initial lookup level 3 is not valid and only instantiated because we need two
-     * bits for the lookup level when creating the index and have to fill the slots.
-     */
-    if RT_CONSTEXPR_IF(a_InitialLookupLvl == 3)
-    {
-        AssertReleaseFailed();
-        return VERR_PGM_MODE_IPE;
-    }
-    else
-    {
-        uint8_t const bEl = CPUMGetGuestEL(pVCpu);
+    /* This also applies to TG1 granule sizes, as both share the same encoding in TCR. */
+    AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_INVALID == ARMV8_TCR_EL1_AARCH64_TG1_INVALID);
+    AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_16KB    == ARMV8_TCR_EL1_AARCH64_TG1_16KB);
+    AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_4KB     == ARMV8_TCR_EL1_AARCH64_TG1_4KB);
+    AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_64KB    == ARMV8_TCR_EL1_AARCH64_TG1_64KB);
 
+    if RT_CONSTEXPR_IF(a_GranuleSz != ARMV8_TCR_EL1_AARCH64_TG0_INVALID)
+    {
+        uint64_t fLookupMaskFull;
+        RTGCPTR  offPageMask;
+
+        RTGCPTR offLvl1BlockMask;
+        RTGCPTR offLvl2BlockMask;
+
+        uint64_t fNextTableOrPageMask;
+        uint8_t  cLvl0Shift;
+        uint8_t  cLvl1Shift;
+        uint8_t  cLvl2Shift;
+        uint8_t  cLvl3Shift;
+
+        RTGCPHYS fGCPhysLvl1BlockBase;
+        RTGCPHYS fGCPhysLvl2BlockBase;
+
+        /** @todo This needs to go into defines in armv8.h if final. */
+        if RT_CONSTEXPR_IF(a_GranuleSz == ARMV8_TCR_EL1_AARCH64_TG0_4KB)
+        {
+            fLookupMaskFull      = RT_BIT_64(9) - 1;
+            offLvl1BlockMask     = (RTGCPTR)(_1G - 1);
+            offLvl2BlockMask     = (RTGCPTR)(_2M - 1);
+            offPageMask          = (RTGCPTR)(_4K - 1);
+            fNextTableOrPageMask = UINT64_C(0xfffffffff000);
+            cLvl0Shift           = 39;
+            cLvl1Shift           = 30;
+            cLvl2Shift           = 21;
+            cLvl3Shift           = 12;
+            fGCPhysLvl1BlockBase = UINT64_C(0xffffc0000000);
+            fGCPhysLvl2BlockBase = UINT64_C(0xffffffe00000);
+        }
+        else if RT_CONSTEXPR_IF(a_GranuleSz == ARMV8_TCR_EL1_AARCH64_TG0_16KB)
+        {
+            fLookupMaskFull      = RT_BIT_64(11) - 1;
+            offLvl1BlockMask     = 0; /** @todo TCR_EL1.DS support. */
+            offLvl2BlockMask     = (RTGCPTR)(_32M - 1);
+            offPageMask          = (RTGCPTR)(_16K - 1);
+            fNextTableOrPageMask = UINT64_C(0xffffffffc000);
+            cLvl0Shift           = 47;
+            cLvl1Shift           = 36;
+            cLvl2Shift           = 25;
+            cLvl3Shift           = 14;
+            fGCPhysLvl1BlockBase = 0; /* Not supported. */
+            fGCPhysLvl2BlockBase = UINT64_C(0xfffffe000000);
+        }
+        else if RT_CONSTEXPR_IF(a_GranuleSz == ARMV8_TCR_EL1_AARCH64_TG0_64KB)
+        {
+            Assert(a_InitialLookupLvl > 0);
+
+            fLookupMaskFull      = RT_BIT_64(13)   - 1;
+            offLvl1BlockMask     = 0; /** @todo FEAT_LPA (RTGCPTR)(4*_1T - 1) */
+            offLvl2BlockMask     = (RTGCPTR)(_512M - 1);
+            offPageMask          = (RTGCPTR)(_64K  - 1);
+            fNextTableOrPageMask = UINT64_C(0xffffffff0000);
+            cLvl0Shift           = 0; /* No Level 0 with 64KiB granules. */
+            cLvl1Shift           = 42;
+            cLvl2Shift           = 29;
+            cLvl3Shift           = 16;
+            fGCPhysLvl1BlockBase = 0; /* Not supported. */
+            fGCPhysLvl2BlockBase = UINT64_C(0xffffe0000000);
+        }
+
+        pWalk->GCPtr = GCPtr;
+
+        /* Get the initial lookup mask. */
+        uint8_t const bEl = CPUMGetGuestEL(pVCpu);
         uint64_t fLookupMask;
         if RT_CONSTEXPR_IF(a_fTtbr0 == true)
             fLookupMask = pVCpu->pgm.s.afLookupMaskTtbr0[bEl];
         else
             fLookupMask = pVCpu->pgm.s.afLookupMaskTtbr1[bEl];
 
-        RTGCPHYS GCPhysPt = CPUMGetEffectiveTtbr(pVCpu, GCPtr);
-        uint64_t *pu64Pt = NULL;
-        uint64_t uPt;
+        RTGCPHYS         GCPhysPt = CPUMGetEffectiveTtbr(pVCpu, GCPtr);
+        PARMV8VMSA64DESC paDesc   = NULL;
+        ARMV8VMSA64DESC  Desc;
         int rc;
         if RT_CONSTEXPR_IF(a_InitialLookupLvl == 0)
         {
-            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, &pu64Pt);
+            Assert(cLvl0Shift != 0);
+            uint8_t const uLvl = 0;
+
+            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, (void **)&paDesc);
             if (RT_SUCCESS(rc)) { /* probable */ }
-            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, 0, rc);
+            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, uLvl, rc);
 
-            uPt = pu64Pt[(GCPtr >> 39) & fLookupMask];
-            if (uPt & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
-            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, 0);
+            Desc = ASMAtomicUoReadU64(&paDesc[(GCPtr >> cLvl0Shift) & fLookupMask]);
+            if (Desc & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
+            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, uLvl);
 
-            if (uPt & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
-            else return pgmGstWalkReturnRsvdError(pVCpu, pWalk, 0); /** @todo Only supported if TCR_EL1.DS is set. */
+            if (Desc & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
+            else return pgmGstWalkReturnRsvdError(pVCpu, pWalk, uLvl); /** @todo Only supported if TCR_EL1.DS is set. */
 
-            /* All nine bits from now on. */
-            fLookupMask = RT_BIT_64(9) - 1;
-            GCPhysPt = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000));
+            /* Full lookup mask from now on. */
+            fLookupMask = fLookupMaskFull;
+            GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
         if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 1)
         {
-            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, &pu64Pt);
+            uint8_t const uLvl = 1;
+
+            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, (void **)&paDesc);
             if (RT_SUCCESS(rc)) { /* probable */ }
-            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, 1, rc);
+            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, uLvl, rc);
 
-            uPt = pu64Pt[(GCPtr >> 30) & fLookupMask];
-            if (uPt & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
-            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, 1);
+            Desc = ASMAtomicUoReadU64(&paDesc[(GCPtr >> cLvl1Shift) & fLookupMask]);
+            if (Desc & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
+            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, uLvl);
 
-            if (uPt & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
+            if (Desc & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
             else
             {
-                /* Block descriptor (1G page). */
-                pWalk->GCPtr       = GCPtr;
-                pWalk->fSucceeded  = true;
-                pWalk->GCPhys      = (RTGCPHYS)(uPt & UINT64_C(0xffffc0000000)) | (GCPtr & (RTGCPTR)(_1G - 1));
-                pWalk->fGigantPage = true;
-                return pgmGstWalkWorkerSetEffective(pWalk, uPt);
+                if (offLvl1BlockMask != 0)
+                {
+                    /* Block descriptor. */
+                    pWalk->fSucceeded  = true;
+                    pWalk->fGigantPage = true;
+                    pWalk->GCPhys      = (RTGCPHYS)(Desc & fGCPhysLvl1BlockBase) | (GCPtr & offLvl1BlockMask);
+                    return pgmGstWalkWorkerSetEffective(pWalk, Desc);
+                }
+                else
+                    return pgmGstWalkReturnRsvdError(pVCpu, pWalk, uLvl);
             }
 
-            /* All nine bits from now on. */
-            fLookupMask = RT_BIT_64(9) - 1;
-            GCPhysPt = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000));
+            /* Full lookup mask from now on. */
+            fLookupMask = fLookupMaskFull;
+            GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
         if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 2)
         {
-            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, &pu64Pt);
+            uint8_t const uLvl = 2;
+
+            rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, (void **)&paDesc);
             if (RT_SUCCESS(rc)) { /* probable */ }
-            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, 2, rc);
+            else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, uLvl, rc);
 
-            uPt = pu64Pt[(GCPtr >> 21) & fLookupMask];
-            if (uPt & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
-            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, 2);
+            Desc = ASMAtomicUoReadU64(&paDesc[(GCPtr >> cLvl2Shift) & fLookupMask]);
+            if (Desc & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
+            else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, uLvl);
 
-            if (uPt & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
+            if (Desc & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
             else
             {
-                /* Block descriptor (2M page). */
-                pWalk->GCPtr      = GCPtr;
+                /* Block descriptor. */
                 pWalk->fSucceeded = true;
-                pWalk->GCPhys     = (RTGCPHYS)(uPt & UINT64_C(0xffffffe00000)) | (GCPtr & (RTGCPTR)(_2M - 1));
                 pWalk->fBigPage   = true;
-                return pgmGstWalkWorkerSetEffective(pWalk, uPt);
+                pWalk->GCPhys     = (RTGCPHYS)(Desc & fGCPhysLvl2BlockBase) | (GCPtr & offLvl2BlockMask);
+                return pgmGstWalkWorkerSetEffective(pWalk, Desc);
             }
 
-            /* All nine bits from now on. */
-            fLookupMask = RT_BIT_64(9) - 1;
-            GCPhysPt = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000));
+            /* Full lookup mask from now on. */
+            fLookupMask = fLookupMaskFull;
+            GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
         AssertCompile(a_InitialLookupLvl <= 3);
+        uint8_t const uLvl = 3;
 
         /* Next level. */
-        rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, &pu64Pt);
+        rc = PGM_GCPHYS_2_PTR_BY_VMCPU(pVCpu, GCPhysPt, (void **)&paDesc);
         if (RT_SUCCESS(rc)) { /* probable */ }
-        else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, 3, rc);
+        else return pgmGstWalkReturnBadPhysAddr(pVCpu, pWalk, uLvl, rc);
 
-        uPt = pu64Pt[(GCPtr & UINT64_C(0x1ff000)) >> 12];
-        if (uPt & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
-        else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, 3);
+        Desc = ASMAtomicUoReadU64(&paDesc[(GCPtr >> cLvl3Shift) & fLookupMask]);
+        if (Desc & ARMV8_VMSA64_DESC_F_VALID) { /* probable */ }
+        else return pgmGstWalkReturnNotPresent(pVCpu, pWalk, uLvl);
 
-        if (uPt & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
-        else return pgmGstWalkReturnRsvdError(pVCpu, pWalk, 3); /** No block descriptors. */
+        if (Desc & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
+        else return pgmGstWalkReturnRsvdError(pVCpu, pWalk, uLvl); /* No block descriptors. */
 
-        pWalk->GCPtr      = GCPtr;
         pWalk->fSucceeded = true;
-        pWalk->GCPhys     = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000)) | (GCPtr & (RTGCPTR)(_4K - 1));
-        return pgmGstWalkWorkerSetEffective(pWalk, uPt);
+        pWalk->GCPhys     = (RTGCPHYS)(Desc & fNextTableOrPageMask) | (GCPtr & offPageMask);
+        return pgmGstWalkWorkerSetEffective(pWalk, Desc);
     }
+    else
+        AssertReleaseFailedReturn(VERR_PGM_MODE_IPE);
 }
 
 

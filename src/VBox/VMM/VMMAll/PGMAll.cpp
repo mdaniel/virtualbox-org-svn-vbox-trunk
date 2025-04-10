@@ -3558,7 +3558,7 @@ static PGMMODE pgmCalcShadowMode(PVMCC pVM, PGMMODE enmGuestMode, SUPPAGINGMODE 
 
 VMM_INT_DECL(int) PGMChangeMode(PVMCPUCC pVCpu, uint8_t bEl, uint64_t u64RegSctlr, uint64_t u64RegTcr)
 {
-    VMCPU_ASSERT_EMT(pVCpu);
+    VMCPU_ASSERT_EMT_OR_NOT_RUNNING(pVCpu);
     Assert(bEl > 0 && bEl < 4);
 
     /* Only go through the setup when something has changed. */

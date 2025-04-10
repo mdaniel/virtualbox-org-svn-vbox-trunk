@@ -57,8 +57,8 @@
 
         AddressSpace:
         {
-            0x0:    0x0000000000001fff,
-            0x1000: 0x0000c000000000fd,
+            0x0:    {                 PhysAddr:             0x1000,             T: 1, V: 1},
+            0x1000: { UXN: 0, PXN: 0, PhysAddr: 0x0000c00000000000, AP: 'UPR',  T: 0, V: 1},
         },
 
         Tests:

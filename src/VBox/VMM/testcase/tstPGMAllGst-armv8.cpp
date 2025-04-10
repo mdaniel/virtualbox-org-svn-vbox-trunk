@@ -142,10 +142,7 @@ static int pgmPhysGCPhys2CCPtr(RTGCPHYS GCPhys, void **ppv)
 {
     PCTSTMEMCHUNK pChunk = (PCTSTMEMCHUNK)RTAvlrU64RangeGet(&g_MmuCfg.TreeMem, GCPhys);
     if (!pChunk)
-    {
-        *ppv = (void *)&g_abRTZero64K[0]; /* This ASSUMES that the page table walking code will never access beyond the end of this page. */
-        return VINF_SUCCESS;
-    }
+        return VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS;
 
     uint64_t const off = GCPhys - pChunk->Core.Key;
     *ppv = (void *)&pChunk->abMem[off];
@@ -288,6 +285,16 @@ static int tstMmuCfgReadBitfieldU64(RTTEST hTest, RTJSONVAL hObj, PCTSTCFGBITFIE
         RTJSONVALTYPE enmType = RTJsonValueGetType(hValue);
         switch (enmType)
         {
+            case RTJSONVALTYPE_TRUE:
+            case RTJSONVALTYPE_FALSE:
+            {
+                if (paBitfields[idx].cBits == 1)
+                    u64 |= (enmType == RTJSONVALTYPE_TRUE ? 1 : 0) << paBitfields[idx].offBitfield;
+                else
+                    RTTestFailed(hTest, "Bitfield '%s' is more than 1 bit wide", paBitfields[idx].pszName);
+
+                break;
+            }
             case RTJSONVALTYPE_INTEGER:
             {
                 int64_t i64Tmp = 0;
@@ -298,7 +305,8 @@ static int tstMmuCfgReadBitfieldU64(RTTEST hTest, RTJSONVAL hObj, PCTSTCFGBITFIE
                     break;
                 }
                 else if (   i64Tmp < 0
-                         || (uint64_t)i64Tmp > (RT_BIT_64(paBitfields[idx].cBits) - 1))
+                         || (   paBitfields[idx].cBits < 64
+                             && (uint64_t)i64Tmp > (RT_BIT_64(paBitfields[idx].cBits) - 1)))
                 {
                     RTTestFailed(hTest, "Value of \"%s\" is out of bounds, got %#RX64, maximum is %#RX64",
                                  paBitfields[idx].pszName, (uint64_t)i64Tmp, (RT_BIT_64(paBitfields[idx].cBits) - 1));
@@ -536,6 +544,41 @@ static int tstTestcaseMmuMemoryAdd(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, uint64
                 rc = tstTestcaseMmuMemoryWrite(hTest, pMmuCfg, GCPhysAddr, &u64Val, sizeof(u64Val));
             else
                 RTTestFailed(hTest, "Querying data for address %#RX64 failed with %Rrc\n", GCPhysAddr, u64Val);
+            break;
+        }
+        case RTJSONVALTYPE_OBJECT:
+        {
+            static const TSTCFGNAMEDVALUE s_aApPerm[] =
+            {
+                { "PRW",  0 },
+                { "UPRW", 1 },
+                { "PR",   2 },
+                { "UPR",  3 },
+                { NULL,   0 }
+            };
+            static const TSTCFGBITFIELD s_aTblBitfields[] =
+            {
+#define BITFIELD_CREATE_BOOL(a_Name, a_offBit) \
+                { a_Name, a_offBit, 1, NULL }
+
+                { "Raw",       0, 64, NULL         },
+                { "SwUse",    55,  4, NULL         },
+                BITFIELD_CREATE_BOOL("UXN", 54),
+                BITFIELD_CREATE_BOOL("PXN", 53),
+                { "PhysAddr", 0, 64, NULL          },
+                BITFIELD_CREATE_BOOL("AF",  10),
+                { "AP",       6,  2, &s_aApPerm[0] },
+                BITFIELD_CREATE_BOOL("T",    1),
+                BITFIELD_CREATE_BOOL("V",    0),
+                { NULL,     0, 0, NULL }
+
+#undef BITFIELD_CREATE_BOOL
+            };
+
+            uint64_t u64Val = 0;
+            rc = tstMmuCfgReadBitfieldU64(hTest, hMemObj, &s_aTblBitfields[0], &u64Val);
+            if (RT_SUCCESS(rc))
+                rc = tstTestcaseMmuMemoryWrite(hTest, pMmuCfg, GCPhysAddr, &u64Val, sizeof(u64Val));
             break;
         }
         default:

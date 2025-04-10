@@ -1082,7 +1082,7 @@ UIVMActivityMonitor::UIVMActivityMonitor(EmbedTo enmEmbedding, QWidget *pParent,
     , m_pMainLayout(0)
     , m_enmEmbedding(enmEmbedding)
 {
-    uiCommon().setHelpKeyword(this, "vm-activity-session-information" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "tk_vm-activity-session-information" /* help keyword */);
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &UIVMActivityMonitor::customContextMenuRequested,
             this, &UIVMActivityMonitor::sltCreateContextMenu);

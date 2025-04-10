@@ -1327,7 +1327,7 @@ void UISnapshotPane::prepare()
     loadSettings();
 
     /* Register help topic: */
-    uiCommon().setHelpKeyword(this, "snapshots" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "ct_snapshots" /* help keyword */);
 
     /* Apply language settings: */
     sltRetranslateUI();

@@ -275,7 +275,7 @@ void UIVMInformationDialog::prepareButtonBox()
     {
         /* Configure button-box: */
         m_pButtonBox->setStandardButtons(QDialogButtonBox::Close | QDialogButtonBox::Help);
-        uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "vm-activity-session-information" /* help keyword */);
+        uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "tk_vm-activity-session-information" /* help keyword */);
         connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIVMInformationDialog::sigClose);
         connect(m_pButtonBox->button(QDialogButtonBox::Help), &QPushButton::pressed,
                 m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);

@@ -757,7 +757,7 @@ void UIMediumManagerWidget::prepare()
         if (!gpMediumEnumerator->isMediumEnumerationInProgress())
             sltHandleMediumEnumerationFinish();
     }
-    uiCommon().setHelpKeyword(this,"virtual-media-manager" /* help keyword */);
+    uiCommon().setHelpKeyword(this,"ct_virtual-media-manager" /* help keyword */);
 }
 
 void UIMediumManagerWidget::prepareConnections()

@@ -266,7 +266,7 @@ void UIFDCreationDialog::prepare()
         m_pButtonBox = new QIDialogButtonBox(QDialogButtonBox::Help | QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
         if (m_pButtonBox)
         {
-            uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "create-floppy-disk-image" /* help keyword */);
+            uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "tk_create-floppy-disk-image" /* help keyword */);
             connect(m_pButtonBox, &QDialogButtonBox::accepted, this, &UIFDCreationDialog::accept);
             connect(m_pButtonBox, &QDialogButtonBox::rejected, this, &UIFDCreationDialog::reject);
             connect(m_pButtonBox->button(QDialogButtonBox::Help), &QPushButton::pressed,

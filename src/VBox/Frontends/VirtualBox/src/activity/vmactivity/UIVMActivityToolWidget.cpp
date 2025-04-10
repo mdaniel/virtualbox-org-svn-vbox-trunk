@@ -57,7 +57,7 @@ UIVMActivityToolWidget::UIVMActivityToolWidget(EmbedTo enmEmbedding, UIActionPoo
     , m_pToolBar(0)
     , m_pMonitorContainer(0)
 {
-    uiCommon().setHelpKeyword(this, "vm-activity-session-information" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "tk_vm-activity-session-information" /* help keyword */);
     prepare();
     prepareActions();
     prepareToolBar();

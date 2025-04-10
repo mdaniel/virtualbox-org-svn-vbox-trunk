@@ -577,7 +577,7 @@ void UICloudProfileManagerWidget::prepare()
     loadCloudStuff();
 
     /* Set help keyowrd for context sensitive help: */
-    uiCommon().setHelpKeyword(this, "cloud-using-cloud-profile-manager" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "tk_using-cloud-profile-manager" /* help keyword */);
 
 }
 

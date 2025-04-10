@@ -689,7 +689,7 @@ void UIVMLogViewerWidget::prepare()
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIVMLogViewerWidget::sltRetranslateUI);
 
-    uiCommon().setHelpKeyword(this, "log-viewer" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "ct_log-viewer" /* help keyword */);
 }
 
 void UIVMLogViewerWidget::prepareActions()

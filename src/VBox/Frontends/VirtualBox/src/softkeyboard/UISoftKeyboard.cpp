@@ -3987,7 +3987,7 @@ UISoftKeyboard::UISoftKeyboard(QWidget *pParent, UIMachine *pMachine,
 
     loadSettings();
     configure();
-    uiCommon().setHelpKeyword(this, "soft-keyb" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "ct_soft-keyb" /* help keyword */);
 }
 
 bool UISoftKeyboard::shouldBeMaximized() const

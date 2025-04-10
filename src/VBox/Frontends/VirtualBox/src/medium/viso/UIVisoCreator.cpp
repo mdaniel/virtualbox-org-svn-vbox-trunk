@@ -837,7 +837,7 @@ void UIVisoCreatorDialog::prepareWidgets(const QString& strVisoFilePath, const Q
     connect(m_pButtonBox, &QIDialogButtonBox::accepted, this, &UIVisoCreatorDialog::accept);
 
 
-    uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "create-optical-disk-image" /* help keyword */);
+    uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "tk_create-optical-disk-image" /* help keyword */);
 
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,

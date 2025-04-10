@@ -225,7 +225,7 @@ void UIHomePane::prepare()
     }
 
     /* Assign Help keyword: */
-    uiCommon().setHelpKeyword(this, "Introduction" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "ct_about-virtualbox" /* help keyword */);
 
     /* Translate finally: */
     sltRetranslateUI();

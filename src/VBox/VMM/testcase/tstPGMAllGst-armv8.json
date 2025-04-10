@@ -65,12 +65,12 @@
             {
                 GCPtr: 0x0,
                 Flags: { READ: 1, USER: 1 },
-                Result: { GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rc: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             },
             {
                 GCPtr: 0x0,
                 Flags: { EXECUTE: 1, USER: 1 },
-                Result: { GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rc: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             }
         ]
     }

@@ -239,6 +239,32 @@ static int tstMmuCfgInit(PTSTPGMARMV8MMU pMmuCfg)
 }
 
 
+static int tstMmuCfgReadS64(RTTEST hTest, RTJSONVAL hObj, const char *pszName, int64_t *pi64Result)
+{
+    int rc = RTJsonValueQueryIntegerByName(hObj, pszName, pi64Result);
+    if (RT_FAILURE(rc))
+        RTTestFailed(hTest, "Failed to query \"%s\" with %Rrc", pszName, rc);
+
+    return rc;
+}
+
+
+static int tstMmuCfgReadS32(RTTEST hTest, RTJSONVAL hObj, const char *pszName, int32_t *pi32Result)
+{
+    int64_t i64 = 0;
+    int rc = tstMmuCfgReadS64(hTest, hObj, pszName, &i64);
+    if (RT_SUCCESS(rc))
+    {
+        if (i64 >= INT32_MIN && i64 <= INT32_MAX)
+            *pi32Result = (int32_t)i64;
+        else
+            RTTestFailed(hTest, "%RI64 for '%s' is out of range for a 32-bit signed integer", i64, pszName);
+    }
+
+    return rc;
+}
+
+
 static int tstMmuCfgReadBitfieldU64(RTTEST hTest, RTJSONVAL hObj, PCTSTCFGBITFIELD paBitfields, uint64_t *pu64Result)
 {
     uint64_t u64 = 0;
@@ -963,9 +989,11 @@ static int tstTestcaseMmuRunGetPage(RTTEST hTest, RTJSONVAL hTestcase)
 }
 
 
-static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult)
+static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult, int *prc)
 {
-    int rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
+    int rc = tstMmuCfgReadS32(hTest, hMemResult, "rc", prc);
+    if (RT_SUCCESS(rc))
+        rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
     if (RT_SUCCESS(rc))
         rc = tstResultQueryGCPhysDef(hTest, hMemResult, "GCPhysNested", &pWalkResult->GCPhysNested, 0);
     if (RT_SUCCESS(rc))
@@ -1041,44 +1069,43 @@ static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPT
 
 static void tstExecuteQueryPageFast(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint32_t fFlags, RTJSONVAL hMemResult)
 {
-    PVMCPUCC pVCpu = pVM->apCpusR3[0];
+    int rcExpected = VINF_SUCCESS;
+    PGMPTWALKFAST WalkResult; PGMPTWALKFAST_ZERO(&WalkResult);
+    WalkResult.GCPtr = GCPtr;
 
-    /** @todo Incorporate EL (for nested virt and EL3 later on). */
-    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
-                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
-                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
-
-    PGMPTWALKFAST Walk; PGMPTWALKFAST_ZERO(&Walk);
-    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
-    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnQueryPageFast);
-    int rc = g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, &Walk);
+    int rc = tstResultQueryPageFastInit(hTest, hMemResult, &WalkResult, &rcExpected);
     if (RT_SUCCESS(rc))
     {
-        PGMPTWALKFAST WalkResult; PGMPTWALKFAST_ZERO(&WalkResult);
-        WalkResult.GCPtr = GCPtr;
+        PVMCPUCC pVCpu = pVM->apCpusR3[0];
 
-        rc = tstResultQueryPageFastInit(hTest, hMemResult, &WalkResult);
-        if (RT_SUCCESS(rc))
+        /** @todo Incorporate EL (for nested virt and EL3 later on). */
+        uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                        ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                        : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+
+        PGMPTWALKFAST Walk; PGMPTWALKFAST_ZERO(&Walk);
+        AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
+        AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnQueryPageFast);
+        rc = g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, &Walk);
+        if (rc != rcExpected)
+            RTTestFailed(hTest, "Result rc=%Rrc != Expected rc=%Rrc", rc, rcExpected);
+
+        if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
         {
-            if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
-            {
-                if (Walk.GCPtr != WalkResult.GCPtr)
-                    RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
-                if (Walk.GCPhys != WalkResult.GCPhys)
-                    RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
-                if (Walk.GCPhysNested != WalkResult.GCPhysNested)
-                    RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
-                if (Walk.fInfo != WalkResult.fInfo)
-                    RTTestFailed(hTest, "Result fInfo=%#RX32 != Expected fInfo=%#RX32", Walk.fInfo, WalkResult.fInfo);
-                if (Walk.fFailed != WalkResult.fFailed)
-                    RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
-                if (Walk.fEffective != WalkResult.fEffective)
-                    RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
-            }
+            if (Walk.GCPtr != WalkResult.GCPtr)
+                RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
+            if (Walk.GCPhys != WalkResult.GCPhys)
+                RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
+            if (Walk.GCPhysNested != WalkResult.GCPhysNested)
+                RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
+            if (Walk.fInfo != WalkResult.fInfo)
+                RTTestFailed(hTest, "Result fInfo=%#RX32 != Expected fInfo=%#RX32", Walk.fInfo, WalkResult.fInfo);
+            if (Walk.fFailed != WalkResult.fFailed)
+                RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
+            if (Walk.fEffective != WalkResult.fEffective)
+                RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
         }
     }
-    else
-        RTTestFailed(hTest, "Resolving virtual address %#RX64 to physical address failed with %Rrc", GCPtr, rc);
 }
 
 

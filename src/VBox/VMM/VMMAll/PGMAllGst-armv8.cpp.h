@@ -449,7 +449,7 @@ static const PGMWALKFAIL g_aPermUnprivExec[] =
 };
 
 
-DECL_FORCE_INLINE(uint32_t) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk, ARMV8VMSA64DESC Desc, uint32_t fFlags, uint8_t uLvl)
+DECL_FORCE_INLINE(int) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk, ARMV8VMSA64DESC Desc, uint32_t fFlags, uint8_t uLvl)
 {
     Assert(!(fFlags & ~PGMQPAGE_F_VALID_MASK));
 
@@ -481,7 +481,7 @@ DECL_FORCE_INLINE(uint32_t) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk
     static const uint32_t *s_apaPerm[] =
     {
         /* U X W R */
-        /* 0 0 0 0 */ NULL,                   /* Invalid                      */
+        /* 0 0 0 0 */ &g_aPermPrivRead[0],    /* Don't check or modify anything, this translates to a privileged read */
         /* 0 0 0 1 */ &g_aPermPrivRead[0],    /* Privileged read access       */
         /* 0 0 1 0 */ &g_aPermPrivWrite[0],   /* Privileged write access      */
         /* 0 0 1 1 */ NULL,                   /* Invalid access flags         */
@@ -492,7 +492,7 @@ DECL_FORCE_INLINE(uint32_t) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk
 
         /* 1 0 0 0 */ NULL,                   /* Invalid access flags         */
         /* 1 0 0 1 */ &g_aPermUnprivRead[0],  /* Unprivileged read access     */
-        /* 1 0 1 0 */ &g_aPermUnprivWrite[0], /* Unprivileged read access     */
+        /* 1 0 1 0 */ &g_aPermUnprivWrite[0], /* Unprivileged write access    */
         /* 1 0 1 1 */ NULL,                   /* Invalid access flags         */
         /* 1 1 0 0 */ &g_aPermUnprivExec[0],  /* Unprivileged execute access  */
         /* 1 1 0 1 */ NULL,                   /* Invalid access flags         */

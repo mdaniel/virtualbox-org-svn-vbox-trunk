@@ -218,6 +218,7 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/NVMarshal.c \
 	src/tpm2/StateMarshal.c \
 	src/tpm2/Volatile.c \
+	src/tpm2/crypto/openssl/BnToOsslMath.c \
 	src/tpm2/crypto/openssl/CryptCmac.c \
 	src/tpm2/crypto/openssl/CryptDes.c \
 	src/tpm2/crypto/openssl/CryptEccKeyExchange.c \
@@ -233,7 +234,6 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/crypto/openssl/ExpDCache.c \
 	src/tpm2/crypto/openssl/Helpers.c \
 	src/tpm2/crypto/openssl/TpmToOsslDesSupport.c \
-	src/tpm2/crypto/openssl/TpmToOsslMath.c \
 	src/tpm2/crypto/openssl/TpmToOsslSupport.c \
 	src/tpm_tpm2_interface.c \
 	src/tpm_tpm2_tis.c

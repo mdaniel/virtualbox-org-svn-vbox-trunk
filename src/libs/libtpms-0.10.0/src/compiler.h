@@ -50,6 +50,7 @@
   # define LIBTPMS_ATTR_UNUSED __attribute__((unused))
   #endif
 #else
+  # define LIBTPMS_ATTR_UNUSED __attribute__((unused))
   # define ATTRIBUTE_FORMAT(STRING_IDX, FIRST_TO_CHECK)
 #endif
 

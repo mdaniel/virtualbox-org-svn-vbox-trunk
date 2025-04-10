@@ -747,21 +747,6 @@ static int tstTestcaseMmuConfigPrepare(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, RT
 }
 
 
-DECLINLINE(int) tstResultQueryBoolDef(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, bool *pf, bool fDef)
-{
-    int rc = RTJsonValueQueryBooleanByName(hMemResult, pszName, pf);
-    if (rc == VERR_NOT_FOUND)
-    {
-        *pf = fDef;
-        rc = VINF_SUCCESS;
-    }
-    else if (RT_FAILURE(rc))
-        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
-
-    return rc;
-}
-
-
 DECLINLINE(int) tstResultQueryGCPhysDef(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, RTGCPHYS *pGCPhys, RTGCPHYS GCPhysDef)
 {
     int64_t i64 = 0;
@@ -793,205 +778,12 @@ DECLINLINE(int) tstResultQueryGCPhys(RTTEST hTest, RTJSONVAL hMemResult, const c
 }
 
 
-DECLINLINE(int) tstResultQueryU8(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint8_t *pu8)
+static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult, int *prcQueryPageFast,
+                         int *prcGetPage)
 {
-    int64_t i64 = 0;
-    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
-    if (RT_FAILURE(rc))
-        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
-    else if (i64 < 0 || i64 > UINT8_MAX)
-        RTTestFailed(hTest, "Value %#RI64 for '%s' is out of bounds", i64, pszName);
-    else
-        *pu8 = (uint8_t)i64;
-
-    return rc;
-}
-
-
-DECLINLINE(int) tstResultQueryU32(RTTEST hTest, RTJSONVAL hMemResult, const char *pszName, uint32_t *pu32)
-{
-    int64_t i64 = 0;
-    int rc = RTJsonValueQueryIntegerByName(hMemResult, pszName, &i64);
-    if (RT_FAILURE(rc))
-        RTTestFailed(hTest, "Querying '%s' failed with %Rrc", pszName, rc);
-    else if (i64 < 0 || i64 > UINT32_MAX)
-        RTTestFailed(hTest, "Value %#RI64 for '%s' is out of bounds", i64, pszName);
-    else
-        *pu32 = (uint32_t)i64;
-
-    return rc;
-}
-
-
-static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALK pWalkResult)
-{
-    int rc = tstResultQueryBoolDef(hTest, hMemResult, "Succeeded", &pWalkResult->fSucceeded, true);
+    int rc = tstMmuCfgReadS32(hTest, hMemResult, "rcQueryPageFast", prcQueryPageFast);
     if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "IsSlat", &pWalkResult->fIsSlat, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "IsLinearAddrValid", &pWalkResult->fIsLinearAddrValid, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "NotPresent", &pWalkResult->fNotPresent, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "BadPhysAddr", &pWalkResult->fBadPhysAddr, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "RsvdError", &pWalkResult->fRsvdError, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "BigPage", &pWalkResult->fBigPage, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryBoolDef(hTest, hMemResult, "GigantPage", &pWalkResult->fGigantPage, false);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryGCPhysDef(hTest, hMemResult, "GCPhysNested", &pWalkResult->GCPhysNested, 0);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryU8(hTest, hMemResult, "Level", &pWalkResult->uLevel);
-    if (RT_SUCCESS(rc))
-        rc = tstResultQueryU32(hTest, hMemResult, "fFailed", &pWalkResult->fFailed);
-    if (RT_SUCCESS(rc))
-    {
-        static const TSTCFGBITFIELD s_aPtAttrs[] =
-        {
-#define BITFIELD_CREATE_BOOL(a_Name) \
-            { #a_Name, PGM_PTATTRS_##a_Name##_SHIFT, 1, NULL }
-
-            BITFIELD_CREATE_BOOL(PR),
-            BITFIELD_CREATE_BOOL(PW),
-            BITFIELD_CREATE_BOOL(PX),
-            BITFIELD_CREATE_BOOL(PGCS),
-            BITFIELD_CREATE_BOOL(UR),
-            BITFIELD_CREATE_BOOL(UW),
-            BITFIELD_CREATE_BOOL(UX),
-            BITFIELD_CREATE_BOOL(UGCS),
-            { NULL,     0, 0, NULL }
-
-#undef BITFIELD_CREATE_BOOL
-        };
-
-        rc = tstMmuCfgReadU64(hTest, hMemResult, "Effective", &s_aPtAttrs[0], &pWalkResult->fEffective);
-    }
-
-    return rc;
-}
-
-
-static void tstExecute(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, RTJSONVAL hMemResult)
-{
-    PVMCPUCC pVCpu = pVM->apCpusR3[0];
-
-    /** @todo Incorporate EL (for nested virt and EL3 later on). */
-    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
-                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
-                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
-
-    PGMPTWALK Walk; RT_ZERO(Walk);
-    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
-    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnGetPage);
-    int rc = g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, &Walk);
-    if (RT_SUCCESS(rc))
-    {
-        PGMPTWALK WalkResult; RT_ZERO(WalkResult);
-        WalkResult.GCPtr = GCPtr;
-
-        rc = tstResultInit(hTest, hMemResult, &WalkResult);
-        if (RT_SUCCESS(rc))
-        {
-            if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
-            {
-                if (Walk.GCPtr != WalkResult.GCPtr)
-                    RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
-                if (Walk.GCPhysNested != WalkResult.GCPhysNested)
-                    RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
-                if (Walk.GCPhys != WalkResult.GCPhys)
-                    RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
-                if (Walk.fSucceeded != WalkResult.fSucceeded)
-                    RTTestFailed(hTest, "Result fSucceeded=%RTbool != Expected fSucceeded=%RTbool", Walk.fSucceeded, WalkResult.fSucceeded);
-                if (Walk.fIsSlat != WalkResult.fIsSlat)
-                    RTTestFailed(hTest, "Result fIsSlat=%RTbool != Expected fIsSlat=%RTbool", Walk.fIsSlat, WalkResult.fIsSlat);
-                if (Walk.fIsLinearAddrValid != WalkResult.fIsLinearAddrValid)
-                    RTTestFailed(hTest, "Result fIsLinearAddrValid=%RTbool != Expected fIsLinearAddrValid=%RTbool", Walk.fIsLinearAddrValid, WalkResult.fIsLinearAddrValid);
-                if (Walk.uLevel != WalkResult.uLevel)
-                    RTTestFailed(hTest, "Result uLevel=%RU8 != Expected uLevel=%RU8", Walk.uLevel, WalkResult.uLevel);
-                if (Walk.fNotPresent != WalkResult.fNotPresent)
-                    RTTestFailed(hTest, "Result fNotPresent=%RTbool != Expected fNotPresent=%RTbool", Walk.fNotPresent, WalkResult.fNotPresent);
-                if (Walk.fBadPhysAddr != WalkResult.fBadPhysAddr)
-                    RTTestFailed(hTest, "Result fBadPhysAddr=%RTbool != Expected fBadPhysAddr=%RTbool", Walk.fBadPhysAddr, WalkResult.fBadPhysAddr);
-                if (Walk.fRsvdError != WalkResult.fRsvdError)
-                    RTTestFailed(hTest, "Result fRsvdError=%RTbool != Expected fRsvdError=%RTbool", Walk.fRsvdError, WalkResult.fRsvdError);
-                if (Walk.fBigPage != WalkResult.fBigPage)
-                    RTTestFailed(hTest, "Result fBigPage=%RTbool != Expected fBigPage=%RTbool", Walk.fBigPage, WalkResult.fBigPage);
-                if (Walk.fGigantPage != WalkResult.fGigantPage)
-                    RTTestFailed(hTest, "Result fGigantPage=%RTbool != Expected fGigantPage=%RTbool", Walk.fGigantPage, WalkResult.fGigantPage);
-                if (Walk.fFailed != WalkResult.fFailed)
-                    RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
-                if (Walk.fEffective != WalkResult.fEffective)
-                    RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
-            }
-        }
-    }
-    else
-        RTTestFailed(hTest, "Resolving virtual address %#RX64 to physical address failed with %Rrc", GCPtr, rc);
-}
-
-
-static int tstTestcaseMmuRunGetPage(RTTEST hTest, RTJSONVAL hTestcase)
-{
-    RTJSONVAL hVal = NIL_RTJSONVAL;
-    int rc = RTJsonValueQueryByName(hTestcase, "GetPage", &hVal);
-    if (RT_SUCCESS(rc))
-    {
-        RTJSONIT hIt = NIL_RTJSONIT;
-        rc = RTJsonIteratorBeginObject(hVal, &hIt);
-        if (RT_SUCCESS(rc))
-        {
-            for (;;)
-            {
-                RTJSONVAL hMemObj = NIL_RTJSONVAL;
-                const char *pszAddress = NULL;
-                rc = RTJsonIteratorQueryValue(hIt, &hMemObj, &pszAddress);
-                if (RT_SUCCESS(rc))
-                {
-                    uint64_t GCPtr = 0;
-                    rc = RTStrToUInt64Full(pszAddress, 0, &GCPtr);
-                    if (rc == VINF_SUCCESS)
-                        tstExecute(hTest, g_MmuCfg.pVM, GCPtr, hMemObj);
-                    else
-                    {
-                        RTTestFailed(hTest, "Address '%s' is not a valid 64-bit physical address", pszAddress);
-                        break;
-                    }
-
-                    RTJsonValueRelease(hMemObj);
-                }
-                else
-                    RTTestFailed(hTest, "Failed to retrieve memory range with %Rrc", rc);
-
-                rc = RTJsonIteratorNext(hIt);
-                if (RT_FAILURE(rc))
-                    break;
-            }
-            if (rc == VERR_JSON_ITERATOR_END)
-                rc = VINF_SUCCESS;
-            RTJsonIteratorFree(hIt);
-        }
-        else
-            RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
-
-
-        RTJsonValueRelease(hVal);
-    }
-    else if (rc == VERR_NOT_FOUND)
-        rc = VINF_SUCCESS;
-    else
-        RTTestFailed(hTest, "Failed to query \"Tests\" %Rrc", rc);
-
-    return rc;
-}
-
-
-static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult, int *prc)
-{
-    int rc = tstMmuCfgReadS32(hTest, hMemResult, "rc", prc);
+        rc = tstMmuCfgReadS32(hTest, hMemResult, "rcGetPage", prcGetPage);
     if (RT_SUCCESS(rc))
         rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
     if (RT_SUCCESS(rc))
@@ -1067,52 +859,121 @@ static int tstResultQueryPageFastInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPT
 }
 
 
-static void tstExecuteQueryPageFast(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint32_t fFlags, RTJSONVAL hMemResult)
+static void tstExecuteQueryPageFast(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint32_t fFlags, int rcExpected, PPGMPTWALKFAST pWalkResult)
 {
-    int rcExpected = VINF_SUCCESS;
-    PGMPTWALKFAST WalkResult; PGMPTWALKFAST_ZERO(&WalkResult);
-    WalkResult.GCPtr = GCPtr;
+    PVMCPUCC pVCpu = pVM->apCpusR3[0];
 
-    int rc = tstResultQueryPageFastInit(hTest, hMemResult, &WalkResult, &rcExpected);
-    if (RT_SUCCESS(rc))
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+
+    PGMPTWALKFAST Walk; PGMPTWALKFAST_ZERO(&Walk);
+    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
+    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnQueryPageFast);
+    int rc = g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, &Walk);
+    if (rc != rcExpected)
+        RTTestFailed(hTest, "QueryPageFast: Result rc=%Rrc != Expected rc=%Rrc", rc, rcExpected);
+
+    if (memcmp(&Walk, pWalkResult, sizeof(Walk)))
     {
-        PVMCPUCC pVCpu = pVM->apCpusR3[0];
-
-        /** @todo Incorporate EL (for nested virt and EL3 later on). */
-        uintptr_t idx =   (GCPtr & RT_BIT_64(55))
-                        ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
-                        : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
-
-        PGMPTWALKFAST Walk; PGMPTWALKFAST_ZERO(&Walk);
-        AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
-        AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnQueryPageFast);
-        rc = g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, &Walk);
-        if (rc != rcExpected)
-            RTTestFailed(hTest, "Result rc=%Rrc != Expected rc=%Rrc", rc, rcExpected);
-
-        if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
-        {
-            if (Walk.GCPtr != WalkResult.GCPtr)
-                RTTestFailed(hTest, "Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
-            if (Walk.GCPhys != WalkResult.GCPhys)
-                RTTestFailed(hTest, "Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
-            if (Walk.GCPhysNested != WalkResult.GCPhysNested)
-                RTTestFailed(hTest, "Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
-            if (Walk.fInfo != WalkResult.fInfo)
-                RTTestFailed(hTest, "Result fInfo=%#RX32 != Expected fInfo=%#RX32", Walk.fInfo, WalkResult.fInfo);
-            if (Walk.fFailed != WalkResult.fFailed)
-                RTTestFailed(hTest, "Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
-            if (Walk.fEffective != WalkResult.fEffective)
-                RTTestFailed(hTest, "Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
-        }
+        if (Walk.GCPtr != pWalkResult->GCPtr)
+            RTTestFailed(hTest, "QueryPageFast: Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, pWalkResult->GCPtr);
+        if (Walk.GCPhys != pWalkResult->GCPhys)
+            RTTestFailed(hTest, "QueryPageFast: Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, pWalkResult->GCPhys);
+        if (Walk.GCPhysNested != pWalkResult->GCPhysNested)
+            RTTestFailed(hTest, "QueryPageFast: Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, pWalkResult->GCPhysNested);
+        if (Walk.fInfo != pWalkResult->fInfo)
+            RTTestFailed(hTest, "QueryPageFast: Result fInfo=%#RX32 != Expected fInfo=%#RX32", Walk.fInfo, pWalkResult->fInfo);
+        if (Walk.fFailed != pWalkResult->fFailed)
+            RTTestFailed(hTest, "QueryPageFast: Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, pWalkResult->fFailed);
+        if (Walk.fEffective != pWalkResult->fEffective)
+            RTTestFailed(hTest, "QueryPageFast: Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, pWalkResult->fEffective);
     }
 }
 
 
-static int tstTestcaseMmuRunQueryPageFast(RTTEST hTest, RTJSONVAL hTestcase)
+static void tstExecuteGetPage(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint8_t bEl, int rcExpected, PPGMPTWALKFAST pWalkResult)
+{
+    PVMCPUCC pVCpu = pVM->apCpusR3[0];
+
+    g_MmuCfg.bEl = bEl;
+
+    /* Need to convert the expected result to the PGMPTWALK format. */
+    PGMPTWALK WalkResult; RT_ZERO(WalkResult);
+    WalkResult.GCPtr        = pWalkResult->GCPtr;
+    WalkResult.GCPhysNested = pWalkResult->GCPhysNested;
+    WalkResult.GCPhys       = pWalkResult->GCPhys;
+    WalkResult.fFailed      = pWalkResult->fFailed;
+    WalkResult.fEffective   = pWalkResult->fEffective;
+    WalkResult.uLevel       = (pWalkResult->fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT;
+    if (pWalkResult->fInfo & PGM_WALKINFO_SUCCEEDED)
+        WalkResult.fSucceeded = true;
+    if (pWalkResult->fInfo & PGM_WALKINFO_IS_SLAT)
+        WalkResult.fIsSlat = true;
+    if (pWalkResult->fInfo & PGM_WALKINFO_BIG_PAGE)
+        WalkResult.fBigPage = true;
+    if (pWalkResult->fInfo & PGM_WALKINFO_GIGANTIC_PAGE)
+        WalkResult.fGigantPage = true;
+    if (pWalkResult->fInfo & PGM_WALKINFO_IS_LINEAR_ADDR_VALID)
+        WalkResult.fIsLinearAddrValid = true;
+    if (pWalkResult->fFailed & PGM_WALKFAIL_NOT_PRESENT)
+        WalkResult.fNotPresent = true;
+    if (pWalkResult->fFailed & PGM_WALKFAIL_RESERVED_BITS)
+        WalkResult.fRsvdError = true;
+    if (pWalkResult->fFailed & PGM_WALKFAIL_BAD_PHYSICAL_ADDRESS)
+        WalkResult.fBadPhysAddr = true;
+
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+
+    PGMPTWALK Walk; RT_ZERO(Walk);
+    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
+    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnGetPage);
+    int rc = g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, &Walk);
+    if (rc != rcExpected)
+        RTTestFailed(hTest, "GetPage: Result rc=%Rrc != Expected rc=%Rrc", rc, rcExpected);
+
+    if (memcmp(&Walk, &WalkResult, sizeof(Walk)))
+    {
+        if (Walk.GCPtr != WalkResult.GCPtr)
+            RTTestFailed(hTest, "GetPage: Result GCPtr=%RGv != Expected GCPtr=%RGv", Walk.GCPtr, WalkResult.GCPtr);
+        if (Walk.GCPhysNested != WalkResult.GCPhysNested)
+            RTTestFailed(hTest, "GetPage: Result GCPhysNested=%RGp != Expected GCPhysNested=%RGp", Walk.GCPhysNested, WalkResult.GCPhysNested);
+        if (Walk.GCPhys != WalkResult.GCPhys)
+            RTTestFailed(hTest, "GetPage: Result GCPhys=%RGp != Expected GCPhys=%RGp", Walk.GCPhys, WalkResult.GCPhys);
+        if (Walk.fSucceeded != WalkResult.fSucceeded)
+            RTTestFailed(hTest, "GetPage: Result fSucceeded=%RTbool != Expected fSucceeded=%RTbool", Walk.fSucceeded, WalkResult.fSucceeded);
+        if (Walk.fIsSlat != WalkResult.fIsSlat)
+            RTTestFailed(hTest, "GetPage: Result fIsSlat=%RTbool != Expected fIsSlat=%RTbool", Walk.fIsSlat, WalkResult.fIsSlat);
+        if (Walk.fIsLinearAddrValid != WalkResult.fIsLinearAddrValid)
+            RTTestFailed(hTest, "GetPage: Result fIsLinearAddrValid=%RTbool != Expected fIsLinearAddrValid=%RTbool", Walk.fIsLinearAddrValid, WalkResult.fIsLinearAddrValid);
+        if (Walk.uLevel != WalkResult.uLevel)
+            RTTestFailed(hTest, "GetPage: Result uLevel=%RU8 != Expected uLevel=%RU8", Walk.uLevel, WalkResult.uLevel);
+        if (Walk.fNotPresent != WalkResult.fNotPresent)
+            RTTestFailed(hTest, "GetPage: Result fNotPresent=%RTbool != Expected fNotPresent=%RTbool", Walk.fNotPresent, WalkResult.fNotPresent);
+        if (Walk.fBadPhysAddr != WalkResult.fBadPhysAddr)
+            RTTestFailed(hTest, "GetPage: Result fBadPhysAddr=%RTbool != Expected fBadPhysAddr=%RTbool", Walk.fBadPhysAddr, WalkResult.fBadPhysAddr);
+        if (Walk.fRsvdError != WalkResult.fRsvdError)
+            RTTestFailed(hTest, "GetPage: Result fRsvdError=%RTbool != Expected fRsvdError=%RTbool", Walk.fRsvdError, WalkResult.fRsvdError);
+        if (Walk.fBigPage != WalkResult.fBigPage)
+            RTTestFailed(hTest, "GetPage: Result fBigPage=%RTbool != Expected fBigPage=%RTbool", Walk.fBigPage, WalkResult.fBigPage);
+        if (Walk.fGigantPage != WalkResult.fGigantPage)
+            RTTestFailed(hTest, "GetPage: Result fGigantPage=%RTbool != Expected fGigantPage=%RTbool", Walk.fGigantPage, WalkResult.fGigantPage);
+        if (Walk.fFailed != WalkResult.fFailed)
+            RTTestFailed(hTest, "GetPage: Result fFailed=%#RX32 != Expected fFailed=%#RX32", Walk.fFailed, WalkResult.fFailed);
+        if (Walk.fEffective != WalkResult.fEffective)
+            RTTestFailed(hTest, "GetPage: Result fEffective=%#RX64 != Expected fEffective=%#RX64", Walk.fEffective, WalkResult.fEffective);
+    }
+}
+
+
+static int tstTestcaseMmuRun(RTTEST hTest, RTJSONVAL hTestcase)
 {
     RTJSONVAL hVal = NIL_RTJSONVAL;
-    int rc = RTJsonValueQueryByName(hTestcase, "QueryPageFast", &hVal);
+    int rc = RTJsonValueQueryByName(hTestcase, "Tests", &hVal);
     if (RT_SUCCESS(rc))
     {
         RTJSONIT hIt = NIL_RTJSONIT;
@@ -1155,7 +1016,20 @@ static int tstTestcaseMmuRunQueryPageFast(RTTEST hTest, RTJSONVAL hTestcase)
                             rc = RTJsonValueQueryByName(hMemObj, "Result", &hMemResult);
                             if (RT_SUCCESS(rc))
                             {
-                                tstExecuteQueryPageFast(hTest, g_MmuCfg.pVM, GCPtr, fFlags, hMemResult);
+                                int rcQueryPageFast = VINF_SUCCESS;
+                                int rcGetPage       = VINF_SUCCESS;
+
+                                PGMPTWALKFAST WalkResult; PGMPTWALKFAST_ZERO(&WalkResult);
+                                WalkResult.GCPtr = GCPtr;
+
+                                rc = tstResultInit(hTest, hMemResult, &WalkResult, &rcQueryPageFast, &rcGetPage);
+                                if (RT_SUCCESS(rc))
+                                {
+                                    tstExecuteQueryPageFast(hTest, g_MmuCfg.pVM, GCPtr, fFlags, rcQueryPageFast, &WalkResult);
+                                    tstExecuteGetPage(hTest, g_MmuCfg.pVM, GCPtr,
+                                                      (fFlags & PGMQPAGE_F_USER_MODE) ? 0 : 1,
+                                                      rcGetPage, &WalkResult);
+                                }
                                 RTJsonValueRelease(hMemResult);
                             }
                             else
@@ -1217,9 +1091,7 @@ static void tstExecuteTestcase(RTTEST hTest, RTJSONVAL hTestcase)
             if (RT_SUCCESS(rc))
                 rc = tstTestcaseMmuConfigPrepare(hTest, &g_MmuCfg, hTestcase);
             if (RT_SUCCESS(rc))
-                rc = tstTestcaseMmuRunGetPage(hTest, hTestcase);
-            if (RT_SUCCESS(rc))
-                rc = tstTestcaseMmuRunQueryPageFast(hTest, hTestcase);
+                rc = tstTestcaseMmuRun(hTest, hTestcase);
         }
         else
             RTTestFailed(hTest, "The testcase name is not a string");

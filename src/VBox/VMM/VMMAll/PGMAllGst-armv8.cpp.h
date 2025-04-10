@@ -131,7 +131,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneGetPage)(PVMCPUCC pVCpu, RTGCPTR GCP
     RT_ZERO(*pWalk);
     pWalk->fSucceeded = true;
     pWalk->GCPtr      = GCPtr;
-    pWalk->GCPhys     = GCPtr & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
+    pWalk->GCPhys     = GCPtr;
     pWalk->fEffective =   PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_PX_MASK | PGM_PTATTRS_PGCS_MASK
                         | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_UX_MASK | PGM_PTATTRS_UGCS_MASK;
     return VINF_SUCCESS;
@@ -190,6 +190,46 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneExit)(PVMCPUCC pVCpu)
  * Template variants for actual paging modes.
  * Template variants for actual paging modes.
  */
+
+/*
+ * Descriptor flags to page table attribute flags mapping.
+ */
+static const PGMPTATTRS s_aEffective[] =
+{
+    /* UXN PXN AP[2] AP[1] */
+    /*   0   0    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                             PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
+    /*   0   0    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
+    /*   0   0    1     0  */ PGM_PTATTRS_PR_MASK |                                                                   PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
+    /*   0   0    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                       PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
+
+    /*   0   1    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                                                   PGM_PTATTRS_UX_MASK,
+    /*   0   1    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK |                       PGM_PTATTRS_UX_MASK,
+    /*   0   1    1     0  */ PGM_PTATTRS_PR_MASK |                                                                                         PGM_PTATTRS_UX_MASK,
+    /*   0   1    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                                             PGM_PTATTRS_UX_MASK,
+
+    /*   1   0    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                             PGM_PTATTRS_PX_MASK,
+    /*   1   0    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_PX_MASK,
+    /*   1   0    1     0  */ PGM_PTATTRS_PR_MASK |                                                                   PGM_PTATTRS_PX_MASK,
+    /*   1   0    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                       PGM_PTATTRS_PX_MASK,
+
+    /*   1   1    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK,
+    /*   1   1    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK ,
+    /*   1   1    1     0  */ PGM_PTATTRS_PR_MASK,
+    /*   1   1    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK,
+};
+
+
+DECL_FORCE_INLINE(int) pgmGstWalkWorkerSetEffective(PPGMPTWALK pWalk, ARMV8VMSA64DESC Desc)
+{
+    uint32_t const idxPerm =   RT_BF_GET(Desc, ARMV8_VMSA64_DESC_PG_OR_BLOCK_LATTR_AP)
+                             | ((Desc & ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_PXN) >> ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_PXN_BIT) << 2
+                             | ((Desc & ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_UXN) >> ARMV8_VMSA64_DESC_PG_OR_BLOCK_UATTR_2PRIV_UXN_BIT) << 3;
+
+    pWalk->fEffective = s_aEffective[idxPerm];
+    return VINF_SUCCESS;
+}
+
+
 template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
 DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk)
 {
@@ -254,7 +294,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
                 pWalk->fSucceeded  = true;
                 pWalk->GCPhys      = (RTGCPHYS)(uPt & UINT64_C(0xffffc0000000)) | (GCPtr & (RTGCPTR)(_1G - 1));
                 pWalk->fGigantPage = true;
-                return VINF_SUCCESS;
+                return pgmGstWalkWorkerSetEffective(pWalk, uPt);
             }
 
             /* All nine bits from now on. */
@@ -280,7 +320,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
                 pWalk->fSucceeded = true;
                 pWalk->GCPhys     = (RTGCPHYS)(uPt & UINT64_C(0xffffffe00000)) | (GCPtr & (RTGCPTR)(_2M - 1));
                 pWalk->fBigPage   = true;
-                return VINF_SUCCESS;
+                return pgmGstWalkWorkerSetEffective(pWalk, uPt);
             }
 
             /* All nine bits from now on. */
@@ -305,7 +345,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
         pWalk->GCPtr      = GCPtr;
         pWalk->fSucceeded = true;
         pWalk->GCPhys     = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000)) | (GCPtr & (RTGCPTR)(_4K - 1));
-        return VINF_SUCCESS;
+        return pgmGstWalkWorkerSetEffective(pWalk, uPt);
     }
 }
 
@@ -452,31 +492,6 @@ static const PGMWALKFAIL g_aPermUnprivExec[] =
 DECL_FORCE_INLINE(int) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk, ARMV8VMSA64DESC Desc, uint32_t fFlags, uint8_t uLvl)
 {
     Assert(!(fFlags & ~PGMQPAGE_F_VALID_MASK));
-
-    /* Descriptor flags to page table attribute flags mapping. */
-    static const PGMPTATTRS s_aEffective[] =
-    {
-        /* UXN PXN AP[2] AP[1] */
-        /*   0   0    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                             PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
-        /*   0   0    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
-        /*   0   0    1     0  */ PGM_PTATTRS_PR_MASK |                                                                   PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
-        /*   0   0    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                       PGM_PTATTRS_PX_MASK | PGM_PTATTRS_UX_MASK,
-
-        /*   0   1    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                                                   PGM_PTATTRS_UX_MASK,
-        /*   0   1    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK |                       PGM_PTATTRS_UX_MASK,
-        /*   0   1    1     0  */ PGM_PTATTRS_PR_MASK |                                                                                         PGM_PTATTRS_UX_MASK,
-        /*   0   1    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                                             PGM_PTATTRS_UX_MASK,
-
-        /*   1   0    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK |                                             PGM_PTATTRS_PX_MASK,
-        /*   1   0    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK | PGM_PTATTRS_PX_MASK,
-        /*   1   0    1     0  */ PGM_PTATTRS_PR_MASK |                                                                   PGM_PTATTRS_PX_MASK,
-        /*   1   0    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK |                       PGM_PTATTRS_PX_MASK,
-
-        /*   1   1    0     0  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK,
-        /*   1   1    0     1  */ PGM_PTATTRS_PR_MASK | PGM_PTATTRS_PW_MASK | PGM_PTATTRS_UR_MASK | PGM_PTATTRS_UW_MASK ,
-        /*   1   1    1     0  */ PGM_PTATTRS_PR_MASK,
-        /*   1   1    1     1  */ PGM_PTATTRS_PR_MASK |                       PGM_PTATTRS_UR_MASK,
-    };
 
     static const uint32_t *s_apaPerm[] =
     {

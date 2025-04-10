@@ -34,12 +34,19 @@
 
         AddressSpace: { },
 
-        GetPage:
-        {
-            /* GCPtr: { Expected Result } */
-            0x0:      { GCPhys:    0x0, Level: 0, fFailed: 0x0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} },
-            0xffff:   { GCPhys: 0xf000, Level: 0, fFailed: 0x0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} },
-        }
+        Tests:
+        [
+            {
+                GCPtr: 0x0,
+                Flags: { READ: 1, USER: 1 },
+                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
+            },
+            {
+                GCPtr: 0xffff,
+                Flags: { READ: 1, USER: 1 },
+                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0xffff, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
+            },
+        ]
     },
     {
         Name:      "4K Granules",
@@ -54,23 +61,17 @@
             0x1000: 0x0000c000000000fd,
         },
 
-        GetPage:
-        {
-            /* GCPtr: { Expected Result } */
-            0x0:      { GCPhys: 0x0000c00000000000, Level: 0, GigantPage: true, fFailed: 0x0, Effective: 0x0 },
-        },
-
-        QueryPageFast:
+        Tests:
         [
             {
                 GCPtr: 0x0,
                 Flags: { READ: 1, USER: 1 },
-                Result: { rc: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             },
             {
                 GCPtr: 0x0,
                 Flags: { EXECUTE: 1, USER: 1 },
-                Result: { rc: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             }
         ]
     }

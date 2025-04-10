@@ -215,11 +215,11 @@ Function Common_ExtractFiles
   ${OrIf} $g_bOnlyExtract == "true"
     SetOutPath "$INSTDIR\VBoxSF"
     FILE "$%PATH_OUT%\bin\additions\VBoxSF.sys"
-    !if $%BUILD_TARGET_ARCH% == "x86"
+    !if $%KBUILD_TARGET_ARCH% == "x86"
       FILE "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys"
     !endif
     FILE "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll"
-    !if $%BUILD_TARGET_ARCH% == "x86"
+    !if $%KBUILD_TARGET_ARCH% == "x86"
       FILE "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll"
     !endif
   ${EndIf}

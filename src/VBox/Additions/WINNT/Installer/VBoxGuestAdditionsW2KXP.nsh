@@ -567,7 +567,7 @@ Function W2K_CallbackInstall
   ${LogVerbose} "Installing Shared Folders driver ..."
 
   ; The Shared Folder IFS goes to the system directory.
-  !if $%BUILD_TARGET_ARCH% == "x86"
+  !if $%KBUILD_TARGET_ARCH% == "x86"
     ; On x86 we have to use a different shared folder driver linked against an older RDBSS for Windows 7 and older.
     ${If} $g_strWinVersion == "2000"
     ${OrIf} $g_strWinVersion == "XP"

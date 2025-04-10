@@ -211,11 +211,11 @@ Function ${un}Common_DeleteFiles
   ; Shared Folders driver
   ;
   Delete /REBOOTOK "$INSTDIR\VBoxSF\VBoxSF.sys"
-  ;!if $%BUILD_TARGET_ARCH% == "x86"
+  ;!if $%KBUILD_TARGET_ARCH% == "x86"
     Delete /REBOOTOK "$INSTDIR\VBoxSF\VBoxSFW2K.sys"
   ;!endif
   Delete /REBOOTOK "$INSTDIR\VBoxSF\VBoxMRXNP.dll"
-  ;!if $%BUILD_TARGET_ARCH% == "x86"
+  ;!if $%KBUILD_TARGET_ARCH% == "x86"
     Delete /REBOOTOK "$INSTDIR\VBoxSF\VBoxMRXNP-x86.dll"
   ; !endif
   RMDir /REBOOTOK "$INSTDIR\VBoxSF"

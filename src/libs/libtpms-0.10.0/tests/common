@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Get the size of a file in bytes
+#
+# @1: filename
+function get_filesize()
+{
+	if [[ "$(uname -s)" =~ (Linux|CYGWIN_NT-) ]]; then
+		stat -c%s "$1"
+	else
+		# OpenBSD
+		stat -f%z "$1"
+	fi
+}

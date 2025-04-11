@@ -1028,7 +1028,7 @@ static void tstExecuteGetPage(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint8_t bEl,
      * so only copy the failed result if GetPage() is expected to fail as well.
      */
     if (RT_FAILURE(rcExpected))
-    {         
+    {
         WalkResult.fFailed    = pWalkResult->fFailed;
         WalkResult.uLevel     = (pWalkResult->fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT;
         WalkResult.fSucceeded = false;

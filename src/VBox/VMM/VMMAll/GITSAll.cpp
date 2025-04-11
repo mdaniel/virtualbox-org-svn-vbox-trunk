@@ -68,7 +68,63 @@
  * The below construct ensures typos in the input to this macro are caught
  * during compile time. */
 #define GITSDIAG_DESC(a_Name)                       RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
-/** @} */
+
+/** @def GITS_SET_REG_U64_FULL
+ * Sets a 64-bit GITS register.
+ * @param   a_uReg      The 64-bit register to set.
+ * @param   a_uValue    The 64-bit value being written.
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GITS_SET_REG_U64_FULL(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint64_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((a_uValue) & (a_fRwMask)); \
+    } while (0)
+
+/** @def GITS_SET_REG_U64_LO
+ * Sets the lower half of a 64-bit GITS register.
+ * @param   a_uReg      The lower half of a 64-bit register to set.
+ * @param   a_uValue    The value being written (only lower 32-bits are used).
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GITS_SET_REG_U64_LO(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(RT_LO_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_LO_U32(a_fRwMask))); \
+    } while (0)
+
+/** @def GITS_SET_REG_U64_HI
+ * Sets the upper half of a 64-bit GITS register.
+ * @param   a_uReg      The upper half of the 64-bit register to set.
+ * @param   a_uValue    The value being written (only lower 32-bits are used).
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GITS_SET_REG_U64_HI(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(RT_HI_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_HI_U32(a_fRwMask))); \
+    } while (0)
+
+/** @def GITS_SET_REG_U32_FULL
+ * Sets a 32-bit GITS register.
+ * @param   a_uReg      The 32-bit register to set.
+ * @param   a_uValue    The 32-bit value being written (only lower 32-bits are
+ *                      used).
+ * @param   a_fRwMask   The mask of valid read-write bits (only lower 32-bits are
+ *                      used).
+ */
+#define GITS_SET_REG_U32(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((uint32_t)(a_uValue) & (uint32_t)(a_fRwMask)); \
+    } while (0)
 
 
 /*********************************************************************************************************************************
@@ -310,19 +366,20 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
      */
     if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
     {
-        uint16_t const cbReg  = sizeof(uint64_t);
-        uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
+        uint16_t const cbReg   = sizeof(uint64_t);
+        uint16_t const idxReg  = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
+        uint64_t const fRwMask = GITS_CTRL_REG_BASER_RW_MASK;
         if (!(offReg & 7))
         {
             if (cb == 8)
-                pGitsDev->aItsTableRegs[idxReg].u = uValue & GITS_CTRL_REG_BASER_RW_MASK;
+                GITS_SET_REG_U64_FULL(pGitsDev->aItsTableRegs[idxReg].u, uValue, fRwMask);
             else
-                pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue & RT_LO_U32(GITS_CTRL_REG_BASER_RW_MASK);
+                GITS_SET_REG_U64_LO(pGitsDev->aItsTableRegs[idxReg].s.Lo, uValue, fRwMask);
         }
         else
         {
             Assert(cb == 4);
-            pGitsDev->aItsTableRegs[idxReg].s.Hi = uValue & RT_HI_U32(GITS_CTRL_REG_BASER_RW_MASK);
+            GITS_SET_REG_U64_HI(pGitsDev->aItsTableRegs[idxReg].s.Hi, uValue, fRwMask);
         }
         return;
     }
@@ -332,29 +389,28 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
         case GITS_CTRL_REG_CTLR_OFF:
             Assert(cb == 4);
             Assert(!(pGitsDev->uTypeReg.u & GITS_BF_CTRL_REG_TYPER_UMSI_IRQ_MASK));
-            pGitsDev->uCtrlReg = uValue & GITS_BF_CTRL_REG_CTLR_RW_MASK;
+            GITS_SET_REG_U32(pGitsDev->uCtrlReg, uValue, GITS_BF_CTRL_REG_CTLR_RW_MASK);
             if (RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED))
                 pGitsDev->uCtrlReg &= GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF:
-            uValue &= GITS_CTRL_REG_CBASER_RW_MASK;
             if (cb == 8)
-                pGitsDev->uCmdBaseReg.u = uValue;
+                GITS_SET_REG_U64_FULL(pGitsDev->uCmdBaseReg.u, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             else
-                pGitsDev->uCmdBaseReg.s.Lo = (uint32_t)uValue;
+                GITS_SET_REG_U64_LO(pGitsDev->uCmdBaseReg.s.Lo, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF + 4:
             Assert(cb == 4);
-            pGitsDev->uCmdBaseReg.s.Hi = uValue & RT_HI_U32(GITS_CTRL_REG_CBASER_RW_MASK);
+            GITS_SET_REG_U64_HI(pGitsDev->uCmdBaseReg.s.Hi, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CWRITER_OFF:
-            pGitsDev->uCmdWriteReg = uValue & RT_LO_U32(GITS_CTRL_REG_CWRITER_RW_MASK);
+            GITS_SET_REG_U32(pGitsDev->uCmdWriteReg, uValue, GITS_CTRL_REG_CWRITER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
@@ -386,7 +442,10 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
 {
     Log4Func(("\n"));
 
-    pGitsDev->uCtrlReg   = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT,  1);
+    /* GITS_CTLR.*/
+    pGitsDev->uCtrlReg = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT,  1);
+
+    /* GITS_TYPER. */
     pGitsDev->uTypeReg.u = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)     /* Physical LPIs supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,   0) */  /* Virtual LPIs not supported. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,       0)     /* Collections in memory not supported. */
@@ -409,26 +468,29 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);    /* ITS caches invalidated when clearing
                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
     Assert(RT_ELEMENTS(pGitsDev->auCtes) >= RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_HCC));
-    RT_ZERO(pGitsDev->aItsTableRegs);
 
+    /* GITS_BASER<n>. */
+    RT_ZERO(pGitsDev->aItsTableRegs);
     pGitsDev->aItsTableRegs[0].u = RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_ENTRY_SIZE, GITS_ITE_SIZE - 1)
                                  | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_TYPE,       GITS_BASER_TYPE_DEVICES)
                                  | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_VALID,      1);
 
-    pGitsDev->uCmdBaseReg.u   = 0;
-    pGitsDev->uCmdReadReg     = 0;
-    pGitsDev->uCmdWriteReg    = 0;
+    /* GITS_CBASER, GITS_CREADR, GITS_CWRITER. */
+    pGitsDev->uCmdBaseReg.u = 0;
+    pGitsDev->uCmdReadReg   = 0;
+    pGitsDev->uCmdWriteReg  = 0;
+
+    /* Collection Table. */
     RT_ZERO(pGitsDev->auCtes);
 
+    /* Misc. stuff. */
     pGitsDev->cCmdQueueErrors = 0;
 }
 
 
 #ifdef IN_RING3
-DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp, const char *pszArgs)
+DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
 {
-    RT_NOREF(pszArgs);
-
     pHlp->pfnPrintf(pHlp, "GIC ITS:\n");
 
     /* Basic info, GITS_CTLR and GITS_TYPER. */

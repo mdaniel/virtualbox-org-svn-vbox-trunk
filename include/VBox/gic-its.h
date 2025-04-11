@@ -319,7 +319,8 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_BASER_, UINT64_C(0), UINT64_MAX,
                              VALID));
 /** GITS_BASER: Mask of valid read-write bits. */
 #define GITS_CTRL_REG_BASER_RW_MASK                             (UINT64_MAX & ~(  GITS_BF_CTRL_REG_BASER_ENTRY_SIZE_MASK \
-                                                                                | GITS_BF_CTRL_REG_BASER_TYPE_MASK))
+                                                                                | GITS_BF_CTRL_REG_BASER_TYPE_MASK \
+                                                                                | GITS_BF_CTRL_REG_BASER_INDIRECT_MASK))
 
 /** GITS_BASER: Table type - Unimplemented (not a table). */
 #define GITS_BASER_TYPE_UNIMPL                                  0

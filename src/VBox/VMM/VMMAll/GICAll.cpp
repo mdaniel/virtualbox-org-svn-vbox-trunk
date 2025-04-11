@@ -3101,15 +3101,15 @@ static void gicInit(PPDMDEVINS pDevIns)
     pGicDev->fIntrGroup1Enabled = false;
     pGicDev->fAffRoutingEnabled = true; /* GICv2 backwards compatibility is not implemented, so this is RA1/WI. */
 
-    /* LPIs. */
-    RT_ZERO(pGicDev->bmLpiPending);
-    RT_ZERO(pGicDev->abLpiConfig);
-    pGicDev->uLpiConfigBaseReg.u = 0;
-    pGicDev->fEnableLpis = false;
-
     /* GITS. */
     PGITSDEV pGitsDev = &pGicDev->Gits;
     gitsInit(pGitsDev);
+
+    /* LPIs. */
+    RT_ZERO(pGicDev->abLpiConfig);
+    RT_ZERO(pGicDev->bmLpiPending);
+    pGicDev->uLpiConfigBaseReg.u = 0;
+    pGicDev->fEnableLpis = false;
 }
 
 

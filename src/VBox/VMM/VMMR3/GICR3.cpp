@@ -286,13 +286,61 @@ static DECLCALLBACK(void) gicR3DbgInfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const 
  */
 static DECLCALLBACK(void) gicR3DbgInfoIts(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
-    PGIC pGic = VM_TO_GIC(pVM);
-    PPDMDEVINS pDevIns  = pGic->CTX_SUFF(pDevIns);
-    PCGICDEV   pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    NOREF(pszArgs);
+    PGIC       pGic    = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     if (pGicDev->hMmioGits != NIL_IOMMMIOHANDLE)
-        gitsR3DbgInfo(&pGicDev->Gits, pHlp, pszArgs);
+        gitsR3DbgInfo(&pGicDev->Gits, pHlp);
     else
         pHlp->pfnPrintf(pHlp, "GIC ITS is not mapped/configured for the VM\n");
+}
+
+
+/**
+ * Dumps the GIC LPI information.
+ *
+ * @param   pVM         The cross context VM structure.
+ * @param   pHlp        The info helpers.
+ * @param   pszArgs     Arguments, ignored.
+ */
+static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
+{
+    NOREF(pszArgs);
+    PGIC       pGic     = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns  = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV   pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    if (!pGicDev->fLpi)
+    {
+        pHlp->pfnPrintf(pHlp, "GIC LPI support is not enabled for the VM\n");
+        return;
+    }
+    pHlp->pfnPrintf(pHlp, "GIC LPIs:\n");
+    pHlp->pfnPrintf(pHlp, "  Enabled            = %RTbool\n", pGicDev->fEnableLpis);
+
+    /* GICR_PENDBASER. */
+    {
+        uint64_t const uReg = pGicDev->uLpiPendingBaseReg.u;
+        pHlp->pfnPrintf(pHlp, "  uLpiPendingBaseReg = %#RX64\n", uReg);
+        pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",     RT_BF_GET(uReg, GIC_BF_REDIST_REG_PENDBASER_INNER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",     RT_BF_GET(uReg, GIC_BF_REDIST_REG_PENDBASER_SHAREABILITY));
+        pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n",  uReg & GIC_BF_REDIST_REG_PENDBASER_PHYS_ADDR_MASK);
+        pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",     RT_BF_GET(uReg, GIC_BF_REDIST_REG_PENDBASER_OUTER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Pending Table Zero = %RTbool\n", RT_BF_GET(uReg, GIC_BF_REDIST_REG_PENDBASER_PTZ));
+    }
+
+    /* GICR_PROPBASER. */
+    {
+        uint64_t const uReg   = pGicDev->uLpiConfigBaseReg.u;
+        uint8_t const cIdBits = RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_ID_BITS);
+        pHlp->pfnPrintf(pHlp, "  uLpiConfigBaseReg  = %#RX64\n", uReg);
+        pHlp->pfnPrintf(pHlp, "    ID bits            = %#x (%u bits)\n", cIdBits, cIdBits);
+        pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_INNER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_SHAREABILITY));
+        pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n", uReg & GIC_BF_REDIST_REG_PROPBASER_PHYS_ADDR_MASK);
+        pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_OUTER_CACHE));
+    }
+    /** @todo Dump LPI config and LPI pending registers. */
 }
 
 
@@ -956,6 +1004,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     DBGFR3InfoRegisterInternalEx(pVM, "gicdist",   "Dumps GIC distributor information.",   gicR3DbgInfoDist,   DBGFINFO_FLAGS_ALL_EMTS);
     DBGFR3InfoRegisterInternalEx(pVM, "gicredist", "Dumps GIC redistributor information.", gicR3DbgInfoReDist, DBGFINFO_FLAGS_ALL_EMTS);
     DBGFR3InfoRegisterInternalEx(pVM, "gicits",    "Dumps GIC ITS information.",           gicR3DbgInfoIts,    DBGFINFO_FLAGS_ALL_EMTS);
+    DBGFR3InfoRegisterInternalEx(pVM, "giclpi",    "Dumps GIC LPI information.",           gicR3DbgInfoLpi,    DBGFINFO_FLAGS_ALL_EMTS);
 
     /*
      * Statistics.

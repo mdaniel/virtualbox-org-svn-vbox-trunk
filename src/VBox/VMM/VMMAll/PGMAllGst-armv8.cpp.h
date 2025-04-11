@@ -190,6 +190,13 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneExit)(PVMCPUCC pVCpu)
  * Template variants for actual paging modes.
  * Template variants for actual paging modes.
  */
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_MINUS_ONE 0
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO      1
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE       2
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO       3
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE     4
+#define PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID   5
+
 
 /*
  * Descriptor flags to page table attribute flags mapping.
@@ -230,7 +237,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorkerSetEffective(PPGMPTWALK pWalk, ARMV8VMSA6
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk)
 {
     RT_NOREF(pGstWalk); /** @todo */
@@ -241,7 +248,8 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
     AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_4KB     == ARMV8_TCR_EL1_AARCH64_TG1_4KB);
     AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_64KB    == ARMV8_TCR_EL1_AARCH64_TG1_64KB);
 
-    if RT_CONSTEXPR_IF(a_GranuleSz != ARMV8_TCR_EL1_AARCH64_TG0_INVALID)
+    if RT_CONSTEXPR_IF(   a_GranuleSz        != ARMV8_TCR_EL1_AARCH64_TG0_INVALID
+                       && a_InitialLookupLvl != PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID)
     {
         uint64_t fLookupMaskFull;
         RTGCPTR  offPageMask;
@@ -318,7 +326,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
         PARMV8VMSA64DESC paDesc   = NULL;
         ARMV8VMSA64DESC  Desc;
         int rc;
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl == 0)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl == PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO)
         {
             Assert(cLvl0Shift != 0);
             uint8_t const uLvl = 0;
@@ -339,7 +347,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 1)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE)
         {
             uint8_t const uLvl = 1;
 
@@ -371,7 +379,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 2)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO)
         {
             uint8_t const uLvl = 2;
 
@@ -398,7 +406,7 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        AssertCompile(a_InitialLookupLvl <= 3);
+        AssertCompile(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE);
         uint8_t const uLvl = 3;
 
         /* Next level. */
@@ -422,10 +430,10 @@ DECL_FORCE_INLINE(int) pgmGstWalkWorker(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWAL
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstGetPage)(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
 {
-    return pgmGstWalkWorker<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>(pVCpu, GCPtr, pWalk, NULL /*pGstWalk*/);
+    return pgmGstWalkWorker<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>(pVCpu, GCPtr, pWalk, NULL /*pGstWalk*/);
 }
 
 
@@ -609,7 +617,7 @@ DECL_FORCE_INLINE(int) pgmGstQueryPageCheckPermissions(PPGMPTWALKFAST pWalk, ARM
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fFlags, PPGMPTWALKFAST pWalk)
 {
     /* This also applies to TG1 granule sizes, as both share the same encoding in TCR. */
@@ -620,7 +628,8 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
 
     pWalk->GCPtr = GCPtr;
 
-    if RT_CONSTEXPR_IF(a_GranuleSz != ARMV8_TCR_EL1_AARCH64_TG0_INVALID)
+    if RT_CONSTEXPR_IF(   a_GranuleSz        != ARMV8_TCR_EL1_AARCH64_TG0_INVALID
+                       && a_InitialLookupLvl != PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID)
     {
         uint64_t fLookupMaskFull;
         RTGCPTR  offPageMask;
@@ -695,7 +704,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
         PARMV8VMSA64DESC paDesc   = NULL;
         ARMV8VMSA64DESC  Desc;
         int rc;
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl == 0)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl == PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO)
         {
             Assert(cLvl0Shift != 0);
             uint8_t const uLvl = 0;
@@ -716,7 +725,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 1)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE)
         {
             uint8_t const uLvl = 1;
 
@@ -747,7 +756,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= 2)
+        if RT_CONSTEXPR_IF(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO)
         {
             uint8_t const uLvl = 2;
 
@@ -773,7 +782,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
             GCPhysPt = (RTGCPHYS)(Desc & fNextTableOrPageMask);
         }
 
-        AssertCompile(a_InitialLookupLvl <= 3);
+        AssertCompile(a_InitialLookupLvl <= PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE);
         uint8_t const uLvl = 3;
 
         /* Next level. */
@@ -796,7 +805,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstModifyPage)(PVMCPUCC pVCpu, RTGCPTR GCPtr, size_t cb, uint64_t fFlags, uint64_t fMask)
 {
     /** @todo Ignore for now. */
@@ -805,15 +814,15 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstModifyPage)(PVMCPUCC pVCpu, RTGCPTR GCPt
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstWalk)(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk)
 {
     pGstWalk->enmType = PGMPTWALKGSTTYPE_INVALID;
-    return pgmGstWalkWorker<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>(pVCpu, GCPtr, pWalk, pGstWalk);
+    return pgmGstWalkWorker<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>(pVCpu, GCPtr, pWalk, pGstWalk);
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstEnter)(PVMCPUCC pVCpu)
 {
     /* Nothing to do for now. */
@@ -822,7 +831,7 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstEnter)(PVMCPUCC pVCpu)
 }
 
 
-template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd>
+template<bool a_fTtbr0, uint8_t a_InitialLookupLvl, uint8_t a_GranuleSz, bool a_fTbi, bool a_fEpd, bool a_f52BitOa>
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstExit)(PVMCPUCC pVCpu)
 {
     /* Nothing to do for now. */
@@ -847,48 +856,58 @@ PGMMODEDATAGST const g_aPgmGuestModeData[PGM_GUEST_MODE_DATA_ARRAY_SIZE] =
         PGM_CTX(pgm,GstNoneExit),
     },
 
-#define PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
-        (2 + (  (a_fEpd ? RT_BIT_32(6) : 0)     \
-              | (a_fTbi ? RT_BIT_32(5) : 0)     \
-              | (a_GranuleSz << 3)              \
+#define PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa) \
+        (2 + (  (a_f52BitOa ? RT_BIT_32(8) : 0) \
+              | (a_fEpd ? RT_BIT_32(7) : 0)     \
+              | (a_fTbi ? RT_BIT_32(6) : 0)     \
+              | (a_GranuleSz << 4)              \
               | (a_InitialLookupLvl << 1)       \
               | (a_fTtbr0 ? RT_BIT_32(0) : 0) ))
 
-#define PGM_MODE_CREATE_EX(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
+#define PGM_MODE_CREATE_EX(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa) \
     { \
-        PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd), \
-        PGM_CTX(pgm,GstGetPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
-        PGM_CTX(pgm,GstQueryPageFast)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
-        PGM_CTX(pgm,GstModifyPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
-        PGM_CTX(pgm,GstWalk)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
-        PGM_CTX(pgm,GstEnter)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
-        PGM_CTX(pgm,GstExit)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd> \
+        PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa), \
+        PGM_CTX(pgm,GstGetPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>, \
+        PGM_CTX(pgm,GstQueryPageFast)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>, \
+        PGM_CTX(pgm,GstModifyPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>, \
+        PGM_CTX(pgm,GstWalk)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>, \
+        PGM_CTX(pgm,GstEnter)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa>, \
+        PGM_CTX(pgm,GstExit)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa> \
     }
 
-#define PGM_MODE_CREATE_TTBR(a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
-    PGM_MODE_CREATE_EX(false, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd), \
-    PGM_MODE_CREATE_EX(true,  a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd)
+#define PGM_MODE_CREATE_TTBR(a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa) \
+    PGM_MODE_CREATE_EX(false, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_EX(true,  a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa)
 
-#define PGM_MODE_CREATE_LOOKUP_LVL(a_GranuleSz, a_fTbi, a_fEpd) \
-    PGM_MODE_CREATE_TTBR(0,  a_GranuleSz, a_fTbi, a_fEpd ), \
-    PGM_MODE_CREATE_TTBR(1,  a_GranuleSz, a_fTbi, a_fEpd ), \
-    PGM_MODE_CREATE_TTBR(2,  a_GranuleSz, a_fTbi, a_fEpd ), \
-    PGM_MODE_CREATE_TTBR(3,  a_GranuleSz, a_fTbi, a_fEpd ) /* Invalid */
+#define PGM_MODE_CREATE_LOOKUP_LVL(a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa) \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_MINUS_ONE, a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO,      a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ), \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE,       a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ), \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO,       a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ), \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE,     a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ), \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID,   a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ),  /* Filler for 3 bit lookup level */ \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID,   a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa ),  /* Filler for 3 bit lookup level */ \
+    PGM_MODE_CREATE_TTBR(PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_INVALID,   a_GranuleSz, a_fTbi, a_fEpd, a_f52BitOa )   /* Filler for 3 bit lookup level */
 
-#define PGM_MODE_CREATE_GRANULE_SZ(a_fTbi, a_fEpd) \
-    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_INVALID, a_fTbi, a_fEpd), \
-    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_16KB,    a_fTbi, a_fEpd), \
-    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_4KB,     a_fTbi, a_fEpd), \
-    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_64KB,    a_fTbi, a_fEpd)
+#define PGM_MODE_CREATE_GRANULE_SZ(a_fTbi, a_fEpd, a_f52BitOa) \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_INVALID, a_fTbi, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_16KB,    a_fTbi, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_4KB,     a_fTbi, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_64KB,    a_fTbi, a_fEpd, a_f52BitOa)
 
-#define PGM_MODE_CREATE_TBI(a_fEpd) \
-    PGM_MODE_CREATE_GRANULE_SZ(false, a_fEpd), \
-    PGM_MODE_CREATE_GRANULE_SZ(true,  a_fEpd)
+#define PGM_MODE_CREATE_TBI(a_fEpd, a_f52BitOa) \
+    PGM_MODE_CREATE_GRANULE_SZ(false, a_fEpd, a_f52BitOa), \
+    PGM_MODE_CREATE_GRANULE_SZ(true,  a_fEpd, a_f52BitOa)
 
-    /* Recursive expansion for the win, this will blow up to 128 entries covering all possible modes. */
-    PGM_MODE_CREATE_TBI(false),
-    PGM_MODE_CREATE_TBI(true)
+#define PGM_MODE_CREATE_EPD(a_f52BitOa) \
+    PGM_MODE_CREATE_TBI(false, a_f52BitOa), \
+    PGM_MODE_CREATE_TBI(true,  a_f52BitOa)
 
+    /* Recursive expansion for the win, this will blow up to 512 entries covering all possible modes. */
+    PGM_MODE_CREATE_EPD(false),
+    PGM_MODE_CREATE_EPD(true)
+
+#undef PGM_MODE_CREATE_EPD
 #undef PGM_MODE_CREATE_TBI
 #undef PGM_MODE_CREATE_GRANULE_SZ
 #undef PGM_MODE_CREATE_LOOKUP_LVL
@@ -930,22 +949,22 @@ DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64R
         {
             if (u64Tsz <= 16)
             {
-                uLookupLvl = 0;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO;
                 *pfInitialLookupMask = 0x1;
             }
             else if (u64Tsz >= 17 && u64Tsz <= 27)
             {
-                uLookupLvl = 1;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE;
                 *pfInitialLookupMask = RT_BIT_64(28 - u64Tsz + 1) - 1;
             }
             else if (u64Tsz >= 28 && u64Tsz <= 38)
             {
-                uLookupLvl = 2;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO;
                 *pfInitialLookupMask = RT_BIT_64(38 - u64Tsz + 1) - 1;
             }
             else /* if (u64Tsz == 39) */
             {
-                uLookupLvl = 3;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE;
                 *pfInitialLookupMask = 0x1;
             }
         }
@@ -953,17 +972,17 @@ DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64R
         {
             if (/*u64Tsz >= 16 &&*/ u64Tsz <= 21)
             {
-                uLookupLvl = 1;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE;
                 *pfInitialLookupMask = RT_BIT_64(21 - u64Tsz + 1) - 1;
             }
             else if (u64Tsz >= 22 && u64Tsz <= 34)
             {
-                uLookupLvl = 2;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO;
                 *pfInitialLookupMask = RT_BIT_64(34 - u64Tsz + 1) - 1;
             }
             else /*if (u64Tsz >= 35 && u64Tsz <= 39)*/
             {
-                uLookupLvl = 3;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_THREE;
                 if (u64Tsz <= 39)
                     *pfInitialLookupMask = RT_BIT_64(39 - u64Tsz + 1) - 1;
                 else
@@ -988,7 +1007,7 @@ DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64R
              */
             if (/*u64Tsz >= 16 &&*/ u64Tsz <= 24)
             {
-                uLookupLvl = 0;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ZERO;
                 if (u64Tsz >= 16)
                     *pfInitialLookupMask = RT_BIT_64(24 - u64Tsz + 1) - 1;
                 else
@@ -996,12 +1015,12 @@ DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64R
             }
             else if (u64Tsz >= 25 && u64Tsz <= 33)
             {
-                uLookupLvl = 1;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_ONE;
                 *pfInitialLookupMask = RT_BIT_64(33 - u64Tsz + 1) - 1;
             }
             else /*if (u64Tsz >= 34 && u64Tsz <= 39)*/
             {
-                uLookupLvl = 2;
+                uLookupLvl = PGM_MODE_ARMV8_INITIAL_LOOKUP_LVL_TWO;
                 if (u64Tsz <= 39)
                     *pfInitialLookupMask = RT_BIT_64(39 - u64Tsz + 1) - 1;
                 else
@@ -1012,7 +1031,7 @@ DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64R
         }
 
         /* Build the index into the PGM mode callback table for the given config. */
-        idxNewGst = PGM_MODE_TYPE_CREATE(a_fTtbr0, uLookupLvl, u64Tg, fTbi, fEpd);
+        idxNewGst = PGM_MODE_TYPE_CREATE(a_fTtbr0, uLookupLvl, u64Tg, fTbi, fEpd, false /*f53BitOa*/);
     }
     else
         idxNewGst = PGM_TYPE_NONE;

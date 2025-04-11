@@ -236,20 +236,78 @@ static int tstMmuCfgInit(PTSTPGMARMV8MMU pMmuCfg)
 }
 
 
-static int tstMmuCfgReadS64(RTTEST hTest, RTJSONVAL hObj, const char *pszName, int64_t *pi64Result)
+static int tstMmuCfgReadS64(RTTEST hTest, RTJSONVAL hObj, const char *pszName, PCTSTCFGNAMEDVALUE paNamedValues, int64_t *pi64Result)
 {
-    int rc = RTJsonValueQueryIntegerByName(hObj, pszName, pi64Result);
+    RTJSONVAL hValue = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hObj, pszName, &hValue);
     if (RT_FAILURE(rc))
+    {
         RTTestFailed(hTest, "Failed to query \"%s\" with %Rrc", pszName, rc);
+        return rc;
+    }
 
+    RTJSONVALTYPE enmType = RTJsonValueGetType(hValue);
+    switch (enmType)
+    {
+        case RTJSONVALTYPE_INTEGER:
+            rc = RTJsonValueQueryInteger(hValue, pi64Result);
+            break;
+        case RTJSONVALTYPE_STRING:
+        {
+            if (paNamedValues)
+            {
+                const char *pszNamedValue = RTJsonValueGetString(hValue);
+                PCTSTCFGNAMEDVALUE pNamedValue = &paNamedValues[0];
+                while (pNamedValue->pszName)
+                {
+                    if (!RTStrICmp(pszNamedValue, pNamedValue->pszName))
+                    {
+                        *pi64Result = (int64_t)pNamedValue->u64Val;
+                        break;
+                    }
+                    pNamedValue++;
+                }
+                if (!pNamedValue->pszName)
+                {
+                    RTTestFailed(hTest, "\"%s\" ist not a known named value for '%s'", pszNamedValue, pszName);
+                    rc = VERR_NOT_FOUND;
+                }
+            }
+            else
+            {
+                RTTestFailed(hTest, "Integer \"%s\" doesn't support named values", pszName);
+                rc = VERR_NOT_SUPPORTED;
+            }
+            break;
+        }
+        default:
+            rc = VERR_NOT_SUPPORTED;
+            RTTestFailed(hTest, "JSON value type %d is not supported\n", enmType);
+            break;
+    }
+
+    RTJsonValueRelease(hValue);
     return rc;
 }
 
 
-static int tstMmuCfgReadS32(RTTEST hTest, RTJSONVAL hObj, const char *pszName, int32_t *pi32Result)
+static int tstMmuCfgReadRc(RTTEST hTest, RTJSONVAL hObj, const char *pszName, int32_t *pi32Result)
 {
+    static const TSTCFGNAMEDVALUE s_aRc[] =
+    {
+#define CREATE_RC(a_Rc) \
+        {#a_Rc, (uint64_t)a_Rc} 
+        CREATE_RC(VINF_SUCCESS),
+        CREATE_RC(VERR_RESERVED_PAGE_TABLE_BITS),
+        CREATE_RC(VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS),
+        CREATE_RC(VERR_PAGE_TABLE_NOT_PRESENT),
+        CREATE_RC(VERR_ACCESS_DENIED),
+        { NULL,   0 }
+    };
+
+
     int64_t i64 = 0;
-    int rc = tstMmuCfgReadS64(hTest, hObj, pszName, &i64);
+    int rc = tstMmuCfgReadS64(hTest, hObj, pszName, &s_aRc[0], &i64);
     if (RT_SUCCESS(rc))
     {
         if (i64 >= INT32_MIN && i64 <= INT32_MAX)
@@ -824,9 +882,9 @@ DECLINLINE(int) tstResultQueryGCPhys(RTTEST hTest, RTJSONVAL hMemResult, const c
 static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWalkResult, int *prcQueryPageFast,
                          int *prcGetPage)
 {
-    int rc = tstMmuCfgReadS32(hTest, hMemResult, "rcQueryPageFast", prcQueryPageFast);
+    int rc = tstMmuCfgReadRc(hTest, hMemResult, "rcQueryPageFast", prcQueryPageFast);
     if (RT_SUCCESS(rc))
-        rc = tstMmuCfgReadS32(hTest, hMemResult, "rcGetPage", prcGetPage);
+        rc = tstMmuCfgReadRc(hTest, hMemResult, "rcGetPage", prcGetPage);
     if (RT_SUCCESS(rc))
         rc = tstResultQueryGCPhys(hTest, hMemResult, "GCPhys", &pWalkResult->GCPhys);
     if (RT_SUCCESS(rc))

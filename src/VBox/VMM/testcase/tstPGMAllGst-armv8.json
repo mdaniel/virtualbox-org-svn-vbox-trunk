@@ -39,12 +39,12 @@
             {
                 GCPtr: 0x0,
                 Flags: { READ: 1, USER: 1 },
-                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
+                Result: { rcQueryPageFast: 'VINF_SUCCESS', rcGetPage: 'VINF_SUCCESS', GCPhys: 0x0, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
             },
             {
                 GCPtr: 0xffff,
                 Flags: { READ: 1, USER: 1 },
-                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0xffff, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
+                Result: { rcQueryPageFast: 'VINF_SUCCESS', rcGetPage: 'VINF_SUCCESS', GCPhys: 0xffff, Info: { Succeeded: 1 }, Failed: 0, Effective: { PR: 1, PW: 1, PX: 1, PGCS: 1, UR: 1, UW: 1, UX: 1, UGCS: 1} }
             },
         ]
     },
@@ -66,12 +66,12 @@
             {
                 GCPtr: 0x0,
                 Flags: { READ: 1, USER: 1 },
-                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rcQueryPageFast: 'VINF_SUCCESS', rcGetPage: 'VINF_SUCCESS', GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             },
             {
                 GCPtr: 0x0,
                 Flags: { EXECUTE: 1, USER: 1 },
-                Result: { rcQueryPageFast: 0, rcGetPage: 0, GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
+                Result: { rcQueryPageFast: 'VINF_SUCCESS', rcGetPage: 'VINF_SUCCESS', GCPhys: 0x0000c00000000000, Info: { Succeeded: 1, GiganticPage: 1}, Failed: 0, Effective: { PR: 1, PX: 1, UR: 1, UX: 1} },
             }
         ]
     }

@@ -370,7 +370,7 @@ typedef uint32_t PGMWALKFAIL;
 /** The level the problem arrised at.
  * PTE is level 1, PDE is level 2, PDPE is level 3, PML4 is level 4, CR3 is
  * level 8.  This is 0 on success. */
-#define PGM_WALKFAIL_LEVEL_MASK                     UINT32_C(0x0000f100)
+#define PGM_WALKFAIL_LEVEL_MASK                     UINT32_C(0x0000f800)
 /** Level shift (see PGM_WALKFAIL_LEVEL_MASK).   */
 #define PGM_WALKFAIL_LEVEL_SHIFT                    11
 

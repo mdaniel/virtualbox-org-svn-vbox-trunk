@@ -920,7 +920,8 @@ static int tstResultInit(RTTEST hTest, RTJSONVAL hMemResult, PPGMPTWALKFAST pWal
             BITFIELD_CREATE_BOOL(NotWritable,         6),
             BITFIELD_CREATE_BOOL(NotExecutable,       7),
             BITFIELD_CREATE_BOOL(NotAccessibleByMode, 8),
-            { NULL,     0, 0, NULL }
+            { "Level",  11, 5, NULL },
+            { NULL,      0, 0, NULL }
 
 #undef BITFIELD_CREATE_BOOL
         };
@@ -1005,11 +1006,8 @@ static void tstExecuteGetPage(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint8_t bEl,
     WalkResult.GCPtr        = pWalkResult->GCPtr;
     WalkResult.GCPhysNested = pWalkResult->GCPhysNested;
     WalkResult.GCPhys       = pWalkResult->GCPhys;
-    WalkResult.fFailed      = pWalkResult->fFailed;
     WalkResult.fEffective   = pWalkResult->fEffective;
-    WalkResult.uLevel       = (pWalkResult->fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT;
-    if (pWalkResult->fInfo & PGM_WALKINFO_SUCCEEDED)
-        WalkResult.fSucceeded = true;
+
     if (pWalkResult->fInfo & PGM_WALKINFO_IS_SLAT)
         WalkResult.fIsSlat = true;
     if (pWalkResult->fInfo & PGM_WALKINFO_BIG_PAGE)
@@ -1024,6 +1022,19 @@ static void tstExecuteGetPage(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint8_t bEl,
         WalkResult.fRsvdError = true;
     if (pWalkResult->fFailed & PGM_WALKFAIL_BAD_PHYSICAL_ADDRESS)
         WalkResult.fBadPhysAddr = true;
+
+    /*
+     * QueryPageFast() can return VERR_ACCESS_DENIED, which GetPage() doesn't,
+     * so only copy the failed result if GetPage() is expected to fail as well.
+     */
+    if (RT_FAILURE(rcExpected))
+    {         
+        WalkResult.fFailed    = pWalkResult->fFailed;
+        WalkResult.uLevel     = (pWalkResult->fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT;
+        WalkResult.fSucceeded = false;
+    } 
+    else
+        WalkResult.fSucceeded = true;
 
     /** @todo Incorporate EL (for nested virt and EL3 later on). */
     uintptr_t idx =   (GCPtr & RT_BIT_64(55))

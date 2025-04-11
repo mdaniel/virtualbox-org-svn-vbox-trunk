@@ -618,6 +618,8 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
     AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_4KB     == ARMV8_TCR_EL1_AARCH64_TG1_4KB);
     AssertCompile(ARMV8_TCR_EL1_AARCH64_TG0_64KB    == ARMV8_TCR_EL1_AARCH64_TG1_64KB);
 
+    pWalk->GCPtr = GCPtr;
+
     if RT_CONSTEXPR_IF(a_GranuleSz != ARMV8_TCR_EL1_AARCH64_TG0_INVALID)
     {
         uint64_t fLookupMaskFull;
@@ -732,7 +734,6 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
                 if (offLvl1BlockMask != 0)
                 {
                     /* Block descriptor. */
-                    pWalk->GCPtr      = GCPtr;
                     pWalk->fInfo      = PGM_WALKINFO_GIGANTIC_PAGE;
                     pWalk->GCPhys     = (RTGCPHYS)(Desc & fGCPhysLvl1BlockBase) | (GCPtr & offLvl1BlockMask);
                     return pgmGstQueryPageCheckPermissions(pWalk, Desc, fFlags, uLvl);
@@ -762,7 +763,6 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
             else
             {
                 /* Block descriptor. */
-                pWalk->GCPtr      = GCPtr;
                 pWalk->fInfo      = PGM_WALKINFO_BIG_PAGE;
                 pWalk->GCPhys     = (RTGCPHYS)(Desc & fGCPhysLvl2BlockBase) | (GCPtr & offLvl2BlockMask);
                 return pgmGstQueryPageCheckPermissions(pWalk, Desc, fFlags, uLvl);
@@ -788,7 +788,6 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstQueryPageFast)(PVMCPUCC pVCpu, RTGCPTR G
         if (Desc & ARMV8_VMSA64_DESC_F_TBL_OR_PG) { /* probable */ }
         else return pgmGstWalkFastReturnRsvdError(pVCpu, pWalk, uLvl); /* No block descriptors. */
 
-        pWalk->GCPtr  = GCPtr;
         pWalk->GCPhys = (RTGCPHYS)(Desc & fNextTableOrPageMask) | (GCPtr & offPageMask);
         return pgmGstQueryPageCheckPermissions(pWalk, Desc, fFlags, uLvl);
     }

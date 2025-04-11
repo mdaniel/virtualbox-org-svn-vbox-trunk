@@ -1076,6 +1076,16 @@ class ArmInstruction(ArmInstructionBase):
             return self.sName;
         return self.sName[:-1];
 
+    def getInstrSetName(self):
+        """ Returns the instruction set name. """
+        oCur = self.oParent;
+        while True:
+            oParent = oCur.oParent;
+            if oParent:
+                oCur = oParent;
+            else:
+                return oCur.sName;
+
     def getSetAndGroupNames(self):
         asNames = [];
         oParent = self.oParent;
@@ -1913,7 +1923,8 @@ class DecoderNode(object):
         # away from top of the profiler stats, while at the same time keeping the
         # __zipMaskN and __unzipMaskN methods from taking up too much time.
         #
-        fCompileMaskZipUnzip = cInstructions >= 12;
+        fCompileMaskZip   = cInstructions >= 256;
+        fCompileMaskUnzip = cInstructions >= 32; #?
 
         #
         # Work thru the possible masks and test out the variations (brute force style).
@@ -1971,7 +1982,7 @@ class DecoderNode(object):
                         continue;
 
                     # Compile the indexing/unindexing functions.
-                    fnToIndex   = MaskZipper.algoToZipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
+                    fnToIndex   = MaskZipper.algoToZipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZip);
 
                     # Insert the instructions into the temporary table.
                     daoTmp = collections.defaultdict(list);
@@ -2023,7 +2034,7 @@ class DecoderNode(object):
                     #assert cMaskBits <= cMaxTableSizeInBits;
 
                     # Construct decoder nodes from the aaoTmp lists, construct sub-levels and calculate costs.
-                    fnFromIndex  = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
+                    fnFromIndex  = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskUnzip);
                     dChildrenTmp = {};
                     try:
                         for idx, aoInstrs in daoTmp.items():
@@ -2090,13 +2101,15 @@ class DecoderNode(object):
             for oChildNode in self.dChildren.values():
                 oChildNode.setInstrProps(uDepth + 1);
 
-    def getFuncName(self, uDepth):
+    def getFuncName(self, sInstrSet, uDepth):
         """
         Returns the function name at the specific depth.
         """
+        if not sInstrSet:
+            sInstrSet = self.aoInstructions[0].getInstrSetName()
         if self.dChildren or len(self.aoInstructions) > 1:
-            return 'iemDecodeA64_%08x_%08x_%u' % (self.fCheckedMask, self.fCheckedValue, uDepth,);
-        return 'iemDecodeA64_%s' % (self.aoInstructions[0].getCName(),);
+            return 'iemDecode%s_%08x_%08x_%u' % (sInstrSet, self.fCheckedMask, self.fCheckedValue, uDepth,);
+        return 'iemDecode%s_%s' % (sInstrSet, self.aoInstructions[0].getCName(),);
 
 #
 # Generators
@@ -2105,21 +2118,23 @@ class DecoderNode(object):
 class IEMArmGenerator(object):
 
     def __init__(self):
-        self.oDecoderRoot    = None;
-        self.asRootIndexExpr = None;
+        self.dDecoderRoots   = {};
+        self.dRootsIndexExpr = {};
 
 
     def constructDecoder(self):
         """
-        Creates the decoder to the best our abilities.
+        Creates the decoder(s) to the best our abilities.
         """
-        self.oDecoderRoot = DecoderNode(sorted(g_aoAllArmInstructions,
-                                               key = operator.attrgetter('fFixedMask', 'fFixedValue', 'sName')),#[:384],
-                                        0, 0);
-        self.oDecoderRoot.constructNextLevel(0, sys.maxsize);
+        for oSet in g_aoArmInstructionSets:
+            oRoot = DecoderNode(sorted(oSet.aoAllInstructions,
+                                       key = operator.attrgetter('fFixedMask','fFixedValue', 'sName')),#[:384],
+                                0, 0);
+            self.dDecoderRoots[oSet.sName] = oRoot;
+            oRoot.constructNextLevel(0, sys.maxsize);
 
-        # Set the fDecoderLeafCheckNeeded property of the instructions.
-        self.oDecoderRoot.setInstrProps(0);
+            # Set the fDecoderLeafCheckNeeded property of the instructions.
+            oRoot.setInstrProps(0);
 
 
     def generateLicenseHeader(self, oVerInfo):
@@ -2170,16 +2185,15 @@ class IEMArmGenerator(object):
             '',
         ];
 
-    def generateImplementationStubHdr(self, sFilename, iPartNo):
+    def generateImplementationStubHdr(self, sInstrSet):
         """
         Generate implementation stubs.
         """
-        _ = sFilename; _ = iPartNo;
         asLines = self.generateLicenseHeader(g_oArmInstructionVerInfo);
 
         # Organize this by instruction set, groups and instructions.
         sPrevCategory = '';
-        for oInstr in sorted(g_aoAllArmInstructions, key = ArmInstruction.getSetAndGroupNames):
+        for oInstr in sorted(g_dArmInstructionSets[sInstrSet].aoAllInstructions, key = ArmInstruction.getSetAndGroupNames):
             # New group/category?
             sCategory = ' / '.join(oInstr.getSetAndGroupNames(),);
             if sCategory != sPrevCategory:
@@ -2201,13 +2215,18 @@ class IEMArmGenerator(object):
             asLines += [
                 '',
                 '/* %s (%08x/%08x) */' % (oInstr.sAsmDisplay, oInstr.fFixedMask, oInstr.fFixedValue,),
-                '//#define IEM_INSTR_IMPL__%s(%s) ' % (oInstr.getCName(), ', '.join(asArgs)),
+                '//#define IEM_INSTR_IMPL_%s__%s(%s) ' % (sInstrSet, oInstr.getCName(), ', '.join(asArgs)),
                 '',
             ]
 
         return (True, asLines);
 
-    def generateDecoderFunctions(self):
+    def generateA64ImplementationStubHdr(self, sFilename, iPartNo):
+        _ = sFilename; _ = iPartNo;
+        return self.generateImplementationStubHdr('A64');
+
+
+    def generateDecoderFunctions(self, sInstrSet):
         """
         Generates the leaf decoder functions.
         """
@@ -2248,13 +2267,14 @@ class IEMArmGenerator(object):
                 raise Exception('Call to unsupported function: %s (%s)' % (oCall.sName, oCall.aoArgs,));
 
         asLines = [];
-        for oInstr in g_aoAllArmInstructions:
+        for oInstr in sorted(g_dArmInstructionSets[sInstrSet].aoAllInstructions,
+                             key = operator.attrgetter('sName', 'sAsmDisplay')):
             sCName = oInstr.getCName();
             asLines += [
                 '',
                 '/* %08x/%08x: %s' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.sAsmDisplay,),
                 '   %s */'% (oInstr.getSetAndGroupNamesWithLabels(),),
-                'FNIEMOP_DEF_1(iemDecodeA64_%s, uint32_t, uOpcode)' % (sCName,),
+                'FNIEMOP_DEF_1(iemDecode%s_%s, uint32_t, uOpcode)' % (sInstrSet, sCName,),
                 '{',
             ];
 
@@ -2304,8 +2324,8 @@ class IEMArmGenerator(object):
             # Log and call implementation.
             asLines += [
                 '%s    LogFlow(("%%010x: %s%s\\n",%s));' % (sIndent, sCName, sLogFmt, ', '.join(['uOpcode',] + asArgs),),
-                '#ifdef IEM_INSTR_IMPL__%s' % (sCName,),
-                '%s    IEM_INSTR_IMPL__%s(%s);' % (sIndent, sCName, ', '.join(asArgs),),
+                '#ifdef IEM_INSTR_IMPL_%s__%s' % (sInstrSet, sCName,),
+                '%s    IEM_INSTR_IMPL_%s__%s(%s);' % (sInstrSet, sIndent, sCName, ', '.join(asArgs),),
                 '#else',
                 '%s    RT_NOREF(%s);' % (sIndent, ', '.join(asArgs + ['pVCpu', 'uOpcode',]),),
                 '%s    return VERR_IEM_INSTR_NOT_IMPLEMENTED;' % (sIndent,),
@@ -2316,7 +2336,7 @@ class IEMArmGenerator(object):
             asLines.extend(asTail);
         return asLines;
 
-    def generateDecoderCodeMultiIfFunc(self, oNode, uDepth):
+    def generateDecoderCodeMultiIfFunc(self, sInstrSet, oNode, uDepth):
         """
         Handles a leaf node.
         """
@@ -2326,7 +2346,7 @@ class IEMArmGenerator(object):
         asLines = [
             '',
             '/* %08x/%08x level %u */' % (oNode.fCheckedMask, oNode.fCheckedValue, uDepth,),
-            'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(uDepth),),
+            'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(sInstrSet, uDepth),),
             '{',
         ];
         ## @todo check if the masks are restricted to a few bit differences at
@@ -2334,15 +2354,15 @@ class IEMArmGenerator(object):
         for oInstr in oNode.aoInstructions:
             asLines += [
                 '    if ((uOpcode & UINT32_C(%#010x)) == UINT32_C(%#010x))' % (oInstr.fFixedMask, oInstr.fFixedValue,),
-                '        return iemDecodeA64_%s(pVCpu, uOpcode);' % (oInstr.getCName(),),
+                '        return iemDecode%s_%s(pVCpu, uOpcode);' % (sInstrSet, oInstr.getCName(),),
             ];
         asLines += [
-            '    return iemDecodeA64_Invalid(pVCpu, uOpcode);',
+            '    return iemDecode%s_Invalid(pVCpu, uOpcode);' % (sInstrSet,),
             '}',
         ];
         return asLines;
 
-    def generateDecoderCode(self, oNode, uDepth):
+    def generateDecoderCode(self, sInstrSet, oNode, uDepth):
         """
         Recursively generates the decoder code.
         """
@@ -2356,10 +2376,10 @@ class IEMArmGenerator(object):
         for idx in sorted(oNode.dChildren):
             oChildNode = oNode.dChildren[idx];
             if oChildNode.dChildren:
-                asLines += self.generateDecoderCode(oChildNode, uDepth + 1);
+                asLines += self.generateDecoderCode(sInstrSet, oChildNode, uDepth + 1);
             elif oChildNode.fChildMask == DecoderNode.kChildMaskMultipleOpcodeValueIfs:
                 assert len(oChildNode.aoInstructions) > 1;
-                asLines += self.generateDecoderCodeMultiIfFunc(oChildNode, uDepth + 1);
+                asLines += self.generateDecoderCodeMultiIfFunc(sInstrSet, oChildNode, uDepth + 1);
                 cMultiIfEntries += 1;
             else:
                 assert len(oChildNode.aoInstructions) == 1;
@@ -2380,7 +2400,7 @@ class IEMArmGenerator(object):
         ];
         if uDepth > 0:
             asLines += [
-                'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(uDepth),),
+                'FNIEMOP_DEF_1(%s, uint32_t, uOpcode)' % (oNode.getFuncName(sInstrSet, uDepth),),
                 '{',
                 '    static PFIEMOPU32 const s_apfn[] = ',
                 '    {',
@@ -2388,11 +2408,11 @@ class IEMArmGenerator(object):
             sTabNm  = 's_apfn';
             sIndent = '    ';
         else:
+            sTabNm  = 'g_apfnIemInterpretOnly' + sInstrSet;
             asLines += [
-                'PFIEMOPU32 const g_apfnIemInterpretOnlyA64[] = ',
+                'PFIEMOPU32 const %s[] = ' % (sTabNm,),
                 '{',
             ];
-            sTabNm  = 'g_apfnIemInterpretOnlyA64';
             sIndent = '';
 
         idxPrev = -1;
@@ -2400,13 +2420,13 @@ class IEMArmGenerator(object):
             oChildNode = oNode.dChildren[idx];
             idxPrev += 1;
             while idxPrev < idx:
-                asLines.append(sIndent + '    iemDecodeA64_Invalid, // %s' % (idxPrev,));
+                asLines.append(sIndent + '    iemDecode%s_Invalid, // %s' % (sInstrSet, idxPrev,));
                 idxPrev += 1;
-            asLines.append('%s    %s,' % (sIndent, oChildNode.getFuncName(uDepth + 1),));
+            asLines.append('%s    %s,' % (sIndent, oChildNode.getFuncName(sInstrSet, uDepth + 1),));
 
         while idxPrev + 1 < cTabEntries:
             idxPrev += 1;
-            asLines.append(sIndent + '    iemDecodeA64_Invalid, // %s' % (idxPrev,));
+            asLines.append(sIndent + '    iemDecode%s_Invalid, // %s' % (sInstrSet, idxPrev,));
 
         asLines += [
             '%s};' % (sIndent,),
@@ -2436,12 +2456,14 @@ class IEMArmGenerator(object):
                 '}'
             ];
         else:
-            self.asRootIndexExpr = asIdx;
+            self.dRootsIndexExpr[sInstrSet] = asIdx;
         return asLines;
 
-    def generateDecoderCpp(self, sFilename, iPartNo):
+    def generateDecoderCpp(self, sInstrSet):
         """ Generates the decoder data & code. """
-        _ = iPartNo; _ = sFilename;
+        if sInstrSet not in self.dDecoderRoots:
+            raise Exception('Instruction set not found: %s' % (sInstrSet,));
+
         asLines = self.generateLicenseHeader(g_oArmInstructionVerInfo);
         asLines += [
             '#define LOG_GROUP LOG_GROUP_IEM',
@@ -2456,19 +2478,24 @@ class IEMArmGenerator(object):
             '',
             '',
             '/** Invalid instruction decoder function. */',
-            'FNIEMOP_DEF_1(iemDecodeA64_Invalid, uint32_t, uOpcode)',
+            'FNIEMOP_DEF_1(iemDecode%s_Invalid, uint32_t, uOpcode)' % (sInstrSet,),
             '{',
             '    LogFlow(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
             '    IEMOP_RAISE_INVALID_OPCODE_RET();',
             '}',
         ];
 
-        asLines += self.generateDecoderFunctions();
+        asLines += self.generateDecoderFunctions(sInstrSet);
 
-        assert self.oDecoderRoot.dChildren;
-        asLines += self.generateDecoderCode(self.oDecoderRoot, 0);
+        assert self.dDecoderRoots[sInstrSet].dChildren;
+        asLines += self.generateDecoderCode(sInstrSet, self.dDecoderRoots[sInstrSet], 0);
 
         return (True, asLines);
+
+    def generateA64DecoderCpp(self, sFilename, iPartNo):
+        _ = sFilename; _ = iPartNo;
+        return self.generateDecoderCpp('A64');
+
 
     def generateDecoderHdr(self, sFilename, iPartNo):
         """ Generates the decoder header file. """
@@ -2483,23 +2510,29 @@ class IEMArmGenerator(object):
             '# pragma once',
             '#endif',
             '',
-            '/** The top-level aarch64 decoder table for the IEM interpreter. */',
-            'extern PFIEMOPU32 const g_apfnIemInterpretOnlyA64[%#x];' % (1 << self.oDecoderRoot.fChildMask.bit_count()),
-            '',
-            '/**',
-            ' * Calculates the index for @a uOpcode in g_apfnIemInterpretOnlyA64.',
-            ' */',
-            'DECL_FORCE_INLINE(uintptr_t) iemInterpretOnlyA64CalcIndex(uint32_t uOpcode)',
-            '{',
         ];
-        assert self.asRootIndexExpr; # Must be called after generateDecoderCpp()!
-        asLines += self.asRootIndexExpr;
+        for sInstrSet in sorted(self.dDecoderRoots.keys()):
+            asLines += [
+                '/** The top-level %s decoder table for the IEM interpreter. */' % (sInstrSet,),
+                'extern PFIEMOPU32 const g_apfnIemInterpretOnly%s[%#x];'
+                % (sInstrSet, 1 << self.dDecoderRoots[sInstrSet].fChildMask.bit_count()),
+                '',
+                '/**',
+                ' * Calculates the index for @a uOpcode in g_apfnIemInterpretOnly%s.' % (sInstrSet,),
+                ' */',
+                'DECL_FORCE_INLINE(uintptr_t) iemInterpretOnly%sCalcIndex(uint32_t uOpcode)' % (sInstrSet,),
+                '{',
+            ];
+            assert sInstrSet in self.dRootsIndexExpr and len(self.dRootsIndexExpr[sInstrSet]); # Set by generateDecoderCpp!
+            asLines += self.dRootsIndexExpr[sInstrSet];
+            asLines += [
+                '    return idx;',
+                '}',
+                '',
+            ];
         asLines += [
-            '    return idx;',
-            '}',
-            '',
             '#endif /* !VMM_INCLUDED_SRC_VMMAll_target_armv8_%s */' % (sBlockerName,),
-        ];
+        ]
         return (True, asLines);
 
 
@@ -2590,9 +2623,9 @@ class IEMArmGenerator(object):
             # Output.
             #
             aaoOutputFiles = [
-                 ( oOptions.sFileDecoderCpp,      self.generateDecoderCpp, 0, ),
-                 ( oOptions.sFileDecoderHdr,      self.generateDecoderHdr, 0, ), # Must be after generateDecoderCpp!
-                 ( oOptions.sFileStubHdr,         self.generateImplementationStubHdr, 0, ),
+                 ( oOptions.sFileDecoderCpp,      self.generateA64DecoderCpp, 0, ),
+                 ( oOptions.sFileDecoderHdr,      self.generateDecoderHdr, 0, ), # Must be after generateA64DecoderCpp!
+                 ( oOptions.sFileStubHdr,         self.generateA64ImplementationStubHdr, 0, ),
             ];
             fRc = True;
             for sOutFile, fnGenMethod, iPartNo in aaoOutputFiles:
@@ -2654,7 +2687,7 @@ def printException(oXcpt):
 
 
 if __name__ == '__main__':
-    fProfileIt = False;
+    fProfileIt = False; #True;
     oProfiler = cProfile.Profile() if fProfileIt else None;
     try:
         if not oProfiler:
@@ -2668,15 +2701,18 @@ if __name__ == '__main__':
         printException(oXcptOuter);
         rcExit = 2;
     if oProfiler:
+        sProfileSort = 'tottime'; iSortColumn = 1;
+        #sProfileSort = 'cumtime'; iSortColumn = 3;
         if not oProfiler:
-            oProfiler.print_stats(sort='tottime');
+            oProfiler.print_stats(sort=sProfileSort);
         else:
             oStringStream = io.StringIO();
-            pstats.Stats(oProfiler, stream = oStringStream).strip_dirs().sort_stats('tottime').print_stats(64);
+            pstats.Stats(oProfiler, stream = oStringStream).strip_dirs().sort_stats(sProfileSort).print_stats(64);
             for iStatLine, sStatLine in enumerate(oStringStream.getvalue().split('\n')):
                 if iStatLine > 20:
                     asStatWords = sStatLine.split();
-                    if asStatWords[1] in { '0.000', '0.001', '0.002', '0.003', '0.004', '0.005' }:
+                    if (    len(asStatWords) > iSortColumn
+                        and asStatWords[iSortColumn] in { '0.000', '0.001', '0.002', '0.003', '0.004', '0.005' }):
                         break;
                 print(sStatLine);
     sys.exit(rcExit);

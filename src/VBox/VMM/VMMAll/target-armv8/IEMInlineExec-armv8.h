@@ -35,7 +35,7 @@
 #endif
 
 
-#ifdef VMM_INCLUDED_SRC_VMMAll_target_armv8_IEMAllIntprTables_armv8_h
+#ifdef VMM_INCLUDED_SRC_VMMAll_target_armv8_IEMAllIntprA64Tables_armv8_h
 DECL_FORCE_INLINE_THROW(VBOXSTRICTRC) iemExecDecodeAndInterpretTargetInstruction(PVMCPUCC pVCpu)
 {
     uint32_t const uOpcode = 0; /// @todo iemOpcodeGetU32Jmp(pVCpu);

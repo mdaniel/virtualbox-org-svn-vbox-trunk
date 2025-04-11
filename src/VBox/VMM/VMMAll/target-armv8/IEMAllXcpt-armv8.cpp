@@ -74,3 +74,11 @@ iemRaiseDebugDataAccessOrInvokeDbgfJmp(PVMCPUCC pVCpu, uint32_t fDataBps, RTGCPT
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
 }
 
+
+/** Accessed via IEMOP_RAISE_INVALID_OPCODE. */
+IEM_CIMPL_DEF_0(iemCImplRaiseInvalidOpcode)
+{
+    RT_NOREF(pVCpu);
+    AssertFailedReturn(VERR_IEM_ASPECT_NOT_IMPLEMENTED);
+}
+

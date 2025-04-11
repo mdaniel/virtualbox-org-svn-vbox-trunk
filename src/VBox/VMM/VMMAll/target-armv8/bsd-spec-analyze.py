@@ -2278,6 +2278,7 @@ class DecoderNode(object):
 class IEMArmGenerator(object):
 
     def __init__(self):
+        self.oOptions        = None;
         self.dDecoderRoots   = {};
         self.dRootsIndexExpr = {};
 
@@ -2642,6 +2643,8 @@ class IEMArmGenerator(object):
             '',
             '#include "IEMMc.h"',
             '',
+            '#include "%s"' % (os.path.basename(self.oOptions.sFileDecoderHdr),),
+            '#include "%s"' % (os.path.basename(self.oOptions.sFileStubHdr),),
             '',
             '/** Invalid instruction decoder function. */',
             'FNIEMOP_DEF_1(iemDecode%s_Invalid, uint32_t, uOpcode)' % (sInstrSet,),
@@ -2785,6 +2788,7 @@ class IEMArmGenerator(object):
                                 help    = 'List the 10 top fixed bit masks.');
         # Do it!
         oOptions = oArgParser.parse_args(asArgs[1:]);
+        self.oOptions = oOptions;
 
         #
         # Load the specification.

@@ -164,7 +164,7 @@
 # include "target-x86/IEMInlineExec-x86.h"
 #elif defined(VBOX_VMM_TARGET_ARMV8)
 # include "target-armv8/IEMInline-armv8.h"
-# include "target-armv8/IEMAllIntprTables-armv8.h"
+# include "target-armv8/IEMAllIntprA64Tables-armv8.h"
 # include "target-armv8/IEMInlineExec-armv8.h"
 #endif
 

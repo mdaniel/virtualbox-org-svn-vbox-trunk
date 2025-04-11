@@ -90,6 +90,7 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTE_, UINT32_C(0), UINT32_MAX,
                             (RDBASE, RSVD_30_16, VALID));
 /** GITS CTE: Size of the CTE in bytes. */
 #define GITS_CTE_SIZE                               4
+/** @} */
 
 /**
  * GITS error diagnostics.

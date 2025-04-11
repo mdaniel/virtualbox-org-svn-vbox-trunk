@@ -111,7 +111,7 @@
         (a_uReg) = ((a_uReg) & ~(RT_HI_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_HI_U32(a_fRwMask))); \
     } while (0)
 
-/** @def GITS_SET_REG_U32_FULL
+/** @def GITS_SET_REG_U32
  * Sets a 32-bit GITS register.
  * @param   a_uReg      The 32-bit register to set.
  * @param   a_uValue    The 32-bit value being written (only lower 32-bits are

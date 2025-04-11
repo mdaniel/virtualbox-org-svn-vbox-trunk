@@ -352,6 +352,7 @@ g_dSpecFeatToCpumFeat = {
 };
 
 
+
 #
 # The ARM instruction AST stuff.
 #
@@ -510,6 +511,15 @@ class ArmAstBinaryOp(ArmAstBase):
     def clone(self):
         return ArmAstBinaryOp(self.oLeft.clone(), self.sOp, self.oRight.clone());
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstBinaryOp):
+            if self.sOp == oOther.sOp:
+                if self.oLeft.isSame(oOther.oLeft):
+                    if self.oRight.isSame(oOther.oRight):
+                        return True;
+            ## @todo switch sides and whatnot.
+        return False;
+
     @staticmethod
     def needParentheses(oNode, sOp = '&&'):
         if isinstance(oNode, ArmAstBinaryOp):
@@ -602,6 +612,13 @@ class ArmAstUnaryOp(ArmAstBase):
     def clone(self):
         return ArmAstUnaryOp(self.sOp, self.oExpr.clone());
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstUnaryOp):
+            if self.sOp == oOther.sOp:
+                if self.oExpr.isSame(oOther.oExpr):
+                    return True;
+        return False;
+
     @staticmethod
     def needParentheses(oNode):
         return isinstance(oNode, ArmAstBinaryOp)
@@ -627,6 +644,16 @@ class ArmAstSquareOp(ArmAstBase):
     def clone(self):
         return ArmAstSquareOp(self.oVar.clone(), [oValue.clone() for oValue in self.aoValues]);
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstSquareOp):
+            if self.oVar.isSame(oOther.oVar):
+                if len(self.aoValues) == len(oOther.aoValues):
+                    for idx, oMyValue in enumerate(self.aoValues):
+                        if not oMyValue.isSame(oOther.aoValues[idx]):
+                            return False;
+                    return True;
+        return False;
+
     def toString(self):
         return '%s<%s>' % (self.oVar.toString(), ','.join([oValue.toString() for oValue in self.aoValues]),);
 
@@ -642,6 +669,15 @@ class ArmAstConcat(ArmAstBase):
 
     def clone(self):
         return ArmAstConcat([oValue.clone() for oValue in self.aoValues]);
+
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstConcat):
+            if len(self.aoValues) == len(oOther.aoValues):
+                for idx, oMyValue in enumerate(self.aoValues):
+                    if not oMyValue.isSame(oOther.aoValues[idx]):
+                        return False;
+                return True;
+        return False;
 
     def toString(self):
         sRet = '';
@@ -684,6 +720,16 @@ class ArmAstFunction(ArmAstBase):
     def clone(self):
         return ArmAstFunction(self.sName, [oArg.clone() for oArg in self.aoArgs]);
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstFunction):
+            if self.sName == oOther.sName:
+                if len(self.aoArgs) == len(oOther.aoArgs):
+                    for idx, oMyArg in enumerate(self.aoArgs):
+                        if not oMyArg.isSame(oOther.aoArgs[idx]):
+                            return False;
+                    return True;
+        return False;
+
     def toString(self):
         return '%s(%s)' % (self.sName, ','.join([oArg.toString() for oArg in self.aoArgs]),);
 
@@ -702,6 +748,12 @@ class ArmAstIdentifier(ArmAstBase):
     def clone(self):
         return ArmAstIdentifier(self.sName);
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstIdentifier):
+            if self.sName == oOther.sName:
+                return True;
+        return False;
+
     def toString(self):
         return self.sName;
 
@@ -719,12 +771,19 @@ class ArmAstBool(ArmAstBase):
     def clone(self):
         return ArmAstBool(self.fValue);
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstBase):
+            if self.fValue == oOther.fValue:
+                return True;
+        return False;
+
     def toString(self):
         return 'true' if self.fValue is True else 'false';
 
     def toCExpr(self, oHelper):
         _ = oHelper;
         return 'true' if self.fValue is True else 'false';
+
 
 class ArmAstInteger(ArmAstBase):
     def __init__(self, iValue):
@@ -733,6 +792,12 @@ class ArmAstInteger(ArmAstBase):
 
     def clone(self):
         return ArmAstInteger(self.iValue);
+
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstInteger):
+            if self.iValue == oOther.iValue:
+                return True;
+        return False;
 
     def toString(self):
         return '%#x' % (self.iValue,);
@@ -745,6 +810,7 @@ class ArmAstInteger(ArmAstBase):
             return 'UINT32_C(%#x)' % (self.iValue,);
         return '%#x' % (self.iValue,);
 
+
 class ArmAstSet(ArmAstBase):
     def __init__(self, aoValues):
         ArmAstBase.__init__(self, ArmAstBase.ksTypeSet);
@@ -753,12 +819,22 @@ class ArmAstSet(ArmAstBase):
     def clone(self):
         return ArmAstSet([oValue.clone() for oValue in self.aoValues]);
 
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstSet):
+            if len(self.aoValues) == len(oOther.aoValues):
+                for idx, oMyValue in enumerate(self.aoValues):
+                    if not oMyValue.isSame(oOther.aoValues[idx]):
+                        return False;
+                return True;
+        return False;
+
     def toString(self):
         return '(%s)' % (', '.join([oValue.toString() for oValue in self.aoValues]),);
 
     def toCExpr(self, oHelper):
         _ = oHelper;
         raise Exception('ArmAstSet does not support conversion to C expression: %s' % (self.toString()));
+
 
 class ArmAstValue(ArmAstBase):
     def __init__(self, sValue):
@@ -767,6 +843,12 @@ class ArmAstValue(ArmAstBase):
 
     def clone(self):
         return ArmAstValue(self.sValue);
+
+    def isSame(self, oOther):
+        if isinstance(oOther, ArmAstValue):
+            if self.sValue == oOther.sValue:
+                return True;
+        return False;
 
     def toString(self):
         return self.sValue;
@@ -898,8 +980,8 @@ class ArmInstructionBase(object):
         self.oJson           = oJson;
         self.sName           = sName;
         self.oParent         = oParent;
-        self.aoFields        = aoFields;
-        self.fFields         = fFields;  ##< Not necessarily correct for Instructions!
+        self.aoFields        = aoFields     # type: List[ArmEncodesetField]
+        self.fFields         = fFields;
         self.oCondition      = oCondition;
 
         assert ArmInstructionBase.s_oReValidName.match(sName), '%s' % (sName);
@@ -1134,6 +1216,37 @@ g_aoArmInstructionGroups = []                                   # type: List[Arm
 g_dArmInstructionGroups = {}                                    # type: Dict[ArmInstructionGroup]
 
 
+## Instruction corrections expressed as a list required conditionals.
+#
+# In addition to supplying missing conditionals (IsFeatureImplemented(FEAT_XXX)
+# and missing fixed encoding values (field == <fixed-value>).
+#
+# The reason why this is a list and not an expression, is that it easier to skip
+# stuff that's already present in newer specification and avoiding duplicate tests.
+g_dArmEncodingCorrectionConditions = {
+    # The sdot and udot vector instructions are missing the 'size' restrictions in the 2024-12 specs.
+    'sdot_z_zzz_': (ArmAstBinaryOp(ArmAstIdentifier('size'), '!=', ArmAstValue("'00'")),
+                    ArmAstBinaryOp(ArmAstIdentifier('size'), '!=', ArmAstValue("'01'")),),
+    'udot_z_zzz_': (ArmAstBinaryOp(ArmAstIdentifier('size'), '!=', ArmAstValue("'00'")),
+                    ArmAstBinaryOp(ArmAstIdentifier('size'), '!=', ArmAstValue("'01'")),),
+    # These instructions are FEAT_MTE && FEAT_MOPS. The 2024-12 specs missed the former condition.
+    'SETGEN_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGETN_SET_memcms': (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGET_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGE_SET_memcms':   (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGMN_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGMTN_SET_memcms': (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGMT_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGM_SET_memcms':   (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGPN_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGPTN_SET_memcms': (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGPT_SET_memcms':  (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+    'SETGP_SET_memcms':   (ArmAstFunction('IsFeatureImplemented', [ArmAstIdentifier('FEAT_MTE'),]),),
+
+    ## @todo fexpa_z_z: s/FEAT_SME2p2/FEAT_SSVE_FEXPA/ (2024-12 vs 2025-03); Not relevant since we don't support either.
+};
+
+
 def __asmChoicesFilterOutDefaultAndAbsent(adChoices, ddAsmRules):
     """
     Helper that __asmRuleIdToDisplayText uses to filter out any default choice
@@ -1251,6 +1364,9 @@ def parseInstructions(oInstrSet, oParent, aoJson, ddAsmRules):
             sInstrNm = oJson['name'];
 
             oCondition = ArmAstBase.fromJson(oJson['condition']);
+            aoCorrectionConditions = g_dArmEncodingCorrectionConditions.get(sInstrNm)
+            if aoCorrectionConditions:
+                oCondition = addAndConditionsFromList(oCondition, aoCorrectionConditions);
 
             (aoFields, fFields) = ArmEncodesetField.encodesetFromJson(oJson['encoding']);
             for oUp in oParent.getUpIterator():
@@ -1266,7 +1382,8 @@ def parseInstructions(oInstrSet, oParent, aoJson, ddAsmRules):
             #print('debug transfer: %s: org:  %s' % (sInstrNm, sCondBefore));
             (oCondition, fMod) = transferConditionsToEncoding(oCondition, aoFields, collections.defaultdict(list), sInstrNm);
             #if fMod:
-            #    print('debug transfer: %s: %s  ---->  %s' % (sInstrNm, sCondBefore, oCondition.toString()));
+            #    print('debug transfer: %s: %s' % (sInstrNm, sCondBefore,));
+            #    print('              %*s %s' % (len(sInstrNm) + 3, '--->', oCondition.toString(),));
             _ = fMod;
 
             # Come up with the assembly syntax (sAsmDisplay).
@@ -1299,6 +1416,40 @@ def parseInstructions(oInstrSet, oParent, aoJson, ddAsmRules):
             raise Exception('Unexpected instruction object type: %s' % (sType,));
 
     return True;
+
+
+def addAndConditionsFromList(oTree, aoAndConditions):
+    """
+    Adds the conditions in aoAndConditions that are not already present in
+    oTree in an required (AND) form.
+
+    This is used when we add corrections, so that we avoid duplicate feature
+    checks and such.
+    """
+    if oTree.isBoolAndTrue():
+        return andConditionListToTree(aoAndConditions);
+
+    def isAndConditionPresent(oTree, oAndCondition):
+        if oAndCondition.isSame(oTree):
+            return True;
+        if isinstance(oTree, ArmAstBinaryOp) and oTree.sOp == '&&':
+            return isAndConditionPresent(oTree.oLeft, oAndCondition) or isAndConditionPresent(oTree.oRight, oAndCondition);
+        return False;
+
+    aoToAdd = [oTree,];
+    for oAndCondition in aoAndConditions:
+        if not isAndConditionPresent(oTree, oAndCondition):
+            aoToAdd.append(oAndCondition);
+
+    return andConditionListToTree(aoToAdd);
+
+
+def andConditionListToTree(aoAndConditions):
+    """ Creates AST tree of AND binary checks from aoAndConditions. """
+    if len(aoAndConditions) <= 1:
+        return aoAndConditions[0].clone();
+    return ArmAstBinaryOp(aoAndConditions[0].clone(), '&&', andConditionListToTree(aoAndConditions[1:]));
+
 
 def transferConditionsToEncoding(oCondition, aoFields, dPendingNotEq, sInstrNm, uDepth = 0, fMod = False):
     """
@@ -1337,7 +1488,7 @@ def transferConditionsToEncoding(oCondition, aoFields, dPendingNotEq, sInstrNm, 
                 #print('debug transfer: %s: binaryop step 2...' % (sInstrNm,));
                 for oField in aoFields: # ArmEncodesetField
                     if oField.sName and oField.sName == sFieldName:
-                        # ArmAstInteger (unlikely):
+                        # ArmAstInteger - not used by spec, only corrections:
                         if isinstance(oValue, ArmAstInteger):
                             if oField.fFixed != 0:
                                 raise Exception('%s: Condition checks fixed field value: %s (%#x/%#x) %s %s'
@@ -1356,8 +1507,8 @@ def transferConditionsToEncoding(oCondition, aoFields, dPendingNotEq, sInstrNm, 
                                 dPendingNotEq[oField.sName] += [(oField, oValue.iValue, fFixed, oCondition)];
                                 break;
 
-                            #print('debug transfer: %s: integer binaryop -> encoding: %s %s %#x/%#x'
-                            #      % (sInstrNm, oField.sName, oCondition.sOp, oValue.iValue, fFixed));
+                            print('debug transfer: %s: integer binaryop -> encoding: %s %s %#x/%#x'
+                                  % (sInstrNm, oField.sName, oCondition.sOp, oValue.iValue, fFixed));
                             if oCondition.sOp == '==':
                                 oField.fValue = oValue.iValue;
                             else:
@@ -1394,7 +1545,7 @@ def transferConditionsToEncoding(oCondition, aoFields, dPendingNotEq, sInstrNm, 
             if isinstance(oCondition, ArmAstBinaryOp):
                 if oCondition.sOp == '&&':
                     oCondition.oLeft  = recursiveRemove(oCondition.oLeft, aoToRemove);
-                    oCondition.oRight = recursiveRemove(oCondition.oLeft, aoToRemove);
+                    oCondition.oRight = recursiveRemove(oCondition.oRight, aoToRemove);
                     if oCondition.oLeft.isBoolAndTrue():    return oCondition.oRight;
                     if oCondition.oRight.isBoolAndTrue():   return oCondition.oLeft;
                 elif oCondition in aoToRemove:
@@ -1425,7 +1576,6 @@ def transferConditionsToEncoding(oCondition, aoFields, dPendingNotEq, sInstrNm, 
                           % (sInstrNm, len(atOccurences), sFieldNm, ~fValue & fFixed, fFixed,));
                     oField.fValue |= ~fValue & fFixed;
                     oField.fFixed |= fFixed;
-
 
                     # Remove the associated conditions (they'll be leaves).
                     oCondition = recursiveRemove(oCondition, [oCondition for _, _, _, oCondition in atOccurences]);
@@ -1494,9 +1644,16 @@ def LoadArmOpenSourceSpecification(oOptions):
     #oBrk = g_dAllArmInstructionsByName['BRK_EX_exception'];
     #print("oBrk=%s" % (oBrk,))
 
-    if oOptions.fPrintInstructions:
+    if oOptions.fPrintInstructions or oOptions.fPrintInstructionsWithEncoding or oOptions.fPrintInstructionsWithConditions:
         for oInstr in g_aoAllArmInstructions:
             print('%08x/%08x %s %s' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.getCName(), oInstr.sAsmDisplay));
+            if oOptions.fPrintInstructionsWithEncoding:
+                for oField in sorted(oInstr.aoFields, key = operator.attrgetter('iFirstBit')): # ArmEncodesetField
+                    print('  %2u L %2u: %010x/%010x%s%s'
+                          % (oField.iFirstBit, oField.cBitsWidth, oField.fFixed, oField.fValue,
+                             ' ' if oField.sName else '', oField.sName if oField.sName else '',));
+            if oOptions.fPrintInstructionsWithConditions and not oInstr.oCondition.isBoolAndTrue():
+                print('  condition: %s' % (oInstr.oCondition.toString(),));
 
     # Gather stats on fixed bits:
     if oOptions.fPrintFixedMaskStats:
@@ -2144,6 +2301,9 @@ class IEMArmGenerator(object):
         """
         Returns the lines for a license header.
         """
+        sDashYear = '-%s' % datetime.date.today().year;
+        if sDashYear == '-2025':
+            sDashYear = '';
         return [
             '/*',
             ' * Autogenerated by $Id$ ',
@@ -2155,7 +2315,7 @@ class IEMArmGenerator(object):
             ' */',
             '',
             '/*',
-            ' * Copyright (C) 2025-' + str(datetime.date.today().year) + ' Oracle and/or its affiliates.',
+            ' * Copyright (C) 2025' + sDashYear + ' Oracle and/or its affiliates.',
             ' *',
             ' * This file is part of VirtualBox base platform packages, as',
             ' * available from https://www.virtualbox.org.',
@@ -2292,7 +2452,7 @@ class IEMArmGenerator(object):
                     '    {',
                 ];
                 asTail  = [
-                    '    LogFlow(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
+                    '    Log(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
                     '    IEMOP_RAISE_INVALID_OPCODE_RET();',
                     '}',
                 ];
@@ -2320,7 +2480,7 @@ class IEMArmGenerator(object):
                 ];
 
                 asTail = [
-                    sIndent + '    LogFlow(("Invalid instruction %%#x at %%x (cond)\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
+                    sIndent + '    Log(("Invalid instruction %%#x at %%x (cond)\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
                     sIndent + '    IEMOP_RAISE_INVALID_OPCODE_RET();',
                     sIndent + '}',
                 ] + asTail;
@@ -2328,7 +2488,8 @@ class IEMArmGenerator(object):
 
             # Log and call implementation.
             asLines += [
-                '%s    LogFlow(("%%010x: %s%s\\n",%s));' % (sIndent, sCName, sLogFmt, ', '.join(['uOpcode',] + asArgs),),
+                '%s    LogFlow(("%%018x/%%010x: %s%s\\n", %s));'
+                % (sIndent, sCName, sLogFmt, ', '.join(['pVCpu->cpum.GstCtx.Pc.u64', 'uOpcode',] + asArgs),),
                 '#ifdef IEM_INSTR_IMPL_%s__%s' % (sInstrSet, sCName,),
                 '%s    IEM_INSTR_IMPL_%s__%s(%s);' % (sIndent, sInstrSet, sCName, ', '.join(asArgs),),
                 '#else',
@@ -2485,7 +2646,7 @@ class IEMArmGenerator(object):
             '/** Invalid instruction decoder function. */',
             'FNIEMOP_DEF_1(iemDecode%s_Invalid, uint32_t, uOpcode)' % (sInstrSet,),
             '{',
-            '    LogFlow(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
+            '    Log(("Invalid instruction %%#x at %%x\\n", uOpcode, pVCpu->cpum.GstCtx.Pc.u64));',
             '    IEMOP_RAISE_INVALID_OPCODE_RET();',
             '}',
         ];
@@ -2582,19 +2743,19 @@ class IEMArmGenerator(object):
                                 metavar = 'file-decoder.cpp',
                                 dest    = 'sFileDecoderCpp',
                                 action  = 'store',
-                                default = '-',
+                                default = None,
                                 help    = 'The output C++ file for the decoder.');
         oArgParser.add_argument('--out-decoder-hdr',
                                 metavar = 'file-decoder.h',
                                 dest    = 'sFileDecoderHdr',
                                 action  = 'store',
-                                default = '-',
+                                default = None,
                                 help    = 'The output header file for the decoder.');
         oArgParser.add_argument('--out-stub-hdr',
                                 metavar = 'file-stub.h',
                                 dest    = 'sFileStubHdr',
                                 action  = 'store',
-                                default = '-',
+                                default = None,
                                 help    = 'The output header file for the implementation stubs.');
         # debug:
         oArgParser.add_argument('--print-instructions',
@@ -2602,6 +2763,16 @@ class IEMArmGenerator(object):
                                 action  = 'store_true',
                                 default = False,
                                 help    = 'List the instructions after loading.');
+        oArgParser.add_argument('--print-instructions-with-conditions',
+                                dest    = 'fPrintInstructionsWithConditions',
+                                action  = 'store_true',
+                                default = False,
+                                help    = 'List the instructions and conditions after loading.');
+        oArgParser.add_argument('--print-instructions-with-encoding',
+                                dest    = 'fPrintInstructionsWithEncoding',
+                                action  = 'store_true',
+                                default = False,
+                                help    = 'List the instructions and encoding details after loading.');
         oArgParser.add_argument('--print-fixed-mask-stats',
                                 dest    = 'fPrintFixedMaskStats',
                                 action  = 'store_true',
@@ -2620,35 +2791,46 @@ class IEMArmGenerator(object):
         #
         if LoadArmOpenSourceSpecification(oOptions):
             #
-            # Sort out the decoding.
-            #
-            self.constructDecoder();
-
-            #
-            # Output.
+            # Check if we're generating any output before constructing the decoder.
             #
             aaoOutputFiles = [
                  ( oOptions.sFileDecoderCpp,      self.generateA64DecoderCpp, 0, ),
                  ( oOptions.sFileDecoderHdr,      self.generateDecoderHdr, 0, ), # Must be after generateA64DecoderCpp!
                  ( oOptions.sFileStubHdr,         self.generateA64ImplementationStubHdr, 0, ),
             ];
+
+            cOutputFiles = 0;
+            for sOutFile, _, _ in aaoOutputFiles:
+                cOutputFiles += sOutFile is not None;
+
             fRc = True;
-            for sOutFile, fnGenMethod, iPartNo in aaoOutputFiles:
-                if sOutFile == '-':
-                    oOut = sys.stdout;
-                else:
-                    try:
-                        oOut = open(sOutFile, 'w');                 # pylint: disable=consider-using-with,unspecified-encoding
-                    except Exception as oXcpt:
-                        print('error! Failed open "%s" for writing: %s' % (sOutFile, oXcpt,), file = sys.stderr);
-                        return 1;
+            if cOutputFiles > 0:
+                #
+                # Sort out the decoding.
+                #
+                self.constructDecoder();
 
-                (fRc2, asLines) = fnGenMethod(sOutFile, iPartNo);
-                fRc = fRc2 and fRc;
+                #
+                # Output.
+                #
+                for sOutFile, fnGenMethod, iPartNo in aaoOutputFiles:
+                    if not sOutFile:
+                        continue;
+                    if sOutFile == '-':
+                        oOut = sys.stdout;
+                    else:
+                        try:
+                            oOut = open(sOutFile, 'w');                 # pylint: disable=consider-using-with,unspecified-encoding
+                        except Exception as oXcpt:
+                            print('error! Failed open "%s" for writing: %s' % (sOutFile, oXcpt,), file = sys.stderr);
+                            return 1;
 
-                oOut.write('\n'.join(asLines));
-                if oOut != sys.stdout:
-                    oOut.close();
+                    (fRc2, asLines) = fnGenMethod(sOutFile, iPartNo);
+                    fRc = fRc2 and fRc;
+
+                    oOut.write('\n'.join(asLines));
+                    if oOut != sys.stdout:
+                        oOut.close();
             if fRc:
                 return 0;
 

@@ -1212,17 +1212,18 @@ def asmSymbolsToDisplayText(adSymbols, ddAsmRules, sInstrNm):
     return sText;
 
 
-def parseInstructions(oParent, aoJson, ddAsmRules):
+def parseInstructions(oInstrSet, oParent, aoJson, ddAsmRules):
     for oJson in aoJson:
         sType = oJson['_type'];
         if sType == 'Instruction.InstructionSet':
             if oParent: raise Exception("InstructionSet shouldn't have a parent!");
+            assert not oInstrSet;
             oInstrSet = ArmInstructionSet.fromJson(oJson);
             assert oInstrSet.sName not in g_dArmInstructionSets;
             g_dArmInstructionSets[oInstrSet.sName] = oInstrSet;
             g_aoArmInstructionSets.append(oInstrSet);
 
-            parseInstructions(oInstrSet, oJson['children'], ddAsmRules);
+            parseInstructions(oInstrSet, oInstrSet, oJson['children'], ddAsmRules);
 
         elif sType == 'Instruction.InstructionGroup':
             if not oParent: raise Exception("InstructionGroup should have a parent!");
@@ -1239,7 +1240,7 @@ def parseInstructions(oParent, aoJson, ddAsmRules):
             g_aoArmInstructionGroups.append(oInstrGroup);
             oParent.aoGroups.append(oInstrGroup);
 
-            parseInstructions(oInstrGroup, oJson['children'], ddAsmRules);
+            parseInstructions(oInstrSet, oInstrGroup, oJson['children'], ddAsmRules);
 
         elif sType == "Instruction.Instruction":
             if not oParent: raise Exception("Instruction should have a parent!");
@@ -1249,18 +1250,20 @@ def parseInstructions(oParent, aoJson, ddAsmRules):
             #
             sInstrNm = oJson['name'];
 
-            (aoFields, fFields) = ArmEncodesetField.encodesetFromJson(oJson['encoding']);
-            oCondition          = ArmAstBase.fromJson(oJson['condition']);
+            oCondition = ArmAstBase.fromJson(oJson['condition']);
 
+            (aoFields, fFields) = ArmEncodesetField.encodesetFromJson(oJson['encoding']);
             for oUp in oParent.getUpIterator():
                 if oUp.fFields & ~fFields:
                     (aoFields, fFields) = ArmEncodesetField.encodesetAddParentFields(aoFields, fFields, oUp.aoFields);
                 if not oUp.oCondition.isBoolAndTrue():
                     oCondition = ArmAstBinaryOp(oCondition, '&&', oUp.oCondition.clone());
+            if fFields != (1 << oInstrSet.cBitsWidth) - 1:
+                raise Exception('Instruction %s has an incomplete encodingset: fFields=%#010x (missing %#010x)'
+                                % (sInstrNm, fFields, fFields ^ ((1 << oInstrSet.cBitsWidth) - 1),))
 
             #sCondBefore = oCondition.toString();
             #print('debug transfer: %s: org:  %s' % (sInstrNm, sCondBefore));
-            ## @todo fFields isn't updated here!
             (oCondition, fMod) = transferConditionsToEncoding(oCondition, aoFields, collections.defaultdict(list), sInstrNm);
             #if fMod:
             #    print('debug transfer: %s: %s  ---->  %s' % (sInstrNm, sCondBefore, oCondition.toString()));
@@ -1481,7 +1484,7 @@ def LoadArmOpenSourceSpecification(oOptions):
     print("parsing instructions ...");
     global g_oArmInstructionVerInfo;
     g_oArmInstructionVerInfo = dRawInstructions['_meta']['version'];
-    parseInstructions([], dRawInstructions['instructions'], dRawInstructions['assembly_rules']);
+    parseInstructions(None, None, dRawInstructions['instructions'], dRawInstructions['assembly_rules']);
 
     # Sort the instruction array by name.
     global g_aoAllArmInstructions;
@@ -2241,10 +2244,14 @@ class IEMArmGenerator(object):
                 if oField:
                     return (sName, oField.cBitsWidth);
                 # Look for the field in groups and sets and generate a name that extracts it from uOpcode:
-                ## @todo eliminate conditions checks from the parent on parent fields that are fixed in the given instr.
                 for oParent in oInstr.oParent.getUpIterator():
                     oField = oParent.getFieldByName(sName, False);
                     if oField:
+                        fFieldOpMask = oField.getShiftedMask();
+                        if (oInstr.fFixedMask & fFieldOpMask) == fFieldOpMask:
+                            return ('%#x /*%s@%u*/'
+                                    % ((oInstr.fFixedValue & fFieldOpMask) >> oField.iFirstBit, sName, oField.iFirstBit),
+                                    oField.cBitsWidth);
                         return ('((uOpcode >> %u) & %#x)' % (oField.iFirstBit, oField.getMask()), oField.cBitsWidth);
                 raise Exception('Field %s was not found for instruction %s' % (sName, oInstr.sName,));
 
@@ -2258,9 +2265,7 @@ class IEMArmGenerator(object):
                     sFeatureNm = oCall.aoArgs[0].sName;
                     sCpumFeature = g_dSpecFeatToCpumFeat.get(sFeatureNm, None);
                     if sCpumFeature is None:
-                        print('warning: IsFeatureImplemented parameter not known: %s (see g_dSpecFeatToCpumFeat)' % (sFeatureNm));
-                        #raise Exception('IsFeatureImplemented parameter not known: %s (see g_dSpecFeatToCpumFeat)'
-                        #                % (sFeatureNm));
+                        raise Exception('Unknown IsFeatureImplemented parameter: %s (see g_dSpecFeatToCpumFeat)' % (sFeatureNm));
                     if not isinstance(sCpumFeature, str):
                         return 'false /** @todo IEM_GET_GUEST_CPU_FEATURES(pVCpu)->%s*/' % (sFeatureNm,);
                     return 'IEM_GET_GUEST_CPU_FEATURES(pVCpu)->%s /*%s*/' % (sCpumFeature, sFeatureNm,)
@@ -2325,7 +2330,7 @@ class IEMArmGenerator(object):
             asLines += [
                 '%s    LogFlow(("%%010x: %s%s\\n",%s));' % (sIndent, sCName, sLogFmt, ', '.join(['uOpcode',] + asArgs),),
                 '#ifdef IEM_INSTR_IMPL_%s__%s' % (sInstrSet, sCName,),
-                '%s    IEM_INSTR_IMPL_%s__%s(%s);' % (sInstrSet, sIndent, sCName, ', '.join(asArgs),),
+                '%s    IEM_INSTR_IMPL_%s__%s(%s);' % (sIndent, sInstrSet, sCName, ', '.join(asArgs),),
                 '#else',
                 '%s    RT_NOREF(%s);' % (sIndent, ', '.join(asArgs + ['pVCpu', 'uOpcode',]),),
                 '%s    return VERR_IEM_INSTR_NOT_IMPLEMENTED;' % (sIndent,),

@@ -133,7 +133,7 @@ change_res:
 
   ${LogVerbose} "Custom mode set: Platform is Windows $g_strWinVersion"
   ${If} $g_strWinVersion == "2000"
-  ${OrIf} $g_strWinVersion == "2000, XP and W2K3 "
+  ${OrIf} $g_strWinVersion == "Vista"
     StrCpy $reg_path_device "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0"
     StrCpy $reg_path_monitor "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0\Mon00000001"
   ${ElseIf} $g_strWinVersion == "XP"
@@ -574,7 +574,6 @@ Function W2K_CallbackInstall
       ${If}   $g_strWinVersion == "2000"
       ${OrIf} $g_strWinVersion == "XP"
       ${OrIf} $g_strWinVersion == "2003"
-      ${OrIf} $g_strWinVersion == "2000, XP and W2K3 "
       ${OrIf} $g_strWinVersion == "7"
         !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
       ${Else}

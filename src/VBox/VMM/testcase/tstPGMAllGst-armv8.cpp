@@ -1032,7 +1032,7 @@ static void tstExecuteGetPage(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, uint8_t bEl,
         WalkResult.fFailed    = pWalkResult->fFailed;
         WalkResult.uLevel     = (pWalkResult->fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT;
         WalkResult.fSucceeded = false;
-    } 
+    }
     else
         WalkResult.fSucceeded = true;
 

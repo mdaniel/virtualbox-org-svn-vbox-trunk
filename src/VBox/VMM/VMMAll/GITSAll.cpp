@@ -179,7 +179,6 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 }
 
 
-#if 1
 static const char *gitsGetCommandName(uint8_t uCmdId)
 {
     switch (uCmdId)
@@ -209,15 +208,23 @@ static const char *gitsGetCommandName(uint8_t uCmdId)
             return "<UNKNOWN>";
     }
 }
-#endif
 
 
-static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
+DECL_FORCE_INLINE(const char *) gitsGetDiagDescription(GITSDIAG enmDiag)
 {
+    if (enmDiag < RT_ELEMENTS(g_apszGitsDiagDesc))
+        return g_apszGitsDiagDesc[enmDiag];
+    return "<Unknown>";
+}
+
+
+static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmDiag, bool fStallQueue)
+{
+    Log4Func(("enmDiag=%#RX32 (%s) fStallQueue=%RTbool\n", enmDiag, gitsGetDiagDescription(enmDiag)));
     GITS_CRIT_SECT_ENTER(pDevIns);
 
     /* Record the error and stall the queue. */
-    pGitsDev->enmDiag = enmError;
+    pGitsDev->enmDiag = enmDiag;
     pGitsDev->cCmdQueueErrors++;
     if (fStallQueue)
         pGitsDev->uCmdReadReg |= GITS_BF_CTRL_REG_CREADR_STALLED_MASK;
@@ -257,10 +264,12 @@ DECL_FORCE_INLINE(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
 
 static void gitsCmdQueueThreadWakeUpIfNeeded(PPDMDEVINS pDevIns, PGITSDEV pGitsDev)
 {
+    Log4Func(("\n"));
     Assert(GITS_CRIT_SECT_IS_OWNER(pDevIns));
     if (    gitsCmdQueueCanProcessRequests(pGitsDev)
         && !gitsCmdQueueIsEmpty(pGitsDev))
     {
+        Log4Func(("Waking up command-queue thread\n"));
         int const rc = PDMDevHlpSUPSemEventSignal(pDevIns, pGitsDev->hEvtCmdQueue);
         AssertRC(rc);
     }
@@ -293,15 +302,12 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
             break;
 
         case GITS_CTRL_REG_PIDR2_OFF:
-        {
             Assert(cb == 4);
             Assert(pGitsDev->uArchRev <= GITS_CTRL_REG_PIDR2_ARCHREV_GICV4);
-            uint8_t const uIdCodeDes1 = GIC_JEDEC_JEP10_DES_1(GIC_JEDEC_JEP106_IDENTIFICATION_CODE);
-            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_DES_1,   uIdCodeDes1)
+            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_DES_1,   GIC_JEDEC_JEP10_DES_1(GIC_JEDEC_JEP106_IDENTIFICATION_CODE))
                  | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_JEDEC,   1)
                  | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_ARCHREV, pGitsDev->uArchRev);
             break;
-        }
 
         case GITS_CTRL_REG_IIDR_OFF:
             Assert(cb == 4);
@@ -311,10 +317,8 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
 
         case GITS_CTRL_REG_TYPER_OFF:
         case GITS_CTRL_REG_TYPER_OFF + 4:
-        {
             uReg = pGitsDev->uTypeReg.u >> ((offReg & 7) << 3 /* to bits */);
             break;
-        }
 
         case GITS_CTRL_REG_CBASER_OFF:
             uReg = pGitsDev->uCmdBaseReg.u;
@@ -360,6 +364,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
 {
     Assert(cb == 8 || cb == 4);
     Assert(!(offReg & 3));
+    Log4Func(("offReg=%u uValue=%#RX64 cb=%u\n", offReg, uValue, cb));
 
     /*
      * GITS_BASER<n>.
@@ -434,6 +439,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t of
     RT_NOREF(pGitsDev);
     Assert(cb == 8 || cb == 4);
     Assert(!(offReg & 3));
+    Log4Func(("offReg=%u uValue=%#RX64 cb=%u\n", offReg, uValue, cb));
     AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX64 [%u-bit]\n", offReg, uValue, cb << 3));
 }
 
@@ -495,12 +501,11 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
 
     /* Basic info, GITS_CTLR and GITS_TYPER. */
     {
-        GITSDIAG const    enmDiag  = pGitsDev->enmDiag;
-        const char *const pszDiag  = enmDiag < RT_ELEMENTS(g_apszGitsDiagDesc) ? g_apszGitsDiagDesc[enmDiag] : "(Unknown)";
-        uint32_t const    uCtrlReg = pGitsDev->uCtrlReg;
+        uint32_t const uCtrlReg = pGitsDev->uCtrlReg;
+        GITSDIAG const enmDiag  = pGitsDev->enmDiag;
         pHlp->pfnPrintf(pHlp, "  uArchRev           = %u\n",          pGitsDev->uArchRev);
-        pHlp->pfnPrintf(pHlp, "  Errors             = %RU64\n",       pGitsDev->cCmdQueueErrors);
-        pHlp->pfnPrintf(pHlp, "  Diagnostic         = %#RX32 (%s)\n", enmDiag, pszDiag);
+        pHlp->pfnPrintf(pHlp, "  Cmd queue errors   = %RU64\n",       pGitsDev->cCmdQueueErrors);
+        pHlp->pfnPrintf(pHlp, "  Last error         = %#RX32 (%s)\n", enmDiag, gitsGetDiagDescription(enmDiag));
         pHlp->pfnPrintf(pHlp, "  GITS_CTLR          = %#RX32\n",      uCtrlReg);
         pHlp->pfnPrintf(pHlp, "    Enabled            = %RTbool\n",   RT_BF_GET(uCtrlReg, GITS_BF_CTRL_REG_CTLR_ENABLED));
         pHlp->pfnPrintf(pHlp, "    UMSI IRQ           = %RTbool\n",   RT_BF_GET(uCtrlReg, GITS_BF_CTRL_REG_CTLR_UMSI_IRQ));
@@ -583,6 +588,8 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
 
 DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf)
 {
+    Log4Func(("cbBuf=%RU32\n", cbBuf));
+
     /* Hold the critical section as we could be accessing the device state simultaneously with MMIO accesses. */
     GITS_CRIT_SECT_ENTER(pDevIns);
 
@@ -709,6 +716,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
  */
 DECL_HIDDEN_CALLBACK(int) gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc)
 {
+    Log4Func(("uBusDevFn=%#RX32 uEventId=%#RX32\n", uBusDevFn, uEventId));
     RT_NOREF(pVM, uBusDevFn, pMsi, uEventId, uTagSrc);
     return VERR_NOT_IMPLEMENTED;
 }

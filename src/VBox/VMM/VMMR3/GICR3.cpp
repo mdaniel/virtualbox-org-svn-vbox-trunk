@@ -51,7 +51,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     8
+#define GIC_SAVED_STATE_VERSION                     9
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -340,6 +340,11 @@ static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const cha
         pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n", uReg & GIC_BF_REDIST_REG_PROPBASER_PHYS_ADDR_MASK);
         pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_OUTER_CACHE));
     }
+
+    /* */
+    {
+
+    }
     /** @todo Dump LPI config and LPI pending registers. */
 }
 
@@ -461,11 +466,15 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
 
+    /* LPI state. */
     /* We store the size followed by the data because we currently do not support the full LPI range. */
     pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->abLpiConfig));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->abLpiConfig[0],       sizeof(pGicDev->abLpiConfig));
     pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->bmLpiPending));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmLpiPending[0],      sizeof(pGicDev->bmLpiPending));
+    pHlp->pfnSSMPutU64(pSSM,  pGicDev->uLpiConfigBaseReg.u);
+    pHlp->pfnSSMPutU64(pSSM,  pGicDev->uLpiPendingBaseReg.u);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fEnableLpis);
 
     /** @todo GITS data. */
 
@@ -577,6 +586,9 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
             return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI pending bitmap size: got=%u expected=%u"),
                                            cbData, sizeof(pGicDev->bmLpiPending));
     }
+    pHlp->pfnSSMGetU64(pSSM,  &pGicDev->uLpiConfigBaseReg.u);
+    pHlp->pfnSSMGetU64(pSSM,  &pGicDev->uLpiPendingBaseReg.u);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fEnableLpis);
 
     /** @todo GITS data. */
 

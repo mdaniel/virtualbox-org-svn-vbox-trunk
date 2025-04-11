@@ -3109,6 +3109,7 @@ static void gicInit(PPDMDEVINS pDevIns)
     RT_ZERO(pGicDev->abLpiConfig);
     RT_ZERO(pGicDev->bmLpiPending);
     pGicDev->uLpiConfigBaseReg.u = 0;
+    pGicDev->uLpiPendingBaseReg.u = 0;
     pGicDev->fEnableLpis = false;
 }
 

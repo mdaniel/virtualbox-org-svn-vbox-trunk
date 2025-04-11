@@ -722,5 +722,22 @@ RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_REDIST_REG_PENDBASER_, UINT64_C(0), UINT64_MA
 #define GIC_JEDEC_JEP10_DES_1(a_JepIdCode)              (((a_JepIdCode) >> 4) & 0x70)
 /** @} */
 
+
+/** @name LPI configuration table entry.
+ * @{ */
+/** GITS LPI Configuration   */
+/** GITS LPI CTE: Enable. */
+#define GITS_BF_LPI_CTE_ENABLE_SHIFT                            0
+#define GITS_BF_LPI_CTE_ENABLE_MASK                             UINT8_C(0x1)
+/** GITS LPI CTE: Reserved (bit 1). */
+#define GITS_BF_LPI_CTE_RSVD_1_SHIFT                            1
+#define GITS_BF_LPI_CTE_RSVD_1_MASK                             UINT8_C(0x2)
+/** GITS LPI CTE: Priority. */
+#define GITS_BF_LPI_CTE_PRIORITY_SHIFT                          2
+#define GITS_BF_LPI_CTE_PRIORITY_MASK                           UINT8_C(0xfc)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_LPI_CTE_, UINT8_C(0), UINT8_MAX,
+                            (ENABLE, RSVD_1, PRIORITY));
+/** @} */
+
 #endif /* !VBOX_INCLUDED_gic_h */
 

@@ -169,6 +169,8 @@ typedef GICDEV *PGICDEV;
 /** Pointer to a const GIC device. */
 typedef GICDEV const *PCGICDEV;
 AssertCompileMemberSizeAlignment(GICDEV, Gits, 8);
+AssertCompileMemberAlignment(GICDEV, abLpiConfig, 8);
+AssertCompileMemberAlignment(GICDEV, hMmioDist, 8);
 
 /**
  * GIC VM Instance data.

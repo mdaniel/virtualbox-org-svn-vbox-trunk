@@ -35,6 +35,7 @@
 /VMMR0/PGMR0Bth.h: --no-fix-header-guards
 /VMMR3/PGMPhysRWTmpl.h: --no-fix-header-guards
 /VMMAll/PGMAll*-*.cpp.h: --no-fix-header-guards
+/VMMAll/target-armv8/IEMAllInstrA64Impl.h: --no-fix-header-guards
 /VMMAll/target-x86/IEMAllInstCommonBodyMacros-x86.h: --no-fix-header-guards
 /VMMAll/target-x86/IEMAllN8veLiveness-x86.h: --no-fix-header-guards
 /VMMAll/target-x86/IEMAllN8veRecompFuncs-x86.h: --no-fix-header-guards

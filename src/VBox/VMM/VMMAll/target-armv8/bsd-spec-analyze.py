@@ -2379,7 +2379,7 @@ class IEMArmGenerator(object):
             asLines += [
                 '',
                 '/* %s (%08x/%08x) */' % (oInstr.sAsmDisplay, oInstr.fFixedMask, oInstr.fFixedValue,),
-                '//#define IEM_INSTR_IMPL_%s__%s(%s) ' % (sInstrSet, oInstr.getCName(), ', '.join(asArgs)),
+                '//#define IEM_INSTR_IMPL_%s__%s(%s)' % (sInstrSet, oInstr.getCName(), ', '.join(asArgs)),
                 '',
             ]
 

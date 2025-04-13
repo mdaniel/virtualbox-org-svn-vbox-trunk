@@ -1297,6 +1297,10 @@ RTDECL(int) RTStrGetCpNExInternal(const char **ppsz, size_t *pcch, PRTUNICP pCp)
  *
  * @remark  This is a worker function for RTStrPutCp().
  *
+ * @note    The function may write up to 6 chars (bytes) at @a psz and is not
+ *          able to check for overflows. The caller is therefore expected to
+ *          ensure sufficient buffer space.
+ *
  */
 RTDECL(char *) RTStrPutCpInternal(char *psz, RTUNICP CodePoint);
 
@@ -1429,6 +1433,11 @@ DECLINLINE(size_t) RTStrCpSize(RTUNICP CodePoint)
  * @remark  We optimize this operation by using an inline function for
  *          the most frequent and simplest sequence, the rest is
  *          handled by RTStrPutCpInternal().
+ *
+ * @note    The function may write up to 6 chars (bytes) at @a psz and is not
+ *          able to check for overflows. The caller is therefore expected to
+ *          ensure sufficient buffer space.
+ *
  */
 DECLINLINE(char *) RTStrPutCp(char *psz, RTUNICP CodePoint)
 {

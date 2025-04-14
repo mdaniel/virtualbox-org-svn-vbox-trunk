@@ -39,6 +39,9 @@
 # pragma once
 #endif
 
+#include <iprt/types.h>
+
+
 /** @defgroup grp_cpum_ctx  The CPUM Context Structures
  * @ingroup grp_cpum
  * @{

@@ -60,8 +60,10 @@ signals:
 public:
 
     /** Constructs Tools-pane passing @a pParent to the base-class.
+      * @param  enmClass     Brings the tool class.
       * @param  pActionPool  Brings the action-pool reference. */
     UITools(QWidget *pParent,
+            UIToolClass enmClass,
             UIActionPool *pActionPool);
     /** Destructs Tools-pane. */
     virtual ~UITools();
@@ -113,8 +115,14 @@ private:
 
     /** @name General stuff.
       * @{ */
+        /** Holds the tool class. */
+        UIToolClass  m_enmClass;
+
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
+
+        /** Holds the layout alignment. */
+        Qt::Alignment  m_enmAlignment;
 
         /** Holds the main layout instance. */
         QVBoxLayout  *m_pMainLayout;

@@ -56,6 +56,14 @@ public:
         UIToolsModel *model() const { return m_pModel; }
     /** @} */
 
+    /** @name Layout stuff.
+      * @{ */
+        /** Calculates and returns minimum size-hint. */
+        virtual QSize minimumSizeHint() const RT_OVERRIDE;
+        /** Calculates and returns size-hint. */
+        virtual QSize sizeHint() const  RT_OVERRIDE;
+    /** @} */
+
 protected:
 
     /** @name Event handling stuff.

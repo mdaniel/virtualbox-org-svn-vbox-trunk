@@ -128,6 +128,17 @@ UIToolsView::~UIToolsView()
     cleanup();
 }
 
+QSize UIToolsView::minimumSizeHint() const
+{
+    return QSize(2 * frameWidth() + m_iMinimumWidthHint,
+                 2 * frameWidth() + m_iMinimumHeightHint);
+}
+
+QSize UIToolsView::sizeHint() const
+{
+    return minimumSizeHint();
+}
+
 void UIToolsView::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
@@ -151,10 +162,8 @@ void UIToolsView::sltMinimumWidthHintChanged(int iHint)
     /* Remember new value: */
     m_iMinimumWidthHint = iHint;
 
-    /* Set minimum view width according passed width-hint: */
-    setMinimumWidth(2 * frameWidth() + m_iMinimumWidthHint);
-
-    /* Update scene-rect: */
+    /* Update geometry & scene-rect: */
+    updateGeometry();
     updateSceneRect();
 }
 
@@ -167,10 +176,8 @@ void UIToolsView::sltMinimumHeightHintChanged(int iHint)
     /* Remember new value: */
     m_iMinimumHeightHint = iHint;
 
-    /* Set minimum view height according passed height-hint: */
-    setMinimumHeight(2 * frameWidth() + m_iMinimumHeightHint);
-
-    /* Update scene-rect: */
+    /* Update geometry & scene-rect: */
+    updateGeometry();
     updateSceneRect();
 }
 
@@ -197,8 +204,8 @@ void UIToolsView::prepareThis()
     setScene(model()->scene());
     model()->setView(this);
 
-    /* No minimum size-hint: */
-    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    /* Set minimum size-hint policy: */
+    setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
     /* Setup frame: */
     setFrameShape(QFrame::NoFrame);

@@ -46,8 +46,8 @@
 /**
  * @see GMMR0InitialReservation
  */
-GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
-                                        GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority)
+VMMR3_INT_DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
+                                             GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority)
 {
 #if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
@@ -72,7 +72,7 @@ GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t c
 /**
  * @see GMMR0UpdateReservation
  */
-GMMR3DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages)
+VMMR3_INT_DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages)
 {
 #if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
@@ -101,7 +101,7 @@ GMMR3DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cS
  * @param       cPages      The number of pages that's to be allocated.
  * @param       enmAccount  The account to charge.
  */
-GMMR3DECL(int) GMMR3AllocatePagesPrepare(PVM pVM, PGMMALLOCATEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount)
+VMMR3_INT_DECL(int) GMMR3AllocatePagesPrepare(PVM pVM, PGMMALLOCATEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount)
 {
     uint32_t cb = RT_UOFFSETOF_DYN(GMMALLOCATEPAGESREQ, aPages[cPages]);
     PGMMALLOCATEPAGESREQ pReq = (PGMMALLOCATEPAGESREQ)RTMemTmpAllocZ(cb);
@@ -127,7 +127,7 @@ GMMR3DECL(int) GMMR3AllocatePagesPrepare(PVM pVM, PGMMALLOCATEPAGESREQ *ppReq, u
  * @param   pVM         The cross context VM structure.
  * @param   pReq        Pointer to the request (returned by GMMR3AllocatePagesPrepare).
  */
-GMMR3DECL(int) GMMR3AllocatePagesPerform(PVM pVM, PGMMALLOCATEPAGESREQ pReq)
+VMMR3_INT_DECL(int) GMMR3AllocatePagesPerform(PVM pVM, PGMMALLOCATEPAGESREQ pReq)
 {
     int rc = VMMR3CallR0(pVM, VMMR0_DO_GMM_ALLOCATE_PAGES, 0, &pReq->Hdr);
     if (RT_SUCCESS(rc))
@@ -147,7 +147,7 @@ GMMR3DECL(int) GMMR3AllocatePagesPerform(PVM pVM, PGMMALLOCATEPAGESREQ pReq)
  * Cleans up a GMMR0AllocatePages request.
  * @param   pReq        Pointer to the request (returned by GMMR3AllocatePagesPrepare).
  */
-GMMR3DECL(void) GMMR3AllocatePagesCleanup(PGMMALLOCATEPAGESREQ pReq)
+VMMR3_INT_DECL(void) GMMR3AllocatePagesCleanup(PGMMALLOCATEPAGESREQ pReq)
 {
     RTMemTmpFree(pReq);
 }
@@ -162,7 +162,7 @@ GMMR3DECL(void) GMMR3AllocatePagesCleanup(PGMMALLOCATEPAGESREQ pReq)
  * @param       cPages      The number of pages that's to be freed.
  * @param       enmAccount  The account to charge.
  */
-GMMR3DECL(int) GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount)
+VMMR3_INT_DECL(int) GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount)
 {
     uint32_t cb = RT_UOFFSETOF_DYN(GMMFREEPAGESREQ, aPages[cPages]);
     PGMMFREEPAGESREQ pReq = (PGMMFREEPAGESREQ)RTMemTmpAllocZ(cb);
@@ -189,7 +189,7 @@ GMMR3DECL(int) GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t 
  *                          GMMR3FreePagesPrepare().
  * @param       enmAccount  The account to charge.
  */
-GMMR3DECL(void) GMMR3FreePagesRePrep(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cPages, GMMACCOUNT enmAccount)
+VMMR3_INT_DECL(void) GMMR3FreePagesRePrep(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cPages, GMMACCOUNT enmAccount)
 {
     Assert(pReq->Hdr.u32Magic == SUPVMMR0REQHDR_MAGIC);
     pReq->Hdr.cbReq     = RT_UOFFSETOF_DYN(GMMFREEPAGESREQ, aPages[cPages]);
@@ -208,7 +208,7 @@ GMMR3DECL(void) GMMR3FreePagesRePrep(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cP
  * @param   pReq            Pointer to the request (returned by GMMR3FreePagesPrepare).
  * @param   cActualPages    The number of pages actually freed.
  */
-GMMR3DECL(int) GMMR3FreePagesPerform(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cActualPages)
+VMMR3_INT_DECL(int) GMMR3FreePagesPerform(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cActualPages)
 {
     /*
      * Adjust the request if we ended up with fewer pages than anticipated.
@@ -239,7 +239,7 @@ GMMR3DECL(int) GMMR3FreePagesPerform(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cA
  * Cleans up a GMMR0FreePages request.
  * @param   pReq        Pointer to the request (returned by GMMR3FreePagesPrepare).
  */
-GMMR3DECL(void) GMMR3FreePagesCleanup(PGMMFREEPAGESREQ pReq)
+VMMR3_INT_DECL(void) GMMR3FreePagesCleanup(PGMMFREEPAGESREQ pReq)
 {
     RTMemTmpFree(pReq);
 }
@@ -253,7 +253,7 @@ GMMR3DECL(void) GMMR3FreePagesCleanup(PGMMFREEPAGESREQ pReq)
  * @param   pVM         The cross context VM structure.
  * @param   pAllocReq   The allocation request to undo.
  */
-GMMR3DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAllocReq)
+VMMR3_INT_DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAllocReq)
 {
     uint32_t cb = RT_UOFFSETOF_DYN(GMMFREEPAGESREQ, aPages[pAllocReq->cPages]);
     PGMMFREEPAGESREQ pReq = (PGMMFREEPAGESREQ)RTMemTmpAllocZ(cb);
@@ -281,7 +281,7 @@ GMMR3DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAll
 /**
  * @see GMMR0BalloonedPages
  */
-GMMR3DECL(int)  GMMR3BalloonedPages(PVM pVM, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages)
+VMMR3_INT_DECL(int)  GMMR3BalloonedPages(PVM pVM, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages)
 {
     int rc;
     if (!SUPR3IsDriverless())
@@ -309,7 +309,8 @@ GMMR3DECL(int)  GMMR3BalloonedPages(PVM pVM, GMMBALLOONACTION enmAction, uint32_
  * @note Caller does the driverless check.
  * @see  GMMR0QueryVMMMemoryStatsReq
  */
-GMMR3DECL(int)  GMMR3QueryHypervisorMemoryStats(PVM pVM, uint64_t *pcTotalAllocPages, uint64_t *pcTotalFreePages, uint64_t *pcTotalBalloonPages, uint64_t *puTotalBalloonSize)
+VMMR3_INT_DECL(int)  GMMR3QueryHypervisorMemoryStats(PVM pVM, uint64_t *pcTotalAllocPages, uint64_t *pcTotalFreePages,
+                                                     uint64_t *pcTotalBalloonPages, uint64_t *puTotalBalloonSize)
 {
     GMMMEMSTATSREQ Req;
     Req.Hdr.u32Magic     = SUPVMMR0REQHDR_MAGIC;
@@ -340,7 +341,7 @@ GMMR3DECL(int)  GMMR3QueryHypervisorMemoryStats(PVM pVM, uint64_t *pcTotalAllocP
 /**
  * @see GMMR0QueryMemoryStatsReq
  */
-GMMR3DECL(int)  GMMR3QueryMemoryStats(PVM pVM, uint64_t *pcAllocPages, uint64_t *pcMaxPages, uint64_t *pcBalloonPages)
+VMMR3_INT_DECL(int)  GMMR3QueryMemoryStats(PVM pVM, uint64_t *pcAllocPages, uint64_t *pcMaxPages, uint64_t *pcBalloonPages)
 {
     GMMMEMSTATSREQ Req;
     Req.Hdr.u32Magic    = SUPVMMR0REQHDR_MAGIC;
@@ -367,7 +368,7 @@ GMMR3DECL(int)  GMMR3QueryMemoryStats(PVM pVM, uint64_t *pcAllocPages, uint64_t 
 /**
  * @see GMMR0MapUnmapChunk
  */
-GMMR3DECL(int)  GMMR3MapUnmapChunk(PVM pVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3)
+VMMR3_INT_DECL(int)  GMMR3MapUnmapChunk(PVM pVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3)
 {
     GMMMAPUNMAPCHUNKREQ Req;
     Req.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
@@ -385,7 +386,7 @@ GMMR3DECL(int)  GMMR3MapUnmapChunk(PVM pVM, uint32_t idChunkMap, uint32_t idChun
 /**
  * @see GMMR0FreeLargePage
  */
-GMMR3DECL(int)  GMMR3FreeLargePage(PVM pVM,  uint32_t idPage)
+VMMR3_INT_DECL(int)  GMMR3FreeLargePage(PVM pVM,  uint32_t idPage)
 {
     GMMFREELARGEPAGEREQ Req;
     Req.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
@@ -398,7 +399,7 @@ GMMR3DECL(int)  GMMR3FreeLargePage(PVM pVM,  uint32_t idPage)
 /**
  * @see GMMR0RegisterSharedModule
  */
-GMMR3DECL(int) GMMR3RegisterSharedModule(PVM pVM, PGMMREGISTERSHAREDMODULEREQ pReq)
+VMMR3_INT_DECL(int) GMMR3RegisterSharedModule(PVM pVM, PGMMREGISTERSHAREDMODULEREQ pReq)
 {
     pReq->Hdr.u32Magic  = SUPVMMR0REQHDR_MAGIC;
     pReq->Hdr.cbReq     = RT_UOFFSETOF_DYN(GMMREGISTERSHAREDMODULEREQ, aRegions[pReq->cRegions]);
@@ -412,7 +413,7 @@ GMMR3DECL(int) GMMR3RegisterSharedModule(PVM pVM, PGMMREGISTERSHAREDMODULEREQ pR
 /**
  * @see GMMR0RegisterSharedModule
  */
-GMMR3DECL(int) GMMR3UnregisterSharedModule(PVM pVM, PGMMUNREGISTERSHAREDMODULEREQ pReq)
+VMMR3_INT_DECL(int) GMMR3UnregisterSharedModule(PVM pVM, PGMMUNREGISTERSHAREDMODULEREQ pReq)
 {
     pReq->Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
     pReq->Hdr.cbReq = sizeof(*pReq);
@@ -423,7 +424,7 @@ GMMR3DECL(int) GMMR3UnregisterSharedModule(PVM pVM, PGMMUNREGISTERSHAREDMODULERE
 /**
  * @see GMMR0ResetSharedModules
  */
-GMMR3DECL(int) GMMR3ResetSharedModules(PVM pVM)
+VMMR3_INT_DECL(int) GMMR3ResetSharedModules(PVM pVM)
 {
     if (!SUPR3IsDriverless())
         return VMMR3CallR0(pVM, VMMR0_DO_GMM_RESET_SHARED_MODULES, 0, NULL);
@@ -434,7 +435,7 @@ GMMR3DECL(int) GMMR3ResetSharedModules(PVM pVM)
 /**
  * @see GMMR0CheckSharedModules
  */
-GMMR3DECL(int)  GMMR3CheckSharedModules(PVM pVM)
+VMMR3_INT_DECL(int)  GMMR3CheckSharedModules(PVM pVM)
 {
     return VMMR3CallR0(pVM, VMMR0_DO_GMM_CHECK_SHARED_MODULES, 0, NULL);
 }
@@ -444,7 +445,7 @@ GMMR3DECL(int)  GMMR3CheckSharedModules(PVM pVM)
 /**
  * @see GMMR0FindDuplicatePage
  */
-GMMR3DECL(bool) GMMR3IsDuplicatePage(PVM pVM, uint32_t idPage)
+VMMR3_INT_DECL(bool) GMMR3IsDuplicatePage(PVM pVM, uint32_t idPage)
 {
     GMMFINDDUPLICATEPAGEREQ Req;
     Req.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;

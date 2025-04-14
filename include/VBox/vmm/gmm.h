@@ -53,41 +53,6 @@ RT_C_DECLS_BEGIN
  * @{
  */
 
-/** @def IN_GMM_R0
- * Used to indicate whether we're inside the same link module as the ring 0
- * part of the Global Memory Manager or not.
- */
-#ifdef DOXYGEN_RUNNING
-# define IN_GMM_R0
-#endif
-/** @def GMMR0DECL
- * Ring 0 GMM export or import declaration.
- * @param   type    The return type of the function declaration.
- */
-#ifdef IN_GMM_R0
-# define GMMR0DECL(type)    DECLEXPORT(type) VBOXCALL
-#else
-# define GMMR0DECL(type)    DECLIMPORT(type) VBOXCALL
-#endif
-
-/** @def IN_GMM_R3
- * Used to indicate whether we're inside the same link module as the ring 3
- * part of the Global Memory Manager or not.
- */
-#ifdef DOXYGEN_RUNNING
-# define IN_GMM_R3
-#endif
-/** @def GMMR3DECL
- * Ring 3 GMM export or import declaration.
- * @param   type    The return type of the function declaration.
- */
-#ifdef IN_GMM_R3
-# define GMMR3DECL(type)    DECLEXPORT(type) VBOXCALL
-#else
-# define GMMR3DECL(type)    DECLIMPORT(type) VBOXCALL
-#endif
-
-
 /** The chunk shift. (2^21 = 2 MB) */
 #define GMM_CHUNK_SHIFT                 21
 /** The allocation chunk size. */
@@ -414,33 +379,33 @@ typedef GMMSTATS *PGMMSTATS;
 /** Const pointer to the GMM statistics. */
 typedef const GMMSTATS *PCGMMSTATS;
 
-
-GMMR0DECL(int)  GMMR0Init(void);
-GMMR0DECL(void) GMMR0Term(void);
-GMMR0DECL(int)  GMMR0InitPerVMData(PGVM pGVM);
-GMMR0DECL(void) GMMR0CleanupVM(PGVM pGVM);
-GMMR0DECL(int)  GMMR0InitialReservation(PGVM pGVM, VMCPUID idCpu, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
-                                        GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority);
-GMMR0DECL(int)  GMMR0UpdateReservation(PGVM pGVM, VMCPUID idCpu, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages);
-GMMR0DECL(int)  GMMR0AllocateHandyPages(PGVM pGVM, VMCPUID idCpu, uint32_t cPagesToUpdate,
-                                        uint32_t cPagesToAlloc, PGMMPAGEDESC paPages);
-GMMR0DECL(int)  GMMR0AllocatePages(PGVM pGVM, VMCPUID idCpu, uint32_t cPages, PGMMPAGEDESC paPages, GMMACCOUNT enmAccount);
-GMMR0DECL(int)  GMMR0AllocateLargePage(PGVM pGVM, VMCPUID idCpu, uint32_t cbPage, uint32_t *pIdPage, RTHCPHYS *pHCPhys);
-GMMR0DECL(int)  GMMR0FreePages(PGVM pGVM, VMCPUID idCpu, uint32_t cPages, PGMMFREEPAGEDESC paPages, GMMACCOUNT enmAccount);
-GMMR0DECL(int)  GMMR0FreeLargePage(PGVM pGVM, VMCPUID idCpu, uint32_t idPage);
-GMMR0DECL(int)  GMMR0BalloonedPages(PGVM pGVM, VMCPUID idCpu, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages);
-GMMR0DECL(int)  GMMR0MapUnmapChunk(PGVM pGVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3);
-GMMR0DECL(int)  GMMR0PageIdToVirt(PGVM pGVM, uint32_t idPage, void **ppv);
-GMMR0DECL(int)  GMMR0RegisterSharedModule(PGVM pGVM, VMCPUID idCpu, VBOXOSFAMILY enmGuestOS, char *pszModuleName,
-                                          char *pszVersion, RTGCPTR GCBaseAddr,  uint32_t cbModule, uint32_t cRegions,
-                                          struct VMMDEVSHAREDREGIONDESC const *paRegions);
-GMMR0DECL(int)  GMMR0UnregisterSharedModule(PGVM pGVM, VMCPUID idCpu, char *pszModuleName, char *pszVersion,
-                                            RTGCPTR GCBaseAddr, uint32_t cbModule);
-GMMR0DECL(int)  GMMR0UnregisterAllSharedModules(PGVM pGVM, VMCPUID idCpu);
-GMMR0DECL(int)  GMMR0CheckSharedModules(PGVM pGVM, VMCPUID idCpu);
-GMMR0DECL(int)  GMMR0ResetSharedModules(PGVM pGVM, VMCPUID idCpu);
-GMMR0DECL(int)  GMMR0QueryStatistics(PGMMSTATS pStats, PSUPDRVSESSION pSession);
-GMMR0DECL(int)  GMMR0ResetStatistics(PCGMMSTATS pStats, PSUPDRVSESSION pSession);
+VMMR0_INT_DECL(int)  GMMR0Init(void);
+VMMR0_INT_DECL(void) GMMR0Term(void);
+VMMR0_INT_DECL(int)  GMMR0InitPerVMData(PGVM pGVM);
+VMMR0_INT_DECL(void) GMMR0CleanupVM(PGVM pGVM);
+VMMR0_INT_DECL(int)  GMMR0InitialReservation(PGVM pGVM, VMCPUID idCpu, uint64_t cBasePages, uint32_t cShadowPages,
+                                             uint32_t cFixedPages, GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority);
+VMMR0_INT_DECL(int)  GMMR0UpdateReservation(PGVM pGVM, VMCPUID idCpu, uint64_t cBasePages,
+                                            uint32_t cShadowPages, uint32_t cFixedPages);
+VMMR0_INT_DECL(int)  GMMR0AllocateHandyPages(PGVM pGVM, VMCPUID idCpu, uint32_t cPagesToUpdate,
+                                             uint32_t cPagesToAlloc, PGMMPAGEDESC paPages);
+VMMR0_INT_DECL(int)  GMMR0AllocatePages(PGVM pGVM, VMCPUID idCpu, uint32_t cPages, PGMMPAGEDESC paPages, GMMACCOUNT enmAccount);
+VMMR0_INT_DECL(int)  GMMR0AllocateLargePage(PGVM pGVM, VMCPUID idCpu, uint32_t cbPage, uint32_t *pIdPage, RTHCPHYS *pHCPhys);
+VMMR0_INT_DECL(int)  GMMR0FreePages(PGVM pGVM, VMCPUID idCpu, uint32_t cPages, PGMMFREEPAGEDESC paPages, GMMACCOUNT enmAccount);
+VMMR0_INT_DECL(int)  GMMR0FreeLargePage(PGVM pGVM, VMCPUID idCpu, uint32_t idPage);
+VMMR0_INT_DECL(int)  GMMR0BalloonedPages(PGVM pGVM, VMCPUID idCpu, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages);
+VMMR0_INT_DECL(int)  GMMR0MapUnmapChunk(PGVM pGVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3);
+VMMR0_INT_DECL(int)  GMMR0PageIdToVirt(PGVM pGVM, uint32_t idPage, void **ppv);
+VMMR0_INT_DECL(int)  GMMR0RegisterSharedModule(PGVM pGVM, VMCPUID idCpu, VBOXOSFAMILY enmGuestOS, char *pszModuleName,
+                                               char *pszVersion, RTGCPTR GCBaseAddr,  uint32_t cbModule, uint32_t cRegions,
+                                               struct VMMDEVSHAREDREGIONDESC const *paRegions);
+VMMR0_INT_DECL(int)  GMMR0UnregisterSharedModule(PGVM pGVM, VMCPUID idCpu, char *pszModuleName, char *pszVersion,
+                                                 RTGCPTR GCBaseAddr, uint32_t cbModule);
+VMMR0_INT_DECL(int)  GMMR0UnregisterAllSharedModules(PGVM pGVM, VMCPUID idCpu);
+VMMR0_INT_DECL(int)  GMMR0CheckSharedModules(PGVM pGVM, VMCPUID idCpu);
+VMMR0_INT_DECL(int)  GMMR0ResetSharedModules(PGVM pGVM, VMCPUID idCpu);
+VMMR0_INT_DECL(int)  GMMR0QueryStatistics(PGMMSTATS pStats, PSUPDRVSESSION pSession);
+VMMR0_INT_DECL(int)  GMMR0ResetStatistics(PCGMMSTATS pStats, PSUPDRVSESSION pSession);
 
 /**
  * Request buffer for GMMR0InitialReservationReq / VMMR0_DO_GMM_INITIAL_RESERVATION.
@@ -459,7 +424,7 @@ typedef struct GMMINITIALRESERVATIONREQ
 /** Pointer to a GMMR0InitialReservationReq / VMMR0_DO_GMM_INITIAL_RESERVATION request buffer. */
 typedef GMMINITIALRESERVATIONREQ *PGMMINITIALRESERVATIONREQ;
 
-GMMR0DECL(int)  GMMR0InitialReservationReq(PGVM pGVM, VMCPUID idCpu, PGMMINITIALRESERVATIONREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0InitialReservationReq(PGVM pGVM, VMCPUID idCpu, PGMMINITIALRESERVATIONREQ pReq);
 
 
 /**
@@ -477,7 +442,7 @@ typedef struct GMMUPDATERESERVATIONREQ
 /** Pointer to a GMMR0InitialReservationReq / VMMR0_DO_GMM_INITIAL_RESERVATION request buffer. */
 typedef GMMUPDATERESERVATIONREQ *PGMMUPDATERESERVATIONREQ;
 
-GMMR0DECL(int)  GMMR0UpdateReservationReq(PGVM pGVM, VMCPUID idCpu, PGMMUPDATERESERVATIONREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0UpdateReservationReq(PGVM pGVM, VMCPUID idCpu, PGMMUPDATERESERVATIONREQ pReq);
 
 
 /**
@@ -498,7 +463,7 @@ typedef struct GMMALLOCATEPAGESREQ
 /** Pointer to a GMMR0AllocatePagesReq / VMMR0_DO_GMM_ALLOCATE_PAGES request buffer. */
 typedef GMMALLOCATEPAGESREQ *PGMMALLOCATEPAGESREQ;
 
-GMMR0DECL(int)  GMMR0AllocatePagesReq(PGVM pGVM, VMCPUID idCpu, PGMMALLOCATEPAGESREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0AllocatePagesReq(PGVM pGVM, VMCPUID idCpu, PGMMALLOCATEPAGESREQ pReq);
 
 
 /**
@@ -519,7 +484,7 @@ typedef struct GMMFREEPAGESREQ
 /** Pointer to a GMMR0FreePagesReq / VMMR0_DO_GMM_FREE_PAGES request buffer. */
 typedef GMMFREEPAGESREQ *PGMMFREEPAGESREQ;
 
-GMMR0DECL(int)  GMMR0FreePagesReq(PGVM pGVM, VMCPUID idCpu, PGMMFREEPAGESREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0FreePagesReq(PGVM pGVM, VMCPUID idCpu, PGMMFREEPAGESREQ pReq);
 
 /**
  * Request buffer for GMMR0BalloonedPagesReq / VMMR0_DO_GMM_BALLOONED_PAGES.
@@ -537,7 +502,7 @@ typedef struct GMMBALLOONEDPAGESREQ
 /** Pointer to a GMMR0BalloonedPagesReq / VMMR0_DO_GMM_BALLOONED_PAGES request buffer. */
 typedef GMMBALLOONEDPAGESREQ *PGMMBALLOONEDPAGESREQ;
 
-GMMR0DECL(int)  GMMR0BalloonedPagesReq(PGVM pGVM, VMCPUID idCpu, PGMMBALLOONEDPAGESREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0BalloonedPagesReq(PGVM pGVM, VMCPUID idCpu, PGMMBALLOONEDPAGESREQ pReq);
 
 
 /**
@@ -562,8 +527,8 @@ typedef struct GMMMEMSTATSREQ
 /** Pointer to a GMMR0QueryHypervisorMemoryStatsReq / VMMR0_DO_GMM_QUERY_HYPERVISOR_MEM_STATS request buffer. */
 typedef GMMMEMSTATSREQ *PGMMMEMSTATSREQ;
 
-GMMR0DECL(int)  GMMR0QueryHypervisorMemoryStatsReq(PGMMMEMSTATSREQ pReq);
-GMMR0DECL(int)  GMMR0QueryMemoryStatsReq(PGVM pGVM, VMCPUID idCpu, PGMMMEMSTATSREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0QueryHypervisorMemoryStatsReq(PGMMMEMSTATSREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0QueryMemoryStatsReq(PGVM pGVM, VMCPUID idCpu, PGMMMEMSTATSREQ pReq);
 
 /**
  * Request buffer for GMMR0MapUnmapChunkReq / VMMR0_DO_GMM_MAP_UNMAP_CHUNK.
@@ -583,7 +548,7 @@ typedef struct GMMMAPUNMAPCHUNKREQ
 /** Pointer to a GMMR0MapUnmapChunkReq / VMMR0_DO_GMM_MAP_UNMAP_CHUNK request buffer. */
 typedef GMMMAPUNMAPCHUNKREQ *PGMMMAPUNMAPCHUNKREQ;
 
-GMMR0DECL(int)  GMMR0MapUnmapChunkReq(PGVM pGVM, PGMMMAPUNMAPCHUNKREQ pReq);
+VMMR0_INT_DECL(int)  GMMR0MapUnmapChunkReq(PGVM pGVM, PGMMMAPUNMAPCHUNKREQ pReq);
 
 
 /**
@@ -600,7 +565,7 @@ typedef struct GMMFREELARGEPAGEREQ
 /** Pointer to a GMMR0FreePagesReq / VMMR0_DO_GMM_FREE_PAGES request buffer. */
 typedef GMMFREELARGEPAGEREQ *PGMMFREELARGEPAGEREQ;
 
-GMMR0DECL(int) GMMR0FreeLargePageReq(PGVM pGVM, VMCPUID idCpu, PGMMFREELARGEPAGEREQ pReq);
+VMMR0_INT_DECL(int) GMMR0FreeLargePageReq(PGVM pGVM, VMCPUID idCpu, PGMMFREELARGEPAGEREQ pReq);
 
 /** Maximum length of the shared module name string, terminator included. */
 #define GMM_SHARED_MODULE_MAX_NAME_STRING       128
@@ -635,7 +600,7 @@ typedef struct GMMREGISTERSHAREDMODULEREQ
 /** Pointer to a GMMR0RegisterSharedModuleReq / VMMR0_DO_GMM_REGISTER_SHARED_MODULE request buffer. */
 typedef GMMREGISTERSHAREDMODULEREQ *PGMMREGISTERSHAREDMODULEREQ;
 
-GMMR0DECL(int) GMMR0RegisterSharedModuleReq(PGVM pGVM, VMCPUID idCpu, PGMMREGISTERSHAREDMODULEREQ pReq);
+VMMR0_INT_DECL(int) GMMR0RegisterSharedModuleReq(PGVM pGVM, VMCPUID idCpu, PGMMREGISTERSHAREDMODULEREQ pReq);
 
 /**
  * Shared region descriptor
@@ -697,8 +662,8 @@ typedef struct GMMSHAREDPAGEDESC
 /** Pointer to a GMMSHAREDPAGEDESC. */
 typedef GMMSHAREDPAGEDESC *PGMMSHAREDPAGEDESC;
 
-GMMR0DECL(int) GMMR0SharedModuleCheckPage(PGVM pGVM, PGMMSHAREDMODULE pModule, uint32_t idxRegion, uint32_t idxPage,
-                                          PGMMSHAREDPAGEDESC pPageDesc);
+VMMR0_INT_DECL(int) GMMR0SharedModuleCheckPage(PGVM pGVM, PGMMSHAREDMODULE pModule, uint32_t idxRegion, uint32_t idxPage,
+                                               PGMMSHAREDPAGEDESC pPageDesc);
 
 /**
  * Request buffer for GMMR0UnregisterSharedModuleReq / VMMR0_DO_GMM_UNREGISTER_SHARED_MODULE.
@@ -722,7 +687,7 @@ typedef struct GMMUNREGISTERSHAREDMODULEREQ
 /** Pointer to a GMMR0UnregisterSharedModuleReq / VMMR0_DO_GMM_UNREGISTER_SHARED_MODULE request buffer. */
 typedef GMMUNREGISTERSHAREDMODULEREQ *PGMMUNREGISTERSHAREDMODULEREQ;
 
-GMMR0DECL(int) GMMR0UnregisterSharedModuleReq(PGVM pGVM, VMCPUID idCpu, PGMMUNREGISTERSHAREDMODULEREQ pReq);
+VMMR0_INT_DECL(int) GMMR0UnregisterSharedModuleReq(PGVM pGVM, VMCPUID idCpu, PGMMUNREGISTERSHAREDMODULEREQ pReq);
 
 #if defined(VBOX_STRICT) && HC_ARCH_BITS == 64
 /**
@@ -741,7 +706,7 @@ typedef struct GMMFINDDUPLICATEPAGEREQ
 /** Pointer to a GMMR0FindDuplicatePageReq / VMMR0_DO_GMM_FIND_DUPLICATE_PAGE request buffer. */
 typedef GMMFINDDUPLICATEPAGEREQ *PGMMFINDDUPLICATEPAGEREQ;
 
-GMMR0DECL(int) GMMR0FindDuplicatePageReq(PGVM pGVM, PGMMFINDDUPLICATEPAGEREQ pReq);
+VMMR0_INT_DECL(int) GMMR0FindDuplicatePageReq(PGVM pGVM, PGMMFINDDUPLICATEPAGEREQ pReq);
 #endif /* VBOX_STRICT && HC_ARCH_BITS == 64 */
 
 
@@ -762,7 +727,7 @@ typedef struct GMMQUERYSTATISTICSSREQ
  *  request buffer. */
 typedef GMMQUERYSTATISTICSSREQ *PGMMQUERYSTATISTICSSREQ;
 
-GMMR0DECL(int)      GMMR0QueryStatisticsReq(PGVM pGVM, PGMMQUERYSTATISTICSSREQ pReq);
+VMMR0_INT_DECL(int)      GMMR0QueryStatisticsReq(PGVM pGVM, PGMMQUERYSTATISTICSSREQ pReq);
 
 
 /**
@@ -783,7 +748,7 @@ typedef struct GMMRESETSTATISTICSSREQ
  *  request buffer. */
 typedef GMMRESETSTATISTICSSREQ *PGMMRESETSTATISTICSSREQ;
 
-GMMR0DECL(int)      GMMR0ResetStatisticsReq(PGVM pGVM, PGMMRESETSTATISTICSSREQ pReq);
+VMMR0_INT_DECL(int)      GMMR0ResetStatisticsReq(PGVM pGVM, PGMMRESETSTATISTICSSREQ pReq);
 
 
 
@@ -791,30 +756,31 @@ GMMR0DECL(int)      GMMR0ResetStatisticsReq(PGVM pGVM, PGMMRESETSTATISTICSSREQ p
 /** @defgroup grp_gmm_r3    The Global Memory Manager Ring-3 API Wrappers
  * @{
  */
-GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
-                                        GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority);
-GMMR3DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages);
-GMMR3DECL(int)  GMMR3AllocatePagesPrepare(PVM pVM, PGMMALLOCATEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount);
-GMMR3DECL(int)  GMMR3AllocatePagesPerform(PVM pVM, PGMMALLOCATEPAGESREQ pReq);
-GMMR3DECL(void) GMMR3AllocatePagesCleanup(PGMMALLOCATEPAGESREQ pReq);
-GMMR3DECL(int)  GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount);
-GMMR3DECL(void) GMMR3FreePagesRePrep(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cPages, GMMACCOUNT enmAccount);
-GMMR3DECL(int)  GMMR3FreePagesPerform(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cActualPages);
-GMMR3DECL(void) GMMR3FreePagesCleanup(PGMMFREEPAGESREQ pReq);
-GMMR3DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAllocReq);
-GMMR3DECL(int)  GMMR3AllocateLargePage(PVM pVM,  uint32_t cbPage);
-GMMR3DECL(int)  GMMR3FreeLargePage(PVM pVM,  uint32_t idPage);
-GMMR3DECL(int)  GMMR3MapUnmapChunk(PVM pVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3);
-GMMR3DECL(int)  GMMR3QueryHypervisorMemoryStats(PVM pVM, uint64_t *pcTotalAllocPages, uint64_t *pcTotalFreePages, uint64_t *pcTotalBalloonPages, uint64_t *puTotalBalloonSize);
-GMMR3DECL(int)  GMMR3QueryMemoryStats(PVM pVM, uint64_t *pcAllocPages, uint64_t *pcMaxPages, uint64_t *pcBalloonPages);
-GMMR3DECL(int)  GMMR3BalloonedPages(PVM pVM, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages);
-GMMR3DECL(int)  GMMR3RegisterSharedModule(PVM pVM, PGMMREGISTERSHAREDMODULEREQ pReq);
-GMMR3DECL(int)  GMMR3UnregisterSharedModule(PVM pVM, PGMMUNREGISTERSHAREDMODULEREQ pReq);
-GMMR3DECL(int)  GMMR3CheckSharedModules(PVM pVM);
-GMMR3DECL(int)  GMMR3ResetSharedModules(PVM pVM);
+VMMR3_INT_DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
+                                             GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority);
+VMMR3_INT_DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages);
+VMMR3_INT_DECL(int)  GMMR3AllocatePagesPrepare(PVM pVM, PGMMALLOCATEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount);
+VMMR3_INT_DECL(int)  GMMR3AllocatePagesPerform(PVM pVM, PGMMALLOCATEPAGESREQ pReq);
+VMMR3_INT_DECL(void) GMMR3AllocatePagesCleanup(PGMMALLOCATEPAGESREQ pReq);
+VMMR3_INT_DECL(int)  GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t cPages, GMMACCOUNT enmAccount);
+VMMR3_INT_DECL(void) GMMR3FreePagesRePrep(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cPages, GMMACCOUNT enmAccount);
+VMMR3_INT_DECL(int)  GMMR3FreePagesPerform(PVM pVM, PGMMFREEPAGESREQ pReq, uint32_t cActualPages);
+VMMR3_INT_DECL(void) GMMR3FreePagesCleanup(PGMMFREEPAGESREQ pReq);
+VMMR3_INT_DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAllocReq);
+VMMR3_INT_DECL(int)  GMMR3AllocateLargePage(PVM pVM,  uint32_t cbPage);
+VMMR3_INT_DECL(int)  GMMR3FreeLargePage(PVM pVM,  uint32_t idPage);
+VMMR3_INT_DECL(int)  GMMR3MapUnmapChunk(PVM pVM, uint32_t idChunkMap, uint32_t idChunkUnmap, PRTR3PTR ppvR3);
+VMMR3_INT_DECL(int)  GMMR3QueryHypervisorMemoryStats(PVM pVM, uint64_t *pcTotalAllocPages, uint64_t *pcTotalFreePages,
+                                                     uint64_t *pcTotalBalloonPages, uint64_t *puTotalBalloonSize);
+VMMR3_INT_DECL(int)  GMMR3QueryMemoryStats(PVM pVM, uint64_t *pcAllocPages, uint64_t *pcMaxPages, uint64_t *pcBalloonPages);
+VMMR3_INT_DECL(int)  GMMR3BalloonedPages(PVM pVM, GMMBALLOONACTION enmAction, uint32_t cBalloonedPages);
+VMMR3_INT_DECL(int)  GMMR3RegisterSharedModule(PVM pVM, PGMMREGISTERSHAREDMODULEREQ pReq);
+VMMR3_INT_DECL(int)  GMMR3UnregisterSharedModule(PVM pVM, PGMMUNREGISTERSHAREDMODULEREQ pReq);
+VMMR3_INT_DECL(int)  GMMR3CheckSharedModules(PVM pVM);
+VMMR3_INT_DECL(int)  GMMR3ResetSharedModules(PVM pVM);
 
 # if defined(VBOX_STRICT) && HC_ARCH_BITS == 64
-GMMR3DECL(bool) GMMR3IsDuplicatePage(PVM pVM, uint32_t idPage);
+VMMR3_INT_DECL(bool) GMMR3IsDuplicatePage(PVM pVM, uint32_t idPage);
 # endif
 
 /** @} */

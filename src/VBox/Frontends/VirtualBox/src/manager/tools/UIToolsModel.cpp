@@ -362,9 +362,11 @@ void UIToolsAnimationEngine::prepareConnections()
 *   Class UIToolsModel implementation.                                                                                           *
 *********************************************************************************************************************************/
 
-UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool)
+UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass, UIActionPool *pActionPool)
     : QObject(pParent)
+    , m_enmClass(enmClass)
     , m_pActionPool(pActionPool)
+    , m_enmAlignment(m_enmClass == UIToolClass_Machine ? Qt::Horizontal : Qt::Vertical)
     , m_pView(0)
     , m_pScene(0)
     , m_fItemsEnabled(true)
@@ -753,12 +755,25 @@ void UIToolsModel::sltItemMinimumWidthHintChanged()
 {
     /* Prepare variables: */
     const int iMargin = data(ToolsModelData_Margin).toInt();
+    const int iSpacing = data(ToolsModelData_Spacing).toInt();
 
     /* Calculate maximum horizontal width: */
     int iMinimumWidthHint = 0;
     iMinimumWidthHint += 2 * iMargin;
-    foreach (UIToolsItem *pItem, items())
-        iMinimumWidthHint = qMax(iMinimumWidthHint, pItem->minimumWidthHint());
+
+    switch (m_enmAlignment)
+    {
+        case Qt::Vertical:
+            foreach (UIToolsItem *pItem, items())
+                iMinimumWidthHint = qMax(iMinimumWidthHint, pItem->minimumWidthHint());
+            break;
+        case Qt::Horizontal:
+            foreach (UIToolsItem *pItem, items())
+                if (pItem->isVisible())
+                    iMinimumWidthHint += (pItem->minimumWidthHint() + iSpacing);
+            iMinimumWidthHint -= iSpacing;
+            break;
+    }
 
     /* Notify listeners: */
     emit sigItemMinimumWidthHintChanged(iMinimumWidthHint);
@@ -773,10 +788,20 @@ void UIToolsModel::sltItemMinimumHeightHintChanged()
     /* Calculate summary vertical height: */
     int iMinimumHeightHint = 0;
     iMinimumHeightHint += 2 * iMargin;
-    foreach (UIToolsItem *pItem, items())
-        if (pItem->isVisible())
-            iMinimumHeightHint += (pItem->minimumHeightHint() + iSpacing);
-    iMinimumHeightHint -= iSpacing;
+
+    switch (m_enmAlignment)
+    {
+        case Qt::Vertical:
+            foreach (UIToolsItem *pItem, items())
+                if (pItem->isVisible())
+                    iMinimumHeightHint += (pItem->minimumHeightHint() + iSpacing);
+            iMinimumHeightHint -= iSpacing;
+            break;
+        case Qt::Horizontal:
+            foreach (UIToolsItem *pItem, items())
+                iMinimumHeightHint = qMax(iMinimumHeightHint, pItem->minimumHeightHint());
+            break;
+    }
 
     /* Notify listeners: */
     emit sigItemMinimumHeightHintChanged(iMinimumHeightHint);

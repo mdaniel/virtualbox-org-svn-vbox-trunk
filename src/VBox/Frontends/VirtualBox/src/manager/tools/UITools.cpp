@@ -124,7 +124,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(this, m_pActionPool);
+    m_pToolsModel = new UIToolsModel(this, m_enmClass, m_pActionPool);
     if (m_pToolsModel)
         prepareView();
 }

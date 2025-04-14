@@ -83,8 +83,11 @@ public:
     };
 
     /** Constructs Tools-model passing @a pParent to the base-class.
+      * @param  enmClass     Brings the tool class.
       * @param  pActionPool  Brings the action-pool reference. */
-    UIToolsModel(QObject *pParent, UIActionPool *pActionPool);
+    UIToolsModel(QObject *pParent,
+                 UIToolClass enmClass,
+                 UIActionPool *pActionPool);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -236,8 +239,14 @@ private:
 
     /** @name General stuff.
       * @{ */
+        /** Holds the tool class. */
+        UIToolClass  m_enmClass;
+
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
+
+        /** Holds the layout alignment. */
+        Qt::Alignment  m_enmAlignment;
 
         /** Holds the view reference. */
         UIToolsView    *m_pView;

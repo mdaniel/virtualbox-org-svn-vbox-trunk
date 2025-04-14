@@ -130,10 +130,8 @@ static DECLCALLBACK(void) cpumR3InfoGuestInstr(PVM pVM, PCDBGFINFOHLP pHlp, cons
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-#if defined(RT_ARCH_ARM64)
 /** Host CPU features. */
 DECL_HIDDEN_DATA(CPUHOSTFEATURES) g_CpumHostFeatures;
-#endif
 
 /**
  * System register ranges.

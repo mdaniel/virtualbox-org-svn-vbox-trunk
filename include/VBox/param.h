@@ -138,6 +138,7 @@
 #if (   HC_ARCH_BITS == 64          /* ASM-NOINC */ \
      && defined(RT_ARCH_AMD64)      /* ASM-NOINC */ \
      && (defined(RT_OS_FREEBSD) || defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || defined(RT_OS_WINDOWS)) ) /* ASM-NOINC */ \
+     && (defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)) /* quick hack */ \
  || defined(DOXYGEN_RUNNING)        /* ASM-NOINC */
 # define VBOX_WITH_PAGE_SHARING     /* ASM-NOINC */
 #endif                              /* ASM-NOINC */

@@ -3946,7 +3946,7 @@ VMMDECL(PGMMODE) PGMGetGuestMode(PVMCPU pVCpu)
  */
 VMMDECL(PGMMODE) PGMGetShadowMode(PVMCPU pVCpu)
 {
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+#if !defined(VBOX_WITH_ONLY_PGM_NEM_MODE) && defined(VBOX_VMM_TARGET_X86)
     return pVCpu->pgm.s.enmShadowMode;
 #else
     RT_NOREF(pVCpu);

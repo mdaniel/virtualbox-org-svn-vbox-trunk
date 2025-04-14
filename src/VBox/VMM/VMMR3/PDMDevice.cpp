@@ -707,9 +707,11 @@ static int pdmR3DevLoadModules(PVM pVM)
     int rc = pdmR3DevReg_Register(&RegCB.Core, &g_DeviceGIC);
     AssertRCReturn(rc, rc);
 
+# ifdef VBOX_WITH_NATIVE_NEM
     /* Register the internal VMM GIC device, NEM variant. */
     rc = pdmR3DevReg_Register(&RegCB.Core, &g_DeviceGICNem);
     AssertRCReturn(rc, rc);
+# endif
 
     /* Register the internal VMM PMU device. */
     rc = pdmR3DevReg_Register(&RegCB.Core, &g_DevicePMU);

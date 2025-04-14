@@ -5986,12 +5986,13 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysUnmapChunkRendezvous(PVM pVM, PVMCPU 
 
     if (pVM->pgm.s.ChunkR3Map.c >= pVM->pgm.s.ChunkR3Map.cMax)
     {
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  error
+# endif
         /* Flush the pgm pool cache; call the internal rendezvous handler as we're already in a rendezvous handler here. */
         /** @todo also not really efficient to unmap a chunk that contains PD
          *  or PT pages. */
         pgmR3PoolClearAllRendezvous(pVM, pVM->apCpusR3[0], NULL /* no need to flush the REM TLB as we already did that above */);
-#endif
 
         /*
          * Request the ring-0 part to unmap a chunk to make space in the mapping cache.
@@ -6028,6 +6029,7 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysUnmapChunkRendezvous(PVM pVM, PVMCPU 
                 /** @todo We should not flush chunks which include cr3 mappings. */
                 for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
                 {
+# ifdef VBOX_VMM_TARGET_X86
                     PPGMCPU pPGM = &pVM->apCpusR3[idCpu]->pgm.s;
 
                     pPGM->pGst32BitPdR3    = NULL;
@@ -6043,6 +6045,7 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysUnmapChunkRendezvous(PVM pVM, PVMCPU 
                         pPGM->apGstPaePDsR3[i] = NULL;
                         pPGM->apGstPaePDsR0[i] = NIL_RTR0PTR;
                     }
+# endif
 
                     /* Flush REM TLBs. */
                     CPUMSetChangedFlags(pVM->apCpusR3[idCpu], CPUM_CHANGED_GLOBAL_TLB_FLUSH);

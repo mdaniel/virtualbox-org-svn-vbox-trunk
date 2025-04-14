@@ -469,36 +469,38 @@ static int vmmR0InitVM(PGVM pGVM, uint32_t uSvnRev, uint32_t uBuildType)
         /*
          * Init HM, CPUM and PGM.
          */
-        rc = HMR0InitVM(pGVM);
+        bool const fWithFullR0 = !VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM);
+        rc = fWithFullR0 ? HMR0InitVM(pGVM) : VINF_SUCCESS;
         if (RT_SUCCESS(rc))
         {
-            rc = CPUMR0InitVM(pGVM);
+            rc = fWithFullR0 ? CPUMR0InitVM(pGVM) : VINF_SUCCESS;
             if (RT_SUCCESS(rc))
             {
-                rc = PGMR0InitVM(pGVM);
+                rc = fWithFullR0 ? PGMR0InitVM(pGVM) : VINF_SUCCESS;
                 if (RT_SUCCESS(rc))
                 {
                     rc = EMR0InitVM(pGVM);
                     if (RT_SUCCESS(rc))
                     {
-                        rc = IEMR0InitVM(pGVM);
+                        rc = fWithFullR0 ? IEMR0InitVM(pGVM) : VINF_SUCCESS;
                         if (RT_SUCCESS(rc))
                         {
-                            rc = IOMR0InitVM(pGVM);
+                            rc = fWithFullR0 ? IOMR0InitVM(pGVM) : VINF_SUCCESS;
                             if (RT_SUCCESS(rc))
                             {
 # ifdef VBOX_WITH_PCI_PASSTHROUGH
-                                rc = PciRawR0InitVM(pGVM);
+                                rc = fWithFullR0 ? PciRawR0InitVM(pGVM) : VINF_SUCCESS;
 # endif
                                 if (RT_SUCCESS(rc))
                                 {
-                                    rc = GIMR0InitVM(pGVM);
+                                    rc = fWithFullR0 ? GIMR0InitVM(pGVM) : VINF_SUCCESS;
                                     if (RT_SUCCESS(rc))
                                     {
 #endif /* !VBOX_WITH_MINIMAL_R0 */
                                         GVMMR0DoneInitVM(pGVM);
 #ifndef VBOX_WITH_MINIMAL_R0
-                                        PGMR0DoneInitVM(pGVM);
+                                        if (fWithFullR0)
+                                            PGMR0DoneInitVM(pGVM);
 #endif
 
                                         /*
@@ -513,7 +515,8 @@ static int vmmR0InitVM(PGVM pGVM, uint32_t uSvnRev, uint32_t uBuildType)
                                         //GIMR0TermVM(pGVM);
                                     }
 # ifdef VBOX_WITH_PCI_PASSTHROUGH
-                                    PciRawR0TermVM(pGVM);
+                                    if (fWithFullR0)
+                                        PciRawR0TermVM(pGVM);
 # endif
                                 }
                             }
@@ -521,7 +524,8 @@ static int vmmR0InitVM(PGVM pGVM, uint32_t uSvnRev, uint32_t uBuildType)
                     }
                 }
             }
-            HMR0TermVM(pGVM);
+            if (fWithFullR0)
+                HMR0TermVM(pGVM);
         }
 #endif /* !VBOX_WITH_MINIMAL_R0 */
     }
@@ -590,8 +594,11 @@ VMMR0_INT_DECL(int) VMMR0TermVM(PGVM pGVM, VMCPUID idCpu)
     }
 
 #ifndef VBOX_WITH_MINIMAL_R0
+    bool const fWithFullR0 = !VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM);
+
 # ifdef VBOX_WITH_PCI_PASSTHROUGH
-    PciRawR0TermVM(pGVM);
+    if (fWithFullR0)
+        PciRawR0TermVM(pGVM);
 # endif
 #endif
 
@@ -601,11 +608,14 @@ VMMR0_INT_DECL(int) VMMR0TermVM(PGVM pGVM, VMCPUID idCpu)
     if (GVMMR0DoingTermVM(pGVM))
     {
 #ifndef VBOX_WITH_MINIMAL_R0
-        GIMR0TermVM(pGVM);
+        if (fWithFullR0)
+        {
+            GIMR0TermVM(pGVM);
 
-        /** @todo I wish to call PGMR0PhysFlushHandyPages(pGVM, &pGVM->aCpus[idCpu])
-         *        here to make sure we don't leak any shared pages if we crash... */
-        HMR0TermVM(pGVM);
+            /** @todo I wish to call PGMR0PhysFlushHandyPages(pGVM, &pGVM->aCpus[idCpu])
+             *        here to make sure we don't leak any shared pages if we crash... */
+            HMR0TermVM(pGVM);
+        }
 #endif
     }
 
@@ -1429,6 +1439,16 @@ VMMR0DECL(void) VMMR0EntryFast(PGVM pGVM, PVMCC pVMIgnored, VMCPUID idCpu, VMMR0
          */
         case VMMR0_DO_HM_RUN:
         {
+            if (RT_LIKELY(   pGVM->enmTarget       == VMTARGET_NATIVE
+                          && pGVM->enmTargetUnsafe == VMTARGET_NATIVE))
+            { }
+            else
+            {
+                SUPR0Printf("VMMR0EntryFast/VMMR0_DO_HM_RUN: Bad VM target: %#x, enmTargetUnsafe=%#x\n",
+                            pGVM->enmTarget, pGVM->enmTargetUnsafe);
+                return;
+            }
+
             for (;;) /* hlt loop */
             {
                 /*
@@ -1633,25 +1653,32 @@ VMMR0DECL(void) VMMR0EntryFast(PGVM pGVM, PVMCC pVMIgnored, VMCPUID idCpu, VMMR0
 #  if defined(RT_ARCH_AMD64) && defined(RT_OS_WINDOWS)
         case VMMR0_DO_NEM_RUN:
         {
-            /*
-             * Setup the longjmp machinery and execute guest code (calls NEMR0RunGuestCode).
-             */
+            if (RT_LIKELY(   pGVM->enmTarget       == VMTARGET_NATIVE
+                          && pGVM->enmTargetUnsafe == VMTARGET_NATIVE))
+            {
+                /*
+                 * Setup the longjmp machinery and execute guest code (calls NEMR0RunGuestCode).
+                 */
 #   ifdef VBOXSTRICTRC_STRICT_ENABLED
-            int rc = vmmR0CallRing3SetJmp2(&pGVCpu->vmmr0.s.AssertJmpBuf, (PFNVMMR0SETJMP2)NEMR0RunGuestCode, pGVM, idCpu);
+                int rc = vmmR0CallRing3SetJmp2(&pGVCpu->vmmr0.s.AssertJmpBuf, (PFNVMMR0SETJMP2)NEMR0RunGuestCode, pGVM, idCpu);
 #   else
-            int rc = vmmR0CallRing3SetJmp2(&pGVCpu->vmmr0.s.AssertJmpBuf, NEMR0RunGuestCode, pGVM, idCpu);
+                int rc = vmmR0CallRing3SetJmp2(&pGVCpu->vmmr0.s.AssertJmpBuf, NEMR0RunGuestCode, pGVM, idCpu);
 #   endif
-            STAM_COUNTER_INC(&pGVM->vmm.s.StatRunGC);
+                STAM_COUNTER_INC(&pGVM->vmm.s.StatRunGC);
 
-            pGVCpu->vmm.s.iLastGZRc = rc;
+                pGVCpu->vmm.s.iLastGZRc = rc;
 
-            /*
-             * Fire dtrace probe and collect statistics.
-             */
-            VBOXVMM_R0_VMM_RETURN_TO_RING3_NEM(pGVCpu, CPUMQueryGuestCtxPtr(pGVCpu), rc);
+                /*
+                 * Fire dtrace probe and collect statistics.
+                 */
+                VBOXVMM_R0_VMM_RETURN_TO_RING3_NEM(pGVCpu, CPUMQueryGuestCtxPtr(pGVCpu), rc);
 #   ifdef VBOX_WITH_STATISTICS
-            vmmR0RecordRC(pGVM, pGVCpu, rc);
+                vmmR0RecordRC(pGVM, pGVCpu, rc);
 #   endif
+            }
+            else
+                SUPR0Printf("VMMR0EntryFast/VMMR0_DO_NEM_RUN: Bad VM target: %#x, enmTargetUnsafe=%#x\n",
+                            pGVM->enmTarget, pGVM->enmTargetUnsafe);
             break;
         }
 #  endif
@@ -1759,6 +1786,13 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         SUPR0Printf("vmmR0EntryExWorker: Invalid idCpu=%u\n", idCpu);
         return VERR_INVALID_PARAMETER;
     }
+
+#ifdef VM_STRUCT_VERSION_NON_NATIVE_TARGETS
+# define IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM) \
+    if (RT_LIKELY(pGVM->enmTarget == VMTARGET_NATIVE)) { /* likely */ } else return VERR_VMM_FN_NOT_SUPPORTED_FOR_VMTARGET
+#else
+# define IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM) ((void)0)
+#endif
 
     /*
      * Process the request.
@@ -1919,6 +1953,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
          * Attempt to enable hm mode and check the current setting.
          */
         case VMMR0_DO_HM_ENABLE:
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = HMR0EnableAllCpus(pGVM);
             break;
 
@@ -1926,6 +1961,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
          * Setup the hardware accelerated session.
          */
         case VMMR0_DO_HM_SETUP_VM:
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = HMR0SetupVM(pGVM);
             break;
 
@@ -1935,60 +1971,70 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_PGM_ALLOCATE_HANDY_PAGES:
             if (idCpu == NIL_VMCPUID)
                 return VERR_INVALID_CPU_ID;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysAllocateHandyPages(pGVM, idCpu);
             break;
 
         case VMMR0_DO_PGM_FLUSH_HANDY_PAGES:
             if (idCpu == NIL_VMCPUID)
                 return VERR_INVALID_CPU_ID;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysFlushHandyPages(pGVM, idCpu);
             break;
 
         case VMMR0_DO_PGM_ALLOCATE_LARGE_PAGE:
             if (idCpu == NIL_VMCPUID)
                 return VERR_INVALID_CPU_ID;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysAllocateLargePage(pGVM, idCpu, u64Arg);
             break;
 
         case VMMR0_DO_PGM_PHYS_SETUP_IOMMU:
             if (idCpu != 0)
                 return VERR_INVALID_CPU_ID;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysSetupIoMmu(pGVM);
             break;
 
         case VMMR0_DO_PGM_POOL_GROW:
             if (idCpu == NIL_VMCPUID)
                 return VERR_INVALID_CPU_ID;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PoolGrow(pGVM, idCpu);
             break;
 
         case VMMR0_DO_PGM_PHYS_HANDLER_INIT:
             if (idCpu != 0 || pReqHdr != NULL || u64Arg > UINT32_MAX)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysHandlerInitReqHandler(pGVM, (uint32_t)u64Arg);
             break;
 
         case VMMR0_DO_PGM_PHYS_ALLOCATE_RAM_RANGE:
             if (idCpu != 0 || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysAllocateRamRangeReq(pGVM, (PPGMPHYSALLOCATERAMRANGEREQ)pReqHdr);
             break;
 
         case VMMR0_DO_PGM_PHYS_MMIO2_REGISTER:
             if (idCpu != 0 || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysMmio2RegisterReq(pGVM, (PPGMPHYSMMIO2REGISTERREQ)pReqHdr);
             break;
 
         case VMMR0_DO_PGM_PHYS_MMIO2_DEREGISTER:
             if (idCpu != 0 || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysMmio2DeregisterReq(pGVM, (PPGMPHYSMMIO2DEREGISTERREQ)pReqHdr);
             break;
 
         case VMMR0_DO_PGM_PHYS_ROM_ALLOCATE_RANGE:
             if (idCpu != 0 || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PGMR0PhysRomAllocateRangeReq(pGVM, (PPGMPHYSROMALLOCATERANGEREQ)pReqHdr);
             break;
 
@@ -1998,36 +2044,42 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_GMM_INITIAL_RESERVATION:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0InitialReservationReq(pGVM, idCpu, (PGMMINITIALRESERVATIONREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_UPDATE_RESERVATION:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0UpdateReservationReq(pGVM, idCpu, (PGMMUPDATERESERVATIONREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_ALLOCATE_PAGES:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0AllocatePagesReq(pGVM, idCpu, (PGMMALLOCATEPAGESREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_FREE_PAGES:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0FreePagesReq(pGVM, idCpu, (PGMMFREEPAGESREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_FREE_LARGE_PAGE:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0FreeLargePageReq(pGVM, idCpu, (PGMMFREELARGEPAGEREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_QUERY_HYPERVISOR_MEM_STATS:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0QueryHypervisorMemoryStatsReq((PGMMMEMSTATSREQ)pReqHdr);
             break;
 
@@ -2036,18 +2088,21 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
                 return VERR_INVALID_CPU_ID;
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0QueryMemoryStatsReq(pGVM, idCpu, (PGMMMEMSTATSREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_BALLOONED_PAGES:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0BalloonedPagesReq(pGVM, idCpu, (PGMMBALLOONEDPAGESREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_MAP_UNMAP_CHUNK:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0MapUnmapChunkReq(pGVM, (PGMMMAPUNMAPCHUNKREQ)pReqHdr);
             break;
 
@@ -2056,6 +2111,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
                 return VERR_INVALID_CPU_ID;
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0RegisterSharedModuleReq(pGVM, idCpu, (PGMMREGISTERSHAREDMODULEREQ)pReqHdr);
             break;
 
@@ -2064,6 +2120,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
                 return VERR_INVALID_CPU_ID;
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0UnregisterSharedModuleReq(pGVM, idCpu, (PGMMUNREGISTERSHAREDMODULEREQ)pReqHdr);
             break;
 
@@ -2073,6 +2130,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
             if (    u64Arg
                 ||  pReqHdr)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0ResetSharedModules(pGVM, idCpu);
             break;
 
@@ -2084,6 +2142,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
             if (    u64Arg
                 ||  pReqHdr)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0CheckSharedModules(pGVM, idCpu);
             break;
         }
@@ -2093,6 +2152,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_GMM_FIND_DUPLICATE_PAGE:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0FindDuplicatePageReq(pGVM, (PGMMFINDDUPLICATEPAGEREQ)pReqHdr);
             break;
 # endif
@@ -2100,12 +2160,14 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_GMM_QUERY_STATISTICS:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0QueryStatisticsReq(pGVM, (PGMMQUERYSTATISTICSSREQ)pReqHdr);
             break;
 
         case VMMR0_DO_GMM_RESET_STATISTICS:
             if (u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = GMMR0ResetStatisticsReq(pGVM, (PGMMRESETSTATISTICSSREQ)pReqHdr);
             break;
 
@@ -2146,6 +2208,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PDMR0DriverCallReqHandler(pGVM, (PPDMDRIVERCALLREQHANDLERREQ)pReqHdr);
             break;
         }
@@ -2154,6 +2217,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PDMR0DeviceCreateReqHandler(pGVM, (PPDMDEVICECREATEREQ)pReqHdr);
             break;
         }
@@ -2162,6 +2226,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PDMR0DeviceGenCallReqHandler(pGVM, (PPDMDEVICEGENCALLREQ)pReqHdr, idCpu);
             break;
         }
@@ -2171,6 +2236,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PDMR0DeviceCompatSetCritSectReqHandler(pGVM, (PPDMDEVICECOMPATSETCRITSECTREQ)pReqHdr);
             break;
         }
@@ -2179,6 +2245,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = PDMR0QueueCreateReqHandler(pGVM, (PPDMQUEUECREATEREQ)pReqHdr);
             break;
         }
@@ -2266,54 +2333,63 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_NEM_INIT_VM:
             if (u64Arg || pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0InitVM(pGVM);
             break;
 
         case VMMR0_DO_NEM_INIT_VM_PART_2:
             if (u64Arg || pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0InitVMPart2(pGVM);
             break;
 
         case VMMR0_DO_NEM_MAP_PAGES:
             if (u64Arg || pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0MapPages(pGVM, idCpu);
             break;
 
         case VMMR0_DO_NEM_UNMAP_PAGES:
             if (u64Arg || pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0UnmapPages(pGVM, idCpu);
             break;
 
         case VMMR0_DO_NEM_EXPORT_STATE:
             if (u64Arg || pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0ExportState(pGVM, idCpu);
             break;
 
         case VMMR0_DO_NEM_IMPORT_STATE:
             if (pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0ImportState(pGVM, idCpu, u64Arg);
             break;
 
         case VMMR0_DO_NEM_QUERY_CPU_TICK:
             if (u64Arg || pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0QueryCpuTick(pGVM, idCpu);
             break;
 
         case VMMR0_DO_NEM_RESUME_CPU_TICK_ON_ALL:
             if (pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0ResumeCpuTickOnAll(pGVM, idCpu, u64Arg);
             break;
 
         case VMMR0_DO_NEM_UPDATE_STATISTICS:
             if (u64Arg || pReqHdr)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0UpdateStatistics(pGVM, idCpu);
             break;
 
@@ -2321,11 +2397,12 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         case VMMR0_DO_NEM_EXPERIMENT:
             if (pReqHdr)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = NEMR0DoExperiment(pGVM, idCpu, u64Arg);
             break;
 #    endif
 #  endif
-# endif
+# endif /* VBOX_WITH_NEM_R0 */
 
         /*
          * IOM requests.
@@ -2334,6 +2411,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = IOMR0IoPortGrowRegistrationTables(pGVM, u64Arg);
             break;
         }
@@ -2342,6 +2420,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = IOMR0IoPortGrowStatisticsTable(pGVM, u64Arg);
             break;
         }
@@ -2350,6 +2429,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = IOMR0MmioGrowRegistrationTables(pGVM, u64Arg);
             break;
         }
@@ -2358,6 +2438,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = IOMR0MmioGrowStatisticsTable(pGVM, u64Arg);
             break;
         }
@@ -2366,6 +2447,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = IOMR0IoPortSyncStatisticsIndices(pGVM);
             if (RT_SUCCESS(rc))
                 rc = IOMR0MmioSyncStatisticsIndices(pGVM);
@@ -2380,6 +2462,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0TracerCreateReqHandler(pGVM, (PDBGFTRACERCREATEREQ)pReqHdr);
             break;
         }
@@ -2388,6 +2471,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
 #  if 0 /** @todo */
             rc = DBGFR0TracerGenCallReqHandler(pGVM, (PDBGFTRACERGENCALLREQ)pReqHdr, idCpu);
 #  else
@@ -2401,6 +2485,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0BpInitReqHandler(pGVM, (PDBGFBPINITREQ)pReqHdr);
             break;
         }
@@ -2409,6 +2494,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0BpChunkAllocReqHandler(pGVM, (PDBGFBPCHUNKALLOCREQ)pReqHdr);
             break;
         }
@@ -2417,6 +2503,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0BpL2TblChunkAllocReqHandler(pGVM, (PDBGFBPL2TBLCHUNKALLOCREQ)pReqHdr);
             break;
         }
@@ -2425,6 +2512,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0BpOwnerInitReqHandler(pGVM, (PDBGFBPOWNERINITREQ)pReqHdr);
             break;
         }
@@ -2433,6 +2521,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (!pReqHdr || u64Arg || idCpu != 0)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = DBGFR0BpPortIoInitReqHandler(pGVM, (PDBGFBPINITREQ)pReqHdr);
             break;
         }
@@ -2445,6 +2534,7 @@ DECL_NO_INLINE(static, int) vmmR0EntryExWorker(PGVM pGVM, VMCPUID idCpu, VMMR0OP
         {
             if (pReqHdr || idCpu == NIL_VMCPUID)
                 return VERR_INVALID_PARAMETER;
+            IF_NON_DEFAULT_VM_WITH_LIMITED_R0_RETURN_ERROR(g_GVM);
             rc = TMR0TimerQueueGrow(pGVM, RT_HI_U32(u64Arg), RT_LO_U32(u64Arg));
             break;
         }

@@ -68,6 +68,28 @@
  */
 #define CPUM_UNION_STRUCT_NM(a_UnionNm, a_StructNm) CPUM_UNION_NM(a_UnionNm .) CPUM_STRUCT_NM(a_StructNm)
 
+
+/**
+ * The x86 sysenter register set.
+ *
+ * @note Used by both x86 hosts and guest context structures.
+ * @todo s/CPUMSYSENTER/CPUMX86SYSENTER/
+ */
+typedef struct CPUMSYSENTER
+{
+    /** Ring 0 cs.
+     * This value +  8 is the Ring 0 ss.
+     * This value + 16 is the Ring 3 cs.
+     * This value + 24 is the Ring 3 ss.
+     */
+    uint64_t    cs;
+    /** Ring 0 eip. */
+    uint64_t    eip;
+    /** Ring 0 esp. */
+    uint64_t    esp;
+} CPUMSYSENTER;
+
+
 #ifdef VBOX_VMM_TARGET_ARMV8
 # include <VBox/vmm/cpumctx-armv8.h>
 #else

@@ -1181,6 +1181,11 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
   EFI/DevEFI-binaries.asm_DEPS   = \
   	$(PATH_STAGE)/$(INST_BIN)VBoxEFI-x86.fd \
   	$(PATH_STAGE)/$(INST_BIN)VBoxEFI-amd64.fd
+  ifdef VBOX_WITH_VIRT_ARMV8
+   EFI/DevEFI-binaries.asm_DEPS   += \
+   	$(PATH_STAGE)/$(INST_BIN)VBoxEFI-arm32.fd \
+   	$(PATH_STAGE)/$(INST_BIN)VBoxEFI-arm64.fd
+  endif
 
   VBoxDD2_SOURCES.arm64 += EFI/DevEFI-binaries.S
   EFI/DevEFI-binaries.S_ASINCS = $(PATH_STAGE)/$(INST_BIN)

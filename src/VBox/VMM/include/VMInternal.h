@@ -154,7 +154,7 @@ typedef enum
     VMHALTMETHOD_1,
     /** The first go at a more global approach. */
     VMHALTMETHOD_GLOBAL_1,
-#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS) && defined(RT_ARCH_ARM64)
     /** NEM takes over halting. */
     VMHALTMETHOD_NEM,
 #endif

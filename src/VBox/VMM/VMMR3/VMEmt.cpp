@@ -1067,7 +1067,7 @@ static DECLCALLBACK(void) vmR3DefaultNotifyCpuFF(PUVMCPU pUVCpu, uint32_t fFlags
 }
 
 
-#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS) && defined(VBOX_WITH_NATIVE_NEM)
 
 /**
  * Method NEM - The host (NEM) does the halting.
@@ -1124,7 +1124,7 @@ static const struct VMHALTMETHODDESC
     { VMHALTMETHOD_OLD,       false, NULL,                NULL,   vmR3HaltOldDoHalt,   vmR3DefaultWait,     vmR3DefaultNotifyCpuFF,     NULL },
     { VMHALTMETHOD_1,         false, vmR3HaltMethod1Init, NULL,   vmR3HaltMethod1Halt, vmR3DefaultWait,     vmR3DefaultNotifyCpuFF,     NULL },
     { VMHALTMETHOD_GLOBAL_1,   true, vmR3HaltGlobal1Init, NULL,   vmR3HaltGlobal1Halt, vmR3HaltGlobal1Wait, vmR3HaltGlobal1NotifyCpuFF, NULL },
-#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS) && defined(VBOX_WITH_NATIVE_NEM)
     { VMHALTMETHOD_NEM,       false, NULL,                NULL,   vmR3HaltNemHalt,     vmR3DefaultWait,     vmR3NemNotifyCpuFF,         NULL },
 #endif
 };
@@ -1438,13 +1438,14 @@ int vmR3SetHaltMethodU(PUVM pUVM, VMHALTMETHOD enmHaltMethod)
             //enmHaltMethod = VMHALTMETHOD_1;
             //enmHaltMethod = VMHALTMETHOD_OLD;
 
-#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS) && defined(RT_ARCH_ARM64)
         /*
-         * We can't use the global halt method on Windows/ARM with Hyper-V
-         * as APs can't be brought online by the guest due to missing
-         * PSCI VM exits currently.
+         * HACK ALERT! We can't use the global halt method on Windows/ARM
+         * with Hyper-V as APs can't be brought online by the guest due to
+         * missing PSCI VM exits currently.
          */
-        enmHaltMethod = VMHALTMETHOD_NEM;
+        if (VM_IS_NEM_ENABLED(pVM))
+            enmHaltMethod = VMHALTMETHOD_NEM;
 #endif
     }
 
@@ -1458,11 +1459,12 @@ int vmR3SetHaltMethodU(PUVM pUVM, VMHALTMETHOD enmHaltMethod)
     {
         LogRel(("VMEmt: Halt method %s (%d) not available in driverless mode, using %s (%d) instead\n",
                 vmR3GetHaltMethodName(enmHaltMethod), enmHaltMethod, vmR3GetHaltMethodName(VMHALTMETHOD_1), VMHALTMETHOD_1));
-#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
-        enmHaltMethod = VMHALTMETHOD_NEM;
-#else
-        enmHaltMethod = VMHALTMETHOD_1;
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS) && defined(RT_ARCH_ARM64)
+        if (VM_IS_NEM_ENABLED(pVM))
+            enmHaltMethod = VMHALTMETHOD_NEM; /* See above. */
+        else
 #endif
+            enmHaltMethod = VMHALTMETHOD_1;
     }
 
 

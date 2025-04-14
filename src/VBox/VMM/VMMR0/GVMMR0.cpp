@@ -802,23 +802,29 @@ VMMR0_INT_DECL(int) GVMMR0CreateVMReq(PGVMMCREATEVMREQ pReq, PSUPDRVSESSION pSes
     /* Check that VBoxVMM and VMMR0 are likely to have the same idea about the structures. */
     if (pReq->cbVM != sizeof(VM))
     {
-        LogRel(("GVMMR0CreateVMReq: cbVM=%#x, expcted %#x\n", pReq->cbVM, sizeof(VM)));
-        return VINF_GVM_MISMATCH_VM_SIZE;
+        LogRel(("GVMMR0CreateVMReq: cbVM=%#x, expected %#x\n", pReq->cbVM, sizeof(VM)));
+        return VERR_GVM_MISMATCH_VM_SIZE;
     }
     if (pReq->cbVCpu != sizeof(VMCPU))
     {
-        LogRel(("GVMMR0CreateVMReq: cbVCpu=%#x, expcted %#x\n", pReq->cbVCpu, sizeof(VMCPU)));
-        return VINF_GVM_MISMATCH_VMCPU_SIZE;
+        LogRel(("GVMMR0CreateVMReq: cbVCpu=%#x, expected %#x\n", pReq->cbVCpu, sizeof(VMCPU)));
+        return VERR_GVM_MISMATCH_VMCPU_SIZE;
     }
-    if (pReq->uStructVersion != VM_STRUCT_VERSION)
+#ifdef VM_STRUCT_VERSION_NON_NATIVE_TARGETS
+    uint32_t const uExpectedVersion = pReq->enmTarget == VMTARGET_NATIVE
+                                    ? VM_STRUCT_VERSION : VM_STRUCT_VERSION_NON_NATIVE_TARGETS;
+#else
+    uint32_t const uExpectedVersion = VM_STRUCT_VERSION;
+#endif
+    if (pReq->uStructVersion != uExpectedVersion)
     {
-        LogRel(("GVMMR0CreateVMReq: uStructVersion=%#x, expcted %#x\n", pReq->uStructVersion, VM_STRUCT_VERSION));
-        return VINF_GVM_MISMATCH_VM_STRUCT_VER;
+        LogRel(("GVMMR0CreateVMReq: uStructVersion=%#x, expected %#x\n", pReq->uStructVersion, uExpectedVersion));
+        return VERR_GVM_MISMATCH_VM_STRUCT_VER;
     }
     if (pReq->uSvnRevision != VMMGetSvnRev())
     {
-        LogRel(("GVMMR0CreateVMReq: uSvnRevision=%u, expcted %u\n", pReq->uSvnRevision, VMMGetSvnRev()));
-        return VINF_GVM_MISMATCH_VMCPU_SIZE;
+        LogRel(("GVMMR0CreateVMReq: uSvnRevision=%u, expected %u\n", pReq->uSvnRevision, VMMGetSvnRev()));
+        return VERR_GVM_MISMATCH_VMCPU_SIZE;
     }
 
     /*
@@ -943,18 +949,22 @@ VMMR0_INT_DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, VMTARGET enmTarget, 
                         gvmmR0InitPerVMData(pGVM, iHandle, enmTarget, cCpus, pSession);
                         pGVM->gvmm.s.VMMemObj  = hVMMemObj;
 #ifndef VBOX_WITH_MINIMAL_R0
-                        rc = GMMR0InitPerVMData(pGVM);
-                        int rc2 = PGMR0InitPerVMData(pGVM, hVMMemObj);
+                        bool const fWithFullR0 = !VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM);
+                        rc      = fWithFullR0 ? GMMR0InitPerVMData(pGVM)            : VINF_SUCCESS;
+                        int rc2 = fWithFullR0 ? PGMR0InitPerVMData(pGVM, hVMMemObj) : VINF_SUCCESS;
 #else
                         int rc2 = VINF_SUCCESS;
 #endif
                         int rc3 = VMMR0InitPerVMData(pGVM);
 #ifndef VBOX_WITH_MINIMAL_R0
-                        CPUMR0InitPerVMData(pGVM);
-                        DBGFR0InitPerVMData(pGVM);
-                        PDMR0InitPerVMData(pGVM);
-                        IOMR0InitPerVMData(pGVM);
-                        TMR0InitPerVMData(pGVM);
+                        if (fWithFullR0)
+                        {
+                            CPUMR0InitPerVMData(pGVM);
+                            DBGFR0InitPerVMData(pGVM);
+                            PDMR0InitPerVMData(pGVM);
+                            IOMR0InitPerVMData(pGVM);
+                            TMR0InitPerVMData(pGVM);
+                        }
 #endif
                         if (RT_SUCCESS(rc) && RT_SUCCESS(rc2) && RT_SUCCESS(rc3))
                         {
@@ -1167,7 +1177,11 @@ static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMTARGET enmTarget, VM
     pGVM->pVMR0ForCall     = pGVM;
     pGVM->cCpusUnsafe      = cCpus;
     pGVM->uCpuExecutionCap = 100; /* default is no cap. */
+#ifdef VM_STRUCT_VERSION_ALT
+    pGVM->uStructVersion   = enmTarget == VMTARGET_DEFAULT ? VM_STRUCT_VERSION : VM_STRUCT_VERSION_ALT;
+#else
     pGVM->uStructVersion   = VM_STRUCT_VERSION;
+#endif
     pGVM->cbSelf           = sizeof(VM);
     pGVM->cbVCpu           = sizeof(VMCPU);
     pGVM->enmTargetUnsafe  = enmTarget;
@@ -1395,15 +1409,18 @@ static void gvmmR0CleanupVM(PGVM pGVM)
     }
 
 #ifndef VBOX_WITH_MINIMAL_R0
-    GMMR0CleanupVM(pGVM);
+    if (VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM))
+    {
+        GMMR0CleanupVM(pGVM);
 # ifdef VBOX_WITH_NEM_R0
-    NEMR0CleanupVM(pGVM);
+        NEMR0CleanupVM(pGVM);
 # endif
-    PDMR0CleanupVM(pGVM);
-    IOMR0CleanupVM(pGVM);
-    DBGFR0CleanupVM(pGVM);
-    PGMR0CleanupVM(pGVM);
-    TMR0CleanupVM(pGVM);
+        PDMR0CleanupVM(pGVM);
+        IOMR0CleanupVM(pGVM);
+        DBGFR0CleanupVM(pGVM);
+        PGMR0CleanupVM(pGVM);
+        TMR0CleanupVM(pGVM);
+    }
 #endif
     VMMR0CleanupVM(pGVM);
 }

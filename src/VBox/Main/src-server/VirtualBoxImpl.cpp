@@ -2321,7 +2321,7 @@ HRESULT VirtualBox::createMachine(const com::Utf8Str &aSettingsFile,
     LogFlowThisFunc(("aSettingsFile=\"%s\", aName=\"%s\", aArchitecture=%#x, aOsTypeId =\"%s\", aCreateFlags=\"%s\"\n",
                      aSettingsFile.c_str(), aName.c_str(), aArchitecture, aOsTypeId.c_str(), aFlags.c_str()));
 
-#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+#if (defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)) && !defined(VBOX_WITH_VIRT_ARMV8)
     if (aArchitecture != PlatformArchitecture_x86)/* x86 hosts only allows creating x86 VMs for now. */
         return setError(VBOX_E_PLATFORM_ARCH_NOT_SUPPORTED, tr("'Creating VMs for platform architecture %s not supported on %s"),
                         Global::stringifyPlatformArchitecture(aArchitecture),

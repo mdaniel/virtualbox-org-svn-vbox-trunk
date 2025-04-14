@@ -285,6 +285,14 @@ typedef enum VMTARGET
 # define VMTARGET_DEFAULT   VMTARGET_ARMV8
 #endif
 
+/** @def VMTARGET_NATIVE
+ * The native target according to the RT_ARCH_XXX defines. */
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING)
+# define VMTARGET_NATIVE    VMTARGET_X86
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# define VMTARGET_NATIVE    VMTARGET_ARMV8
+#endif
+
 
 /** We need RTERR_STRICT_RC.  */
 #if defined(VBOXSTRICTRC_STRICT_ENABLED) && !defined(RTERR_STRICT_RC)

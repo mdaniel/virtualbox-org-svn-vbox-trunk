@@ -760,7 +760,7 @@ PCPUMCPUIDLEAF cpumCpuIdEnsureSpace(PVM pVM, PCPUMCPUIDLEAF *ppaLeaves, uint32_t
      */
     else
     {
-# ifdef IN_VBOX_CPU_REPORT
+# if defined(IN_VBOX_CPU_REPORT) || !defined(VBOX_VMM_TARGET_X86)
         AssertReleaseFailed();
 # else
 #  ifdef IN_RING3
@@ -1420,7 +1420,8 @@ void cpumCpuIdExplodeFeaturesX86SetSummaryBits(CPUMFEATURESX86 *pFeatures)
 }
 
 
-int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCPUMMSRS pMsrs, CPUMFEATURESX86 *pFeatures)
+int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves,
+                                struct CPUMMSRS const *pMsrs, CPUMFEATURESX86 *pFeatures)
 {
     Assert(pMsrs);
     RT_ZERO(*pFeatures);
@@ -1499,8 +1500,10 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
         pFeatures->fPclMul              = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_PCLMUL);
         pFeatures->fMovBe               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_MOVBE);
         pFeatures->fF16c                = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_F16C);
+# ifdef VBOX_VMM_TARGET_X86 /** @todo maybe populate this for x86 hosts targeting non-x86 guest? */
         if (pFeatures->fVmx)
             cpumExplodeVmxFeatures(&pMsrs->hwvirt.vmx, pFeatures);
+# endif
 
         /* Structured extended features. */
         PCCPUMCPUIDLEAF const pSxfLeaf0 = cpumCpuIdFindLeafEx(paLeaves, cLeaves, 7, 0);

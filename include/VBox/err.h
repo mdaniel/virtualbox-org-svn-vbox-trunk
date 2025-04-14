@@ -1293,6 +1293,8 @@
 #define VERR_VMM_CONTEXT_HOOK_STILL_ENABLED (-2719)
 /** Cannot block in ring-0. */
 #define VERR_VMM_CANNOT_BLOCK               (-2720)
+/** The ring-0 function is not supported for this VM target.   */
+#define VERR_VMM_FN_NOT_SUPPORTED_FOR_VMTARGET      (-2721)
 /** @} */
 
 
@@ -2135,13 +2137,13 @@
 /** RTThreadYield was called during a GVMMR0SchedPoll call. */
 #define VINF_GVM_YIELDED                            3903
 /** Mismatching VM structure size between VMMR0 and VBoxVMM. */
-#define VINF_GVM_MISMATCH_VM_SIZE                   (-3904)
+#define VERR_GVM_MISMATCH_VM_SIZE                   (-3904)
 /** Mismatching VMCPU structure size between VMMR0 and VBoxVMM. */
-#define VINF_GVM_MISMATCH_VMCPU_SIZE                (-3905)
+#define VERR_GVM_MISMATCH_VMCPU_SIZE                (-3905)
 /** Mismatching VM structure version between VMMR0 and VBoxVMM. */
-#define VINF_GVM_MISMATCH_VM_STRUCT_VER             (-3906)
+#define VERR_GVM_MISMATCH_VM_STRUCT_VER             (-3906)
 /** Mismatching SVN revision number between VMMR0 and VBoxVMM. */
-#define VINF_GVM_MISMATCH_SVN_REV                   (-3907)
+#define VERR_GVM_MISMATCH_SVN_REV                   (-3907)
 /** @} */
 
 

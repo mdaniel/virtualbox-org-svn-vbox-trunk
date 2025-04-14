@@ -93,48 +93,51 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
         size_t const cbPageSize = RTSystemGetPageSize();
         size_t const cbVM = sizeof(VM) + sizeof(VMCPU) * cCpus;
         PVM          pVM  = (PVM)RTMemPageAlloc(cbVM + cbPageSize * (1 + 2 * cCpus));
-        if (!pVM)
-            return VERR_NO_PAGE_MEMORY;
-
-        /* Set up guard pages: */
-        RTMemProtect(pVM, cbPageSize, RTMEM_PROT_NONE);
-        pVM = (PVM)((uintptr_t)pVM + cbPageSize);
-        RTMemProtect(pVM + 1, cbPageSize, RTMEM_PROT_NONE);
-
-        /* VM: */
-        pVM->enmVMState           = VMSTATE_CREATING;
-        pVM->pVMR3                = pVM;
-        pVM->hSelf                = _1M;
-        pVM->pSession             = pSession;
-        pVM->cCpus                = cCpus;
-        pVM->uCpuExecutionCap     = 100;
-        pVM->cbSelf               = sizeof(VM);
-        pVM->cbVCpu               = sizeof(VMCPU);
-        pVM->uStructVersion       = VM_STRUCT_VERSION;
-        pVM->enmTarget            = enmTarget;
-
-        /* CPUs: */
-        PVMCPU pVCpu = (PVMCPU)((uintptr_t)pVM + sizeof(VM) + cbPageSize);
-        for (VMCPUID idxCpu = 0; idxCpu < cCpus; idxCpu++)
+        if (pVM)
         {
-            pVM->apCpusR3[idxCpu] = pVCpu;
+            /* Set up guard pages: */
+            RTMemProtect(pVM, cbPageSize, RTMEM_PROT_NONE);
+            pVM = (PVM)((uintptr_t)pVM + cbPageSize);
+            RTMemProtect(pVM + 1, cbPageSize, RTMEM_PROT_NONE);
 
-            pVCpu->enmState        = VMCPUSTATE_STOPPED;
-            pVCpu->pVMR3           = pVM;
-            pVCpu->hNativeThread   = NIL_RTNATIVETHREAD;
-            pVCpu->hNativeThreadR0 = NIL_RTNATIVETHREAD;
-            pVCpu->hThread         = NIL_RTTHREAD;
-            pVCpu->idCpu           = idxCpu;
+            /* VM: */
+            pVM->enmVMState           = VMSTATE_CREATING;
+            pVM->pVMR3                = pVM;
+            pVM->hSelf                = _1M;
+            pVM->pSession             = pSession;
+            pVM->cCpus                = cCpus;
+            pVM->uCpuExecutionCap     = 100;
+            pVM->cbSelf               = sizeof(VM);
+            pVM->cbVCpu               = sizeof(VMCPU);
+            pVM->uStructVersion       = VM_STRUCT_VERSION;
+            pVM->enmTarget            = enmTarget;
 
-            RTMemProtect(pVCpu + 1, cbPageSize, RTMEM_PROT_NONE);
-            pVCpu = (PVMCPU)((uintptr_t)pVCpu + sizeof(VMCPU) + cbPageSize);
+            /* CPUs: */
+            PVMCPU pVCpu = (PVMCPU)((uintptr_t)pVM + sizeof(VM) + cbPageSize);
+            for (VMCPUID idxCpu = 0; idxCpu < cCpus; idxCpu++)
+            {
+                pVM->apCpusR3[idxCpu] = pVCpu;
+
+                pVCpu->enmState        = VMCPUSTATE_STOPPED;
+                pVCpu->pVMR3           = pVM;
+                pVCpu->hNativeThread   = NIL_RTNATIVETHREAD;
+                pVCpu->hNativeThreadR0 = NIL_RTNATIVETHREAD;
+                pVCpu->hThread         = NIL_RTTHREAD;
+                pVCpu->idCpu           = idxCpu;
+
+                RTMemProtect(pVCpu + 1, cbPageSize, RTMEM_PROT_NONE);
+                pVCpu = (PVMCPU)((uintptr_t)pVCpu + sizeof(VMCPU) + cbPageSize);
+            }
+
+            *ppVM   = pVM;
+            *ppVMR0 = NIL_RTR0PTR;
+            rc = VINF_SUCCESS;
         }
-
-        *ppVM   = pVM;
-        *ppVMR0 = NIL_RTR0PTR;
+        else
+            rc = VERR_NO_PAGE_MEMORY;
     }
     RT_NOREF(pUVM);
-    return VINF_SUCCESS;
+    return rc;
 }
 
 

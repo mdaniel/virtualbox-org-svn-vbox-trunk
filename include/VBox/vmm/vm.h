@@ -1251,9 +1251,36 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
                                      | VM_STRUCT_VERSION_F_30 \
                                      | VM_STRUCT_VERSION_F_29 \
                                      | VM_STRUCT_VERSION_F_28 )
+
+# if (defined(RT_ARCH_AMD64) && defined(VBOX_WITH_VIRT_ARMV8) && defined(IN_RING0)) || defined(DOXYGEN_RUNNING)
+/** @def VM_STRUCT_VERSION_NON_NATIVE_TARGETS
+ * The current VM structure version for the other architecture (hack).
+ *
+ * Currently the VBoxVMMArm.dll/so/dylib on x86 differs from VM_STRUCT_VERSION
+ * in that it will have VBOX_WITH_ONLY_PGM_NEM_MODE & VBOX_WITH_MINIMAL_R0
+ * defined but not VBOX_WITH_HWVIRT.  This is to get the stuff off the ground
+ * quickly by emulating how it's built on win.arm64 hosts. */
+#  define VM_STRUCT_VERSION_NON_NATIVE_TARGETS \
+        (  (  VM_STRUCT_VERSION \
+            | RT_BIT_32(31) /*VBOX_WITH_MINIMAL_R0*/ \
+            | RT_BIT_32(30) /*VBOX_WITH_ONLY_PGM_NEM_MODE*/ ) \
+         & ~RT_BIT_32(28) /*VBOX_WITH_HWVIRT*/ )
+# endif
+
+/** @def VM_IS_NON_NATIVE_WITH_LIMITED_R0
+ * Whether the is a non-default targeted VM and should have the limited ring-0
+ * presence hack applied.
+ *
+ * This is typically used in ring-0 code to skip VM init and termination code.
+ *
+ * @param g_GVM  The ring-0 VM structure. */
+# ifdef VM_STRUCT_VERSION_NON_NATIVE_TARGETS
+#  define VM_IS_NON_NATIVE_WITH_LIMITED_R0(g_GVM)   (pGVM->enmTarget != VMTARGET_NATIVE)
+# else
+#  define VM_IS_NON_NATIVE_WITH_LIMITED_R0(g_GVM)   (false)
+# endif
+
 #endif
-
-
 #endif /* !VBOX_FOR_DTRACE_LIB */
 
 

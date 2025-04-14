@@ -411,6 +411,9 @@ ifdef VBOX_WITH_VIRT_ARMV8
 
  VBoxVMMArm_DEFS     = VBOX_VMM_TARGET_ARMV8 VBOX_DIS_WITH_ARMV8 VBOX_IN_VMM IN_VMM_R3 IN_DIS IN_DBG \
  	$(filter-out \
+ 		VBOX_WITH_HWVIRT \
+ 		VBOX_WITH_PAGE_SHARING \
+		$(if-expr "$(KBUILD_TARGET_ARCH)" != "arm64",VBOX_WITH_NATIVE_NEM,) \
  		VBOX_WITH_IEM_RECOMPILER \
  		VBOX_WITH_IEM_NATIVE_RECOMPILER \
  		VBOX_WITH_NESTED_HWVIRT_SVM \
@@ -439,6 +442,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), linux.arm64)
   VBoxVMMArm_DEFS   += VMM_HOST_PAGE_SIZE_DYNAMIC
  endif
+ VBoxVMMArm_DEFS.amd64  = VBOX_WITH_ONLY_PGM_NEM_MODE VBOX_WITH_MINIMAL_R0 # Quick hacks to get the code working...
 
  VBoxVMMArm_INCS     = \
  	include \
@@ -575,6 +579,9 @@ ifdef VBOX_WITH_VIRT_ARMV8
  else
   VBoxVMMArm_SOURCES += VMMAll/IEMAllStub.cpp
  endif
+
+ VBoxVMMArm_SOURCES.amd64 += \
+ 	VMMR3/PGMR3DbgA.asm
 
  VBoxVMMArm_SOURCES.darwin.arm64 += \
  	VMMR3/NEMR3Native-darwin-armv8.cpp \
@@ -903,6 +910,9 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
  endif
  if1of ($(KBUILD_TARGET), darwin linux win)
   VMMR0_DEFS     += VMM_R0_TOUCH_FPU
+ endif
+ ifdef VBOX_WITH_VIRT_ARMV8
+  VMMR0_DEFS     += VBOX_WITH_VIRT_ARMV8
  endif
  VMMR0_DEFS.win.amd64  = VBOX_WITH_KERNEL_USING_XMM
 

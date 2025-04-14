@@ -106,23 +106,6 @@ AssertCompileSize(CPUMSELREG, 24);
  * @deprecated  */
 typedef CPUMSELREG CPUMSELREGHID;
 
-/**
- * The sysenter register set.
- */
-typedef struct CPUMSYSENTER
-{
-    /** Ring 0 cs.
-     * This value +  8 is the Ring 0 ss.
-     * This value + 16 is the Ring 3 cs.
-     * This value + 24 is the Ring 3 ss.
-     */
-    uint64_t    cs;
-    /** Ring 0 eip. */
-    uint64_t    eip;
-    /** Ring 0 esp. */
-    uint64_t    esp;
-} CPUMSYSENTER;
-
 /** A general register (union). */
 typedef union CPUMCTXGREG
 {

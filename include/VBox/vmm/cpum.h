@@ -1519,6 +1519,56 @@ typedef CPUMFEATURES *PCPUMFEATURES;
 typedef CPUMFEATURES const *PCCPUMFEATURES;
 
 
+/**
+ * CPUID leaf on x86.
+ * @note Used by both x86 hosts and guest.
+ * @todo s/CPUMCPUIDLEAF/CPUMX86CPUIDLEAF/
+ */
+typedef struct CPUMCPUIDLEAF
+{
+    /** The leaf number. */
+    uint32_t    uLeaf;
+    /** The sub-leaf number. */
+    uint32_t    uSubLeaf;
+    /** Sub-leaf mask.  This is 0 when sub-leaves aren't used. */
+    uint32_t    fSubLeafMask;
+
+    /** The EAX value. */
+    uint32_t    uEax;
+    /** The EBX value. */
+    uint32_t    uEbx;
+    /** The ECX value. */
+    uint32_t    uEcx;
+    /** The EDX value. */
+    uint32_t    uEdx;
+
+    /** Flags. */
+    uint32_t    fFlags;
+} CPUMCPUIDLEAF;
+#ifndef VBOX_FOR_DTRACE_LIB
+AssertCompileSize(CPUMCPUIDLEAF, 32);
+#endif
+/** Pointer to a CPUID leaf. */
+typedef CPUMCPUIDLEAF *PCPUMCPUIDLEAF;
+/** Pointer to a const CPUID leaf. */
+typedef CPUMCPUIDLEAF const *PCCPUMCPUIDLEAF;
+
+/** @name CPUMCPUIDLEAF::fFlags
+ * @{ */
+/** Indicates working intel leaf 0xb where the lower 8 ECX bits are not modified
+ * and EDX containing the extended APIC ID. */
+#define CPUMCPUIDLEAF_F_INTEL_TOPOLOGY_SUBLEAVES    RT_BIT_32(0)
+/** The leaf contains an APIC ID that needs changing to that of the current CPU. */
+#define CPUMCPUIDLEAF_F_CONTAINS_APIC_ID            RT_BIT_32(1)
+/** The leaf contains an OSXSAVE which needs individual handling on each CPU. */
+#define CPUMCPUIDLEAF_F_CONTAINS_OSXSAVE            RT_BIT_32(2)
+/** The leaf contains an APIC feature bit which is tied to APICBASE.EN. */
+#define CPUMCPUIDLEAF_F_CONTAINS_APIC               RT_BIT_32(3)
+/** Mask of the valid flags. */
+#define CPUMCPUIDLEAF_F_VALID_MASK                  UINT32_C(0xf)
+/** @} */
+
+
 
 /**
  * ARMv8 CPU ID registers.

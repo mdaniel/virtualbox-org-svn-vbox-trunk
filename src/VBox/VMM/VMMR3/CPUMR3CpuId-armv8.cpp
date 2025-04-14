@@ -113,34 +113,43 @@ typedef CPUMCPUIDCONFIG *PCPUMCPUIDCONFIG;
 static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pCpumCfg)
 {
 #define PORTABLE_CLEAR_BITS_WHEN(Lvl, a_pLeafReg, FeatNm, fMask, uValue) \
-    if ( pCpum->u8PortableCpuIdLevel >= (Lvl) && ((a_pLeafReg) & (fMask)) == (uValue) ) \
-    { \
-        LogRel(("PortableCpuId: " #a_pLeafReg "[" #FeatNm "]: %#x -> 0\n", (a_pLeafReg) & (fMask))); \
-        (a_pLeafReg) &= ~(uint32_t)(fMask); \
-    }
+        if ( pCpum->u8PortableCpuIdLevel >= (Lvl) && ((a_pLeafReg) & (fMask)) == (uValue) ) \
+        { \
+            LogRel(("PortableCpuId: " #a_pLeafReg "[" #FeatNm "]: %#x -> 0\n", (a_pLeafReg) & (fMask))); \
+            (a_pLeafReg) &= ~(uint32_t)(fMask); \
+        }
 #define PORTABLE_DISABLE_FEATURE_BIT(Lvl, a_pLeafReg, FeatNm, fBitMask) \
-    if ( pCpum->u8PortableCpuIdLevel >= (Lvl) && ((a_pLeafReg) & (fBitMask)) ) \
-    { \
-        LogRel(("PortableCpuId: " #a_pLeafReg "[" #FeatNm "]: 1 -> 0\n")); \
-        (a_pLeafReg) &= ~(uint32_t)(fBitMask); \
-    }
+        if ( pCpum->u8PortableCpuIdLevel >= (Lvl) && ((a_pLeafReg) & (fBitMask)) ) \
+        { \
+            LogRel(("PortableCpuId: " #a_pLeafReg "[" #FeatNm "]: 1 -> 0\n")); \
+            (a_pLeafReg) &= ~(uint32_t)(fBitMask); \
+        }
 #define PORTABLE_DISABLE_FEATURE_BIT_CFG(Lvl, a_IdReg, a_FeatNm, a_IdRegValCheck, enmConfig, a_IdRegValNotSup) \
-    if (   pCpum->u8PortableCpuIdLevel >= (Lvl) \
-        && (RT_BF_GET(a_IdReg, a_FeatNm) >= a_IdRegValCheck) \
-        && (enmConfig) != CPUMISAEXTCFG_ENABLED_PORTABLE ) \
-    { \
-        LogRel(("PortableCpuId: [" #a_FeatNm "]: 1 -> 0\n")); \
-        (a_IdReg) = RT_BF_SET(a_IdReg, a_FeatNm, a_IdRegValNotSup); \
-    }
+        if (   pCpum->u8PortableCpuIdLevel >= (Lvl) \
+            && (RT_BF_GET(a_IdReg, a_FeatNm) >= a_IdRegValCheck) \
+            && (enmConfig) != CPUMISAEXTCFG_ENABLED_PORTABLE ) \
+        { \
+            LogRel(("PortableCpuId: [" #a_FeatNm "]: 1 -> 0\n")); \
+            (a_IdReg) = RT_BF_SET(a_IdReg, a_FeatNm, a_IdRegValNotSup); \
+        }
     //Assert(pCpum->GuestFeatures.enmCpuVendor != CPUMCPUVENDOR_INVALID);
 
     /* The CPUID entries we start with here isn't necessarily the ones of the host, so we
        must consult HostFeatures when processing CPUMISAEXTCFG variables. */
+#ifdef RT_ARCH_ARM64
     PCCPUMFEATURES pHstFeat = &pCpum->HostFeatures.s;
-#define PASSTHRU_FEATURE(a_IdReg, enmConfig, fHostFeature, a_IdRegNm, a_IdRegValSup, a_IdRegValNotSup) \
-    (a_IdReg) =   ((enmConfig) && ((enmConfig) == CPUMISAEXTCFG_ENABLED_ALWAYS || (fHostFeature)) \
-                ? RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValSup) \
-                : RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValNotSup))
+# define PASSTHRU_FEATURE(a_IdReg, enmConfig, fHostFeature, a_IdRegNm, a_IdRegValSup, a_IdRegValNotSup) do { \
+            (a_IdReg) = (enmConfig) && ((enmConfig) == CPUMISAEXTCFG_ENABLED_ALWAYS || (fHostFeature)) \
+                      ? RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValSup) \
+                      : RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValNotSup); \
+        } while (0)
+#else
+# define PASSTHRU_FEATURE(a_IdReg, enmConfig, fHostFeature, a_IdRegNm, a_IdRegValSup, a_IdRegValNotSup) do { \
+            (a_IdReg) = (enmConfig) != CPUMISAEXTCFG_DISABLED \
+                      ? RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValSup) \
+                      : RT_BF_SET(a_IdReg, a_IdRegNm, a_IdRegValNotSup); \
+        } while (0)
+#endif
 
     /* ID_AA64ISAR0_EL1 */
     uint64_t u64ValTmp = 0;
@@ -401,12 +410,14 @@ static int cpumR3CpuIdReadConfig(PVM pVM, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pC
 VMMR3DECL(int) CPUMR3PopulateFeaturesByIdRegisters(PVM pVM, PCCPUMARMV8IDREGS pIdRegs)
 {
     /* Set the host features from the given ID registers. */
-    int rc = cpumCpuIdExplodeFeaturesArmV8(pIdRegs, &g_CpumHostFeatures.s);
-    AssertRCReturn(rc, rc);
-
+#ifdef RT_ARCH_ARM64
+    int rcHost = cpumCpuIdExplodeFeaturesArmV8(pIdRegs, &g_CpumHostFeatures.s);
+    AssertRCReturn(rcHost, rcHost);
     pVM->cpum.s.HostFeatures.s             = g_CpumHostFeatures.s;
-    pVM->cpum.s.GuestFeatures.enmCpuVendor = pVM->cpum.s.HostFeatures.Common.enmCpuVendor;
     pVM->cpum.s.HostIdRegs                 = *pIdRegs;
+#endif
+
+    pVM->cpum.s.GuestFeatures.enmCpuVendor = pVM->cpum.s.HostFeatures.Common.enmCpuVendor;
     pVM->cpum.s.GuestIdRegs                = *pIdRegs;
 
     PCPUM       pCpum    = &pVM->cpum.s;
@@ -418,7 +429,7 @@ VMMR3DECL(int) CPUMR3PopulateFeaturesByIdRegisters(PVM pVM, PCCPUMARMV8IDREGS pI
     CPUMCPUIDCONFIG Config;
     RT_ZERO(Config);
 
-    rc = cpumR3CpuIdReadConfig(pVM, &Config, pCpumCfg);
+    int rc = cpumR3CpuIdReadConfig(pVM, &Config, pCpumCfg);
     AssertRCReturn(rc, rc);
 
 #if 0
@@ -1146,70 +1157,77 @@ DECLCALLBACK(void) cpumR3CpuIdInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszA
             iVerbosity++;
     }
 
+#ifdef RT_ARCH_ARM64
+    CPUMARMV8IDREGS const * const pHostIdRegs     = &pVM->cpum.s.HostIdRegs;
+#else
+    CPUMARMV8IDREGS const         DummyHostIdRegs = { };
+    CPUMARMV8IDREGS const * const pHostIdRegs     = &DummyHostIdRegs;
+#endif
+
     /** @todo MIDR_EL1. */
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "CLIDR_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegClidrEl1,
+                                pHostIdRegs->u64RegClidrEl1,
                                 pVM->cpum.s.GuestIdRegs.u64RegClidrEl1,
                                 g_aClidrEl1Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64PFR0_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Pfr0El1,
+                                pHostIdRegs->u64RegIdAa64Pfr0El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Pfr0El1,
                                 g_aIdAa64PfR0Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64PFR1_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Pfr1El1,
+                                pHostIdRegs->u64RegIdAa64Pfr1El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Pfr1El1,
                                 g_aIdAa64PfR1Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64ISAR0_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Isar0El1,
+                                pHostIdRegs->u64RegIdAa64Isar0El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Isar0El1,
                                 g_aIdAa64IsaR0Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64ISAR1_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Isar1El1,
+                                pHostIdRegs->u64RegIdAa64Isar1El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Isar1El1,
                                 g_aIdAa64IsaR1Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64ISAR2_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Isar2El1,
+                                pHostIdRegs->u64RegIdAa64Isar2El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Isar2El1,
                                 g_aIdAa64IsaR2Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64MMFR0_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Mmfr0El1,
+                                pHostIdRegs->u64RegIdAa64Mmfr0El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Mmfr0El1,
                                 g_aIdAa64MmfR0Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64MMFR1_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Mmfr1El1,
+                                pHostIdRegs->u64RegIdAa64Mmfr1El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Mmfr1El1,
                                 g_aIdAa64MmfR1Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64MMFR2_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Mmfr2El1,
+                                pHostIdRegs->u64RegIdAa64Mmfr2El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Mmfr2El1,
                                 g_aIdAa64MmfR2Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64DFR0_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Dfr0El1,
+                                pHostIdRegs->u64RegIdAa64Dfr0El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Dfr0El1,
                                 g_aIdAa64DfR0Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64DFR1_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Dfr1El1,
+                                pHostIdRegs->u64RegIdAa64Dfr1El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Dfr1El1,
                                 g_aIdAa64DfR1Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64AFR0_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Afr0El1,
+                                pHostIdRegs->u64RegIdAa64Afr0El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Afr0El1,
                                 g_aIdAa64AfR0Fields, iVerbosity > 1);
 
     cpumR3CpuIdInfoIdRegDetails(pHlp, "ID_AA64AFR1_EL1",
-                                pVM->cpum.s.HostIdRegs.u64RegIdAa64Afr1El1,
+                                pHostIdRegs->u64RegIdAa64Afr1El1,
                                 pVM->cpum.s.GuestIdRegs.u64RegIdAa64Afr1El1,
                                 g_aIdAa64AfR1Fields, iVerbosity > 1);
 }
@@ -1235,19 +1253,29 @@ DECLCALLBACK(void) cpumR3CpuFeatInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *ps
             fVerbose = true;
     }
 
+#ifdef RT_ARCH_ARM64
     if (fVerbose)
         pHlp->pfnPrintf(pHlp, "  Features                                  = guest (host)\n");
     else
+#endif
         pHlp->pfnPrintf(pHlp, "  Features                                  = guest\n");
 
 
-#define LOG_CPU_FEATURE(a_FeatNm, a_Flag) \
-    do { \
-        if (fVerbose) \
-            pHlp->pfnPrintf(pHlp, "  %*s = %u (%u)\n", 41, #a_FeatNm, pVM->cpum.s.GuestFeatures.a_Flag, pVM->cpum.s.HostFeatures.s.a_Flag); \
-        else \
+#ifdef RT_ARCH_ARM64
+# define LOG_CPU_FEATURE(a_FeatNm, a_Flag) \
+        do { \
+            if (fVerbose) \
+                pHlp->pfnPrintf(pHlp, "  %*s = %u (%u)\n", 41, #a_FeatNm, pVM->cpum.s.GuestFeatures.a_Flag, pVM->cpum.s.HostFeatures.s.a_Flag); \
+            else \
+                pHlp->pfnPrintf(pHlp, "  %*s = %u\n", 41, #a_FeatNm, pVM->cpum.s.GuestFeatures.a_Flag); \
+        } while (0)
+#else
+# define LOG_CPU_FEATURE(a_FeatNm, a_Flag) \
+        do { \
             pHlp->pfnPrintf(pHlp, "  %*s = %u\n", 41, #a_FeatNm, pVM->cpum.s.GuestFeatures.a_Flag); \
-    } while (0)
+        } while (0)
+    RT_NOREF_PV(fVerbose);
+#endif
 
     /* Not really features. */
     LOG_CPU_FEATURE(FEAT_TGRAN4K,   fTGran4K);

@@ -142,8 +142,9 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
     ComPtr<IPlatform> platform;
     hrc = pMachine->COMGETTER(Platform)(platform.asOutParam());                             H();
 
-    /* Note: Should be guarded by VBOX_WITH_VIRT_ARMV8, but we check this anyway here. */
-#if 1 /* For now we only support running ARM VMs on ARM hosts. */
+    /* Note: Should be guarded by VBOX_WITH_VIRT_ARMV8, but we check this anyway here.
+       Update: It is guarded by VBOX_WITH_VIRT_ARMV8, see line 84 and caller. Duh. */
+#if 0 /* For now we only support running ARM VMs on ARM hosts. */
     PlatformArchitecture_T platformArchMachine;
     hrc = platform->COMGETTER(Architecture)(&platformArchMachine);                          H();
     if (platformArchMachine != platformArchHost)
@@ -288,7 +289,11 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodeAdd(hFdt, "apb-clk");                                                VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "phandle", idPHandleAbpPClk);              VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "clock-output-names", "clk24mhz");         VRC();
+# ifdef RT_ARCH_ARM64
         vrc = RTFdtNodePropertyAddU32(     hFdt, "clock-frequency",    ASMReadCntFrqEl0()); VRC();
+# else
+        vrc = RTFdtNodePropertyAddU32(     hFdt, "clock-frequency",    24000000);           VRC(); /** @todo clock-frequency hack*/
+# endif
         vrc = RTFdtNodePropertyAddU32(     hFdt, "#clock-cells",       0);                  VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible",         "fixed-clock");      VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
@@ -523,7 +528,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         /* Reserve an MMIO region for the GIC ITS even if it might not be configured for the VM. */
         hrc = pResMgr->assignMmioRegion("gic-its", 2 * _64K, &GCPhysIntcIts, &cbMmioIntcIts);             H();
 
-#ifdef RT_OS_DARWIN
+#if defined(RT_OS_DARWIN) || !defined(RT_ARCH_ARM64)
         InsertConfigNode(pDevices, "gic",                   &pDev);
 #else
         /* On Linux we default to the KVM in-kernel GIC and on Windows we are forced to the Hyper-V GIC for now. */

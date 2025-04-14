@@ -1047,7 +1047,7 @@ static char *vmdkEncodeString(const char *psz)
 static int vmdkDecodeString(const char *pszEncoded, char *psz, size_t cb)
 {
     int rc = VINF_SUCCESS;
-    char szBuf[4];
+    char szBuf[8];
 
     if (!cb)
         return VERR_BUFFER_OVERFLOW;

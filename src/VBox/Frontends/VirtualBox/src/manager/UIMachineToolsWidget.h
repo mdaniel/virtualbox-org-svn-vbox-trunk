@@ -44,6 +44,7 @@ class QISplitter;
 class UIActionPool;
 class UIChooser;
 class UIToolPane;
+class UITools;
 class UIVirtualMachineItem;
 
 /** QWidget extension used as Machine Tools Widget instance. */
@@ -124,8 +125,15 @@ public:
 
     /** @name Tools pane stuff.
       * @{ */
+        /** Returns tool-menu instance. */
+        UITools *toolMenu() const;
         /** Returns tool-pane instance. */
         UIToolPane *toolPane() const;
+
+        /** Returns menu tool type for the @a enmClass specified. */
+        UIToolType menuToolType(UIToolClass enmClass) const;
+        /** Defines menu tool @a enmType. */
+        void setMenuToolType(UIToolType enmType);
 
         /** Returns pane tool type. */
         UIToolType toolType() const;
@@ -186,6 +194,16 @@ private slots:
         void sltHandleCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
+    /** @name Tools pane stuff.
+      * @{ */
+        /** Handles request for tool menu update for the @a pItem specified. */
+        void sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem);
+
+        /** Handles signal about Tools-menu index change.
+          * @param  enmType  Brings current tool type. */
+        void sltHandleToolsMenuIndexChange(UIToolType enmType);
+    /** @} */
+
 private:
 
     /** @name Prepare/Cleanup cascade.
@@ -221,6 +239,8 @@ private:
     /** Holds the action-pool reference. */
     UIActionPool *m_pActionPool;
 
+    /** Holds the tools-menu instance. */
+    UITools    *m_pMenu;
     /** Holds the central splitter instance. */
     QISplitter *m_pSplitter;
     /** Holds the Chooser-pane instance. */

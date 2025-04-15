@@ -38,6 +38,7 @@
 #include "UIGlobalSession.h"
 #include "UIMachineToolsWidget.h"
 #include "UIToolPane.h"
+#include "UITools.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualMachineItemLocal.h"
@@ -47,6 +48,7 @@ UIMachineToolsWidget::UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pA
     : QWidget(pParent)
     , m_pParent(pParent)
     , m_pActionPool(pActionPool)
+    , m_pMenu(0)
     , m_pSplitter(0)
     , m_pPaneChooser(0)
     , m_pPaneTools(0)
@@ -127,9 +129,29 @@ UIMachineToolsWidget::SelectionType UIMachineToolsWidget::selectionType() const
            : SelectionType_Invalid;
 }
 
+UITools *UIMachineToolsWidget::toolMenu() const
+{
+    return m_pMenu;
+}
+
 UIToolPane *UIMachineToolsWidget::toolPane() const
 {
     return m_pPaneTools;
+}
+
+UIToolType UIMachineToolsWidget::menuToolType(UIToolClass enmClass) const
+{
+    AssertPtrReturn(toolMenu(), UIToolType_Invalid);
+    return toolMenu()->toolsType(enmClass);
+}
+
+void UIMachineToolsWidget::setMenuToolType(UIToolType enmType)
+{
+    /* Sanity check: */
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+
+    AssertPtrReturnVoid(toolMenu());
+    toolMenu()->setToolsType(enmType);
 }
 
 UIToolType UIMachineToolsWidget::toolType() const
@@ -318,6 +340,49 @@ void UIMachineToolsWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
     emit sigCloudMachineStateChange(uId);
 }
 
+void UIMachineToolsWidget::sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem)
+{
+    /* Prepare tool restrictions: */
+    QSet<UIToolType> restrictedTypes;
+
+    /* Restrict some types for Basic mode: */
+    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
+    if (!fExpertMode)
+        restrictedTypes << UIToolType_FileManager;
+
+    /* Make sure local VM tools are hidden for cloud VMs: */
+    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
+        restrictedTypes << UIToolType_Snapshots
+                        << UIToolType_Logs
+                        << UIToolType_FileManager;
+
+    /* Make sure no restricted tool is selected: */
+    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
+        setMenuToolType(UIToolType_Details);
+
+    /* Hide restricted tools in the menu: */
+    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
+
+    /* Disable even unrestricted tools for inacccessible VMs: */
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
+    toolMenu()->setItemsEnabled(fCurrentItemIsOk);
+
+    /* Close all restricted tools: */
+    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
+        toolPane()->closeTool(enmRestrictedType);
+}
+
+void UIMachineToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
+{
+    /* Determine tool class of passed tool type: */
+    const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
+
+    /* For Machine tool class => switch tool-pane accordingly: */
+    if (enmClass == UIToolClass_Machine)
+        switchToolTo(enmType);
+}
+
 void UIMachineToolsWidget::prepare()
 {
     /* Prepare everything: */
@@ -339,12 +404,20 @@ void UIMachineToolsWidget::prepare()
 void UIMachineToolsWidget::prepareWidgets()
 {
     /* Create layout: */
-    QHBoxLayout *pLayout = new QHBoxLayout(this);
+    QVBoxLayout *pLayout = new QVBoxLayout(this);
     if (pLayout)
     {
         /* Configure layout: */
         pLayout->setContentsMargins(0, 0, 0, 0);
         pLayout->setSpacing(0);
+
+        /* Create tool-menu: */
+        m_pMenu = new UITools(this, UIToolClass_Machine, actionPool());
+        if (toolMenu())
+        {
+            /* Add into layout: */
+            pLayout->addWidget(toolMenu());
+        }
 
         /* Create splitter: */
         m_pSplitter = new QISplitter;
@@ -406,10 +479,24 @@ void UIMachineToolsWidget::prepareConnections()
             toolPane(), &UIToolPane::sigToggleStarted);
     connect(chooser(), &UIChooser::sigToggleFinished,
             toolPane(), &UIToolPane::sigToggleFinished);
+
+    /* Tools-menu connections: */
+    connect(this, &UIMachineToolsWidget::sigToolMenuUpdate,
+            this, &UIMachineToolsWidget::sltHandleToolMenuUpdate);
+    connect(toolMenu(), &UITools::sigSelectionChanged,
+            this, &UIMachineToolsWidget::sltHandleToolsMenuIndexChange);
 }
 
 void UIMachineToolsWidget::loadSettings()
 {
+    /* Acquire & select tools currently chosen in the menu: */
+    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Machine));
+
+    /* Update Machine tools restrictions for currently selected item: */
+    UIVirtualMachineItem *pItem = currentItem();
+    if (pItem)
+        sltHandleToolMenuUpdate(pItem);
+
     /* Restore splitter handle position: */
     {
         QList<int> sizes = gEDataManager->selectorWindowSplitterHints();
@@ -446,6 +533,12 @@ void UIMachineToolsWidget::cleanupConnections()
                toolPane(), &UIToolPane::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,
                toolPane(), &UIToolPane::sigToggleFinished);
+
+    /* Tools-menu connections: */
+    disconnect(this, &UIMachineToolsWidget::sigToolMenuUpdate,
+               this, &UIMachineToolsWidget::sltHandleToolMenuUpdate);
+    disconnect(toolMenu(), &UITools::sigSelectionChanged,
+               this, &UIMachineToolsWidget::sltHandleToolsMenuIndexChange);
 }
 
 void UIMachineToolsWidget::recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane /* = false */)

@@ -524,17 +524,17 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                                      ? highlightColor.lighter(140)
                                      : highlightColor.darker(140);
 
+        /* Draw gradient background: */
+        QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
+        bgGrad.setColorAt(0, selectionColor1);
+        bgGrad.setColorAt(1, selectionColor2);
+        pPainter->fillRect(rectangle, bgGrad);
+
         /* Depending on item class: */
         switch (itemClass())
         {
             case UIToolClass_Global:
             {
-                /* Draw gradient background: */
-                QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
-                bgGrad.setColorAt(0, selectionColor1);
-                bgGrad.setColorAt(1, selectionColor2);
-                pPainter->fillRect(rectangle, bgGrad);
-
                 /* Draw gradient token: */
                 QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
                 QLinearGradient tkGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
@@ -545,16 +545,9 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             }
             case UIToolClass_Machine:
             {
-                /* Draw gradient background: */
-                QRect backgroundRect(rectangle.topLeft() + QPoint(5, 0), QSize(rectangle.width() - 5, rectangle.height()));
-                QLinearGradient bgGrad(backgroundRect.topLeft(), backgroundRect.topRight());
-                bgGrad.setColorAt(0, selectionColor1);
-                bgGrad.setColorAt(1, selectionColor2);
-                pPainter->fillRect(backgroundRect, bgGrad);
-
                 /* Draw gradient token: */
-                QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
-                QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                QRect tokenRect(rectangle.bottomLeft() - QPoint(0, 2), QSize(rectangle.width(), 2));
+                QLinearGradient hlGrad(tokenRect.bottomLeft(), tokenRect.bottomRight());
                 hlGrad.setColorAt(0, highlightColor1);
                 hlGrad.setColorAt(1, highlightColor2);
                 pPainter->fillRect(tokenRect, hlGrad);
@@ -577,18 +570,14 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Acquire background color: */
         const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
 
-        /* A bit of indentation for Machine tools in widget mode: */
-        const int iIndent = itemClass() == UIToolClass_Machine
-                          ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5 : 0;
-
         /* Prepare icon sub-rect: */
         QRect subRect;
         subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
         subRect.setWidth(subRect.height());
 #ifdef VBOX_WS_MAC
-        subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 2 * iMargin - iPadding, iMargin - iPadding));
+        subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
 #else
-        subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 1.5 * iMargin - iPadding, iMargin - iPadding));
+        subRect.moveTopLeft(rectangle.topLeft() + QPoint(1.5 * iMargin - iPadding, iMargin - iPadding));
 #endif
 
         /* Paint icon frame: */
@@ -647,10 +636,6 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
         int iPixmapX = 1.5 * iMargin;
 #endif
 
-        /* A bit of indentation for Machine tools: */
-        if (itemClass() == UIToolClass_Machine)
-            iPixmapX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
-
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
         paintPixmap(/* Painter: */
@@ -670,10 +655,6 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
 #else
         int iNameX = 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
-
-        /* A bit of indentation for Machine tools: */
-        if (itemClass() == UIToolClass_Machine)
-            iNameX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
 
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name if requested: */

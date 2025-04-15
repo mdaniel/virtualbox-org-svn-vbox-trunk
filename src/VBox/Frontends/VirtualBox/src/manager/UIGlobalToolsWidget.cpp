@@ -38,7 +38,6 @@
 #include "UIToolPane.h"
 #include "UITools.h"
 #include "UIVirtualBoxEventHandler.h"
-#include "UIVirtualMachineItem.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -180,7 +179,7 @@ void UIGlobalToolsWidget::sltHandleCloudProfileStateChange(const QString &, cons
     }
 }
 
-void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
+void UIGlobalToolsWidget::sltHandleToolMenuUpdate()
 {
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
@@ -209,40 +208,6 @@ void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
             toolPane()->closeTool(enmRestrictedType);
 }
 
-void UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem)
-{
-    /* Prepare tool restrictions: */
-    QSet<UIToolType> restrictedTypes;
-
-    /* Restrict some types for Basic mode: */
-    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
-    if (!fExpertMode)
-        restrictedTypes << UIToolType_FileManager;
-
-    /* Make sure local VM tools are hidden for cloud VMs: */
-    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
-        restrictedTypes << UIToolType_Snapshots
-                        << UIToolType_Logs
-                        << UIToolType_FileManager;
-
-    /* Make sure no restricted tool is selected: */
-    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
-        setMenuToolType(UIToolType_Details);
-
-    /* Hide restricted tools in the menu: */
-    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
-    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
-
-    /// @todo finish that
-    // /* Disable even unrestricted tools for inacccessible VMs: */
-    // const bool fCurrentItemIsOk = isItemAccessible(pItem);
-    // toolMenu()->setItemsEnabled(fCurrentItemIsOk);
-
-    /* Close all restricted tools: */
-    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
-        toolPaneMachine()->closeTool(enmRestrictedType);
-}
-
 void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
 {
     /* Determine tool class of passed tool type: */
@@ -251,9 +216,6 @@ void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
     /* For Global tool class: */
     if (enmClass == UIToolClass_Global)
     {
-        /* Mark Machine tools [un]suitable depending on Global tool selected: */
-        toolMenu()->setUnsuitableToolClass(UIToolClass_Machine, enmType != UIToolType_Machines);
-
         /* Switch tool-pane accordingly: */
         switchToolTo(enmType);
 
@@ -269,9 +231,6 @@ void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
         else
             chooser()->setKeepCloudNodesUpdated(false);
     }
-    /* For Machine tool class => switch tool-pane accordingly: */
-    else if (enmClass == UIToolClass_Machine)
-        machineToolsWidget()->switchToolTo(enmType);
 }
 
 void UIGlobalToolsWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
@@ -279,7 +238,7 @@ void UIGlobalToolsWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
     AssertPtrReturnVoid(chooser());
     chooser()->setCurrentMachine(uMachineId);
     setMenuToolType(UIToolType_Machines);
-    setMenuToolType(UIToolType_VMActivity);
+    machineToolsWidget()->setMenuToolType(UIToolType_VMActivity);
 }
 
 void UIGlobalToolsWidget::sltSwitchToActivitiesTool()
@@ -349,27 +308,20 @@ void UIGlobalToolsWidget::prepareConnections()
 
     /* Tools-pane connections: */
     connect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
-            this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
+            this, &UIGlobalToolsWidget::sltHandleToolMenuUpdate);
     connect(toolPane(), &UIToolPane::sigSwitchToMachineActivityPane,
             this, &UIGlobalToolsWidget::sltSwitchToVMActivityTool);
-    connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
-            this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     connect(toolPaneMachine(), &UIToolPane::sigSwitchToActivityOverviewPane,
             this, &UIGlobalToolsWidget::sltSwitchToActivitiesTool);
 }
 
 void UIGlobalToolsWidget::loadSettings()
 {
-    /* Acquire & select tools currently chosen in the menu: */
+    /* Acquire & select tool currently chosen in the menu: */
     sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Global));
-    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Machine));
 
-    /* Update Global tools restrictions: */
-    sltHandleGlobalToolMenuUpdate();
-    /* Update Machine tools restrictions for currently selected item: */
-    UIVirtualMachineItem *pItem = machineToolsWidget()->currentItem();
-    if (pItem)
-        sltHandleMachineToolMenuUpdate(pItem);
+    /* Update tools restrictions: */
+    sltHandleToolMenuUpdate();
 }
 
 void UIGlobalToolsWidget::cleanupConnections()
@@ -392,11 +344,9 @@ void UIGlobalToolsWidget::cleanupConnections()
 
     /* Tools-pane connections: */
     disconnect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
-               this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
+               this, &UIGlobalToolsWidget::sltHandleToolMenuUpdate);
     disconnect(toolPane(), &UIToolPane::sigSwitchToMachineActivityPane,
                this, &UIGlobalToolsWidget::sltSwitchToVMActivityTool);
-    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
-               this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     disconnect(toolPaneMachine(), &UIToolPane::sigSwitchToActivityOverviewPane,
                this, &UIGlobalToolsWidget::sltSwitchToActivitiesTool);
 }

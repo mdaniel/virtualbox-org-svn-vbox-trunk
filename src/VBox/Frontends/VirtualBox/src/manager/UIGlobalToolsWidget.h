@@ -45,7 +45,6 @@ class UIChooser;
 class UIMachineToolsWidget;
 class UIToolPane;
 class UITools;
-class UIVirtualMachineItem;
 
 /** QWidget extension used as Global Tools Widget instance. */
 class UIGlobalToolsWidget : public QWidget
@@ -134,10 +133,8 @@ private slots:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Handles request for Global tools menu update. */
-        void sltHandleGlobalToolMenuUpdate();
-        /** Handles request for Machine tools menu update for the @a pItem specified. */
-        void sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem);
+        /** Handles request for tool menu update. */
+        void sltHandleToolMenuUpdate();
 
         /** Handles signal about Tools-menu index change.
           * @param  enmType  Brings current tool type. */

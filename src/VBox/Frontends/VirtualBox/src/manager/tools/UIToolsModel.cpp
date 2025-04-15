@@ -511,135 +511,98 @@ void UIToolsModel::updateLayout()
     const int iViewportWidth = viewportSize.width();
     const int iViewportHeight = viewportSize.height();
 
-    /* Start from above: */
-    int iVerticalIndentGlobal = iMargin;
-    int iVerticalIndentRest = iMargin;
-    int iVerticalIndentSub = 0;
-
-    /* Layout normal children: */
-    foreach (UIToolsItem *pItem, items())
+    /* Depending on tool class: */
+    switch (m_enmClass)
     {
-        /* Skip aux children: */
-        const UIToolClass enmClass = pItem->itemClass();
-        if (enmClass == UIToolClass_Aux)
-            continue;
-
-        /* Make sure item visible: */
-        if (!pItem->isVisible())
-            continue;
-
-        /* Acquire item properties: */
-        const int iItemHeight = pItem->minimumHeightHint();
-
-        /* Separate procedures for different classes: */
-        switch (enmClass)
+        case UIToolClass_Global:
         {
-            case UIToolClass_Global:
-            {
-                /* Set item position: */
-                pItem->setPos(iMargin, iVerticalIndentGlobal);
-                /* Set root-item size: */
-                pItem->resize(iViewportWidth, iItemHeight);
-                /* Make sure item is shown: */
-                pItem->show();
-                /* Advance vertical indent: */
-                iVerticalIndentGlobal += (iItemHeight + iSpacing);
-                iVerticalIndentRest += (iItemHeight + iSpacing);
+            /* Start from above: */
+            int iVerticalIndent = iMargin;
 
-                /* Do we have animation engine? */
-                if (m_pAnimationEngine)
-                {
-                    /* Append some animated indentation after items of certain types: */
-                    switch (pItem->itemType())
-                    {
-                        case UIToolType_Machines:
-                        {
-                            const double fRatio = (double)animationProgressMachines() / 50 /* make it from 0.0 to 2.0 */;
-                            int iShift = 0;
-                            if (m_pAnimationEngine->state() == UIToolsAnimationEngine::State_LeavingMachines)
-                            {
-                                /* Leaving animation uses fRatio from 2.0 to 1.0: */
-                                iShift = overallShiftMachines() * (fRatio - 1);
-                                iShift = qMax(iShift, 0);
-                            }
-                            else
-                            {
-                                /* Entering animation uses fRatio from 0.0 to 1.0: */
-                                iShift = overallShiftMachines() * fRatio;
-                                iShift = qMin(iShift, overallShiftMachines());
-                            }
-                            iVerticalIndentGlobal += iShift;
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                }
-
-                break;
-            }
-            case UIToolClass_Machine:
+            /* Layout Global children: */
+            foreach (UIToolsItem *pItem, items())
             {
+                /* Skip everything besides Global children: */
+                const UIToolClass enmClass = pItem->itemClass();
+                if (enmClass != UIToolClass_Global)
+                    continue;
+
+                /* Make sure item visible: */
+                if (!pItem->isVisible())
+                    continue;
+
                 /* Acquire item properties: */
                 const int iItemHeight = pItem->minimumHeightHint();
-                int iPos = iMargin;
-
-                /* Do we have animation engine? */
-                if (m_pAnimationEngine)
-                {
-                    /* Append some animated indentation to items of certain classes: */
-                    switch (pItem->itemClass())
-                    {
-                        case UIToolClass_Machine:
-                        {
-                            const double fRatio = (double)animationProgressMachines() / 25 /* make it from 0.0 to 4.0 */;
-                            iPos = iPos
-                                 + (4.0 - fRatio) * iViewportWidth /* move item from off-screen space */
-                                 + iVerticalIndentSub - fRatio / 4 * overallShiftMachines() /* desync item movement */;
-                            break;
-                        }
-                        default: break;
-                    }
-
-                    /* Restrain origin: */
-                    iPos = qMax(iMargin, iPos);
-                }
 
                 /* Set item position: */
-                pItem->setPos(iPos, iVerticalIndentRest);
+                pItem->setPos(iMargin, iVerticalIndent);
                 /* Set root-item size: */
                 pItem->resize(iViewportWidth, iItemHeight);
                 /* Make sure item is shown: */
                 pItem->show();
                 /* Advance vertical indent: */
-                iVerticalIndentRest += (iItemHeight + iSpacing);
-                iVerticalIndentSub += (iItemHeight + iSpacing);
-
-                break;
+                iVerticalIndent += (iItemHeight + iSpacing);
             }
-            default:
-                break;
+
+            /* Start from bottom: */
+            int iVerticalIndentAux = iViewportHeight - iMargin;
+
+            /* Layout aux children: */
+            foreach (UIToolsItem *pItem, items())
+            {
+                /* Skip everything besides Aux children: */
+                if (pItem->itemClass() != UIToolClass_Aux)
+                    continue;
+
+                /* Set item position: */
+                pItem->setPos(iMargin, iVerticalIndentAux - pItem->minimumHeightHint());
+                /* Set root-item size: */
+                pItem->resize(iViewportWidth, pItem->minimumHeightHint());
+                /* Make sure item is shown: */
+                pItem->show();
+                /* Decrease vertical indent: */
+                iVerticalIndentAux -= (pItem->minimumHeightHint() + iSpacing);
+            }
+
+            break;
         }
-    }
 
-    /* Start from bottom: */
-    int iVerticalIndentAux = iViewportHeight - iMargin;
+        case UIToolClass_Machine:
+        {
+            /* Start from left: */
+            int iHorizontalIndent = iMargin;
 
-    /* Layout aux children: */
-    foreach (UIToolsItem *pItem, items())
-    {
-        /* Skip normal children: */
-        if (pItem->itemClass() != UIToolClass_Aux)
-            continue;
+            /* Layout Machine children: */
+            foreach (UIToolsItem *pItem, items())
+            {
+                /* Skip everything besides Machine children: */
+                const UIToolClass enmClass = pItem->itemClass();
+                if (enmClass != UIToolClass_Machine)
+                    continue;
 
-        /* Set item position: */
-        pItem->setPos(iMargin, iVerticalIndentAux - pItem->minimumHeightHint());
-        /* Set root-item size: */
-        pItem->resize(iViewportWidth, pItem->minimumHeightHint());
-        /* Make sure item is shown: */
-        pItem->show();
-        /* Decrease vertical indent: */
-        iVerticalIndentAux -= (pItem->minimumHeightHint() + iSpacing);
+                /* Make sure item visible: */
+                if (!pItem->isVisible())
+                    continue;
+
+                /* Acquire item properties: */
+                const int iItemWidth = pItem->minimumWidthHint();
+
+                /* Set item position: */
+                pItem->setPos(iHorizontalIndent, iMargin);
+                /* Set root-item size: */
+                pItem->resize(iItemWidth, iViewportHeight);
+                /* Make sure item is shown: */
+                pItem->show();
+                /* Advance vertical indent: */
+                iHorizontalIndent += (iItemWidth + iSpacing);
+            }
+
+            break;
+        }
+
+        default:
+            AssertFailedReturnVoid();
+            break;
     }
 }
 
@@ -811,7 +774,7 @@ void UIToolsModel::prepare()
     /* Prepare everything: */
     prepareScene();
     prepareItems();
-    prepareAnimationEngine();
+    // prepareAnimationEngine();
     prepareConnections();
 
     /* Apply language settings: */
@@ -827,72 +790,86 @@ void UIToolsModel::prepareScene()
 
 void UIToolsModel::prepareItems()
 {
-    /* Home: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
-                                                            ":/welcome_screen_24px.png"),
-                               UIToolType_Home);
-
-    /* Machines: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                            ":/machine_details_manager_disabled_24px.png"),
-                               UIToolType_Machines);
-
+    /* Depending on tool class: */
+    switch (m_enmClass)
     {
-        /* Details: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                                ":/machine_details_manager_disabled_24px.png"),
-                                   UIToolType_Details);
+        case UIToolClass_Global:
+        {
+            /* Home: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
+                                                                    ":/welcome_screen_24px.png"),
+                                       UIToolType_Home);
 
-        /* Snapshots: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/snapshot_manager_24px.png",
-                                                                ":/snapshot_manager_disabled_24px.png"),
-                                   UIToolType_Snapshots);
+            /* Machines: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
+                                                                    ":/machine_details_manager_disabled_24px.png"),
+                                       UIToolType_Machines);
 
-        /* Logs: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/vm_show_logs_24px.png",
-                                                                ":/vm_show_logs_disabled_24px.png"),
-                                   UIToolType_Logs);
+            /* Extensions: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
+                                                                    ":/extension_pack_manager_disabled_24px.png"),
+                                       UIToolType_Extensions);
 
-        /* Activity: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/performance_monitor_24px.png",
-                                                                ":/performance_monitor_disabled_24px.png"),
-                                   UIToolType_VMActivity);
+            /* Media: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/media_manager_24px.png",
+                                                                    ":/media_manager_disabled_24px.png"),
+                                       UIToolType_Media);
 
-        /* File Manager: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/file_manager_24px.png",
-                                                                ":/file_manager_disabled_24px.png"),
-                                   UIToolType_FileManager);
+            /* Network: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/host_iface_manager_24px.png",
+                                                                    ":/host_iface_manager_disabled_24px.png"),
+                                       UIToolType_Network);
+
+            /* Cloud: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/cloud_profile_manager_24px.png",
+                                                                    ":/cloud_profile_manager_disabled_24px.png"),
+                                       UIToolType_Cloud);
+
+            /* Activities: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
+                                                                    ":/resources_monitor_disabled_24px.png"),
+                                       UIToolType_Activities);
+
+            /* Toggle: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
+                                                                    ":/tools_menu_24px.png"),
+                                       UIToolType_Toggle);
+
+            break;
+        }
+        case UIToolClass_Machine:
+        {
+            /* Details: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
+                                                                    ":/machine_details_manager_disabled_24px.png"),
+                                       UIToolType_Details);
+
+            /* Snapshots: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/snapshot_manager_24px.png",
+                                                                    ":/snapshot_manager_disabled_24px.png"),
+                                       UIToolType_Snapshots);
+
+            /* Logs: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/vm_show_logs_24px.png",
+                                                                    ":/vm_show_logs_disabled_24px.png"),
+                                       UIToolType_Logs);
+
+            /* Activity: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/performance_monitor_24px.png",
+                                                                    ":/performance_monitor_disabled_24px.png"),
+                                       UIToolType_VMActivity);
+
+            /* File Manager: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/file_manager_24px.png",
+                                                                    ":/file_manager_disabled_24px.png"),
+                                       UIToolType_FileManager);
+
+            break;
+        }
+        default:
+            AssertFailedReturnVoid();
+            break;
     }
-
-    /* Extensions: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
-                                                            ":/extension_pack_manager_disabled_24px.png"),
-                               UIToolType_Extensions);
-
-    /* Media: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/media_manager_24px.png",
-                                                            ":/media_manager_disabled_24px.png"),
-                               UIToolType_Media);
-
-    /* Network: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/host_iface_manager_24px.png",
-                                                            ":/host_iface_manager_disabled_24px.png"),
-                               UIToolType_Network);
-
-    /* Cloud: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/cloud_profile_manager_24px.png",
-                                                            ":/cloud_profile_manager_disabled_24px.png"),
-                               UIToolType_Cloud);
-
-    /* Activities: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
-                                                            ":/resources_monitor_disabled_24px.png"),
-                               UIToolType_Activities);
-
-    /* Toggle: */
-    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
-                                                            ":/tools_menu_24px.png"),
-                               UIToolType_Toggle);
 
     /* Calculate overall shifts: */
     recalculateOverallShifts();
@@ -923,17 +900,29 @@ void UIToolsModel::loadCurrentItems()
              (int)enmTypeGlobal, (int)enmTypeMachine));
     UIToolsItem *pItem = 0;
 
-    /* Global: */
-    pItem = item(enmTypeGlobal);
-    if (!pItem)
-        pItem = item(UIToolType_Home);
-    setCurrentItem(pItem);
-
-    /* Machine: */
-    pItem = item(enmTypeMachine);
-    if (!pItem)
-        pItem = item(UIToolType_Details);
-    setCurrentItem(pItem);
+    /* Depending on tool class: */
+    switch (m_enmClass)
+    {
+        case UIToolClass_Global:
+        {
+            pItem = item(enmTypeGlobal);
+            if (!pItem)
+                pItem = item(UIToolType_Home);
+            setCurrentItem(pItem);
+            break;
+        }
+        case UIToolClass_Machine:
+        {
+            pItem = item(enmTypeMachine);
+            if (!pItem)
+                pItem = item(UIToolType_Details);
+            setCurrentItem(pItem);
+            break;
+        }
+        default:
+            AssertFailedReturnVoid();
+            break;
+    }
 }
 
 void UIToolsModel::saveCurrentItems()
@@ -942,11 +931,25 @@ void UIToolsModel::saveCurrentItems()
     UIToolType enmTypeGlobal, enmTypeMachine;
     gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 
-    /* Gather actual values, we are going to save them: */
-    if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
-        enmTypeGlobal = pItem->itemType();
-    if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
-        enmTypeMachine = pItem->itemType();
+    /* Depending on tool class: */
+    switch (m_enmClass)
+    {
+        case UIToolClass_Global:
+        {
+            if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
+                enmTypeGlobal = pItem->itemType();
+            break;
+        }
+        case UIToolClass_Machine:
+        {
+            if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
+                enmTypeMachine = pItem->itemType();
+            break;
+        }
+        default:
+            AssertFailedReturnVoid();
+            break;
+    }
 
     /* Save selected items data: */
     LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d\n",

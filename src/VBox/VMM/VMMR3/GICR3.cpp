@@ -341,11 +341,25 @@ static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const cha
         pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_OUTER_CACHE));
     }
 
-    /* */
+    /* LPI CTE (Configuration Table Entries). */
     {
+        uint32_t const cLpiCtes   = RT_ELEMENTS(pGicDev->abLpiConfig);
+        uint32_t       cLpiCtesEn = 0;
+        for (uint32_t i = 0; i < cLpiCtes; i++)
+            if (RT_BF_GET(pGicDev->abLpiConfig[i], GIC_BF_LPI_CTE_ENABLE))
+                ++cLpiCtesEn;
 
+        pHlp->pfnPrintf(pHlp, "  LPI config table (capacity=%u entries, enabled=%u entries)%s\n", cLpiCtes, cLpiCtesEn,
+                        cLpiCtesEn > 0 ? ":" : "");
+        for (uint32_t i = 0; i < cLpiCtesEn; i++)
+        {
+            uint8_t const uLpiCte   = pGicDev->abLpiConfig[i];
+            uint8_t const uPriority = RT_BF_GET(uLpiCte, GIC_BF_LPI_CTE_PRIORITY);
+            pHlp->pfnPrintf(pHlp, "    [%4u]               = %#x (priority=%u)\n", uLpiCte, uPriority);
+        }
     }
-    /** @todo Dump LPI config and LPI pending registers. */
+
+    /** @todo Dump LPI pending registers. */
 }
 
 

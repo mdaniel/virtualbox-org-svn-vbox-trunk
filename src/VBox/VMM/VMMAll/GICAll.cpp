@@ -660,6 +660,28 @@ static void gicDistHasIrqPendingForVCpu(PCGICDEV pGicDev, PCVMCPUCC pVCpu, VMCPU
 }
 
 
+static void gicDistReadLpiConfigTableFromMemory(PPDMDEVINS pDevIns, PGICDEV pGicDev)
+{
+    Assert(pGicDev->fEnableLpis);
+    LogFlowFunc(("\n"));
+
+    /* Check if the guest is disabling LPIs by setting GICR_PROPBASER.IDBits < 13. */
+    uint8_t const cIdBits = RT_BF_GET(pGicDev->uLpiConfigBaseReg.u, GIC_BF_REDIST_REG_PROPBASER_ID_BITS) + 1;
+    if (cIdBits < GIC_LPI_ID_BITS_MIN)
+        return;
+
+    /* Copy the LPI config table from guest memory to our internal cache. */
+    Assert(UINT32_C(2) << pGicDev->uMaxLpi <= RT_ELEMENTS(pGicDev->abLpiConfig));
+    RTGCPHYS const GCPhysLpiConfigTable = pGicDev->uLpiConfigBaseReg.u & GIC_BF_REDIST_REG_PROPBASER_PHYS_ADDR_MASK;
+    uint32_t const cbLpiConfigTable     = sizeof(pGicDev->abLpiConfig);
+
+    /** @todo Try releasing and re-acquiring the device critical section here.
+     *        Probably safe, but haven't verified this... */
+    int const rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysLpiConfigTable, (void *)&pGicDev->abLpiConfig[0], cbLpiConfigTable);
+    AssertRC(rc);
+}
+
+
 /**
  * Updates the internal IRQ state and sets or clears the appropriate force action
  * flags.
@@ -2049,7 +2071,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                      /*| GIC_DIST_REG_TYPER_SECURITY_EXTN*/          /** @todo Support dual security states. */
                      | (pGicDev->fMbi ? GIC_DIST_REG_TYPER_MBIS : 0)
                      | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
-                     | GIC_DIST_REG_TYPER_IDBITS_SET(16)             /* We only support 16-bit interrupt IDs. */
+                     | GIC_DIST_REG_TYPER_IDBITS_SET(15)             /* We only support 16-bit interrupt IDs. */
                      | (pGicDev->fAff3Levels ? GIC_DIST_REG_TYPER_A3V : 0);
             if (pGicDev->fExtSpi)
                 *puValue |= GIC_DIST_REG_TYPER_ESPI
@@ -2460,6 +2482,8 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
             break;
         case GIC_REDIST_REG_CTLR_OFF:
             pGicDev->fEnableLpis = RT_BOOL(uValue & GIC_REDIST_REG_CTLR_ENABLE_LPI);
+            if (pGicDev->fEnableLpis)
+                gicDistReadLpiConfigTableFromMemory(pDevIns, pGicDev);
             break;
         case GIC_REDIST_REG_PROPBASER_OFF:
             pGicDev->uLpiConfigBaseReg.s.Lo = uValue & RT_LO_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);

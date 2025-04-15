@@ -727,16 +727,21 @@ RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_REDIST_REG_PENDBASER_, UINT64_C(0), UINT64_MA
  * @{ */
 /** GITS LPI Configuration   */
 /** GITS LPI CTE: Enable. */
-#define GITS_BF_LPI_CTE_ENABLE_SHIFT                            0
-#define GITS_BF_LPI_CTE_ENABLE_MASK                             UINT8_C(0x1)
+#define GIC_BF_LPI_CTE_ENABLE_SHIFT                     0
+#define GIC_BF_LPI_CTE_ENABLE_MASK                      UINT8_C(0x1)
 /** GITS LPI CTE: Reserved (bit 1). */
-#define GITS_BF_LPI_CTE_RSVD_1_SHIFT                            1
-#define GITS_BF_LPI_CTE_RSVD_1_MASK                             UINT8_C(0x2)
+#define GIC_BF_LPI_CTE_RSVD_1_SHIFT                     1
+#define GIC_BF_LPI_CTE_RSVD_1_MASK                      UINT8_C(0x2)
 /** GITS LPI CTE: Priority. */
-#define GITS_BF_LPI_CTE_PRIORITY_SHIFT                          2
-#define GITS_BF_LPI_CTE_PRIORITY_MASK                           UINT8_C(0xfc)
-RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_LPI_CTE_, UINT8_C(0), UINT8_MAX,
+#define GIC_BF_LPI_CTE_PRIORITY_SHIFT                   2
+#define GIC_BF_LPI_CTE_PRIORITY_MASK                    UINT8_C(0xfc)
+RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_LPI_CTE_, UINT8_C(0), UINT8_MAX,
                             (ENABLE, RSVD_1, PRIORITY));
+
+/** Minimum number of bits required to enable LPIs (i.e. should accomodate
+ *  GIC_INTID_RANGE_LPI_START). */
+#define GIC_LPI_ID_BITS_MIN                             14
+
 /** @} */
 
 #endif /* !VBOX_INCLUDED_gic_h */

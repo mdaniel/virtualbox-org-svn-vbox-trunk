@@ -676,12 +676,12 @@
             settings only).
       -->
     </const>
-	<const name="v1_21" value="23">
-	  <desc>Settings version "1.21", written by VirtualBox 7.2.x.</desc>
-	  <!--
-		  Machine changes: GIC ITS.
-	  -->
-	</const>
+  <const name="v1_21" value="23">
+    <desc>Settings version "1.21", written by VirtualBox 7.2.x.</desc>
+    <!--
+      Machine changes: GIC ITS.
+    -->
+  </const>
     <const name="Future" value="99999">
       <desc>Settings version greater than "1.21", written by a future VirtualBox version.</desc>
     </const>
@@ -1247,11 +1247,11 @@
         This requires the nested virtualization feature on the host CPU.
       </desc>
     </const>
-	<const name="GICITS"                value="2">
-	  <desc>
-		Enables the Interrupt Translation Service (ITS) for the GIC.
-	  </desc>
-	</const>
+    <const name="GICITS"                value="2">
+      <desc>
+        Enables the Interrupt Translation Service (ITS) for the GIC.
+      </desc>
+    </const>
   </enum>
 
   <enum

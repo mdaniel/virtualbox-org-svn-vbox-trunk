@@ -230,10 +230,10 @@ void UIToolsView::preparePalette()
     {
         backgroundColorActive = uiCommon().isInDarkMode()
                               ? backgroundColorActive.lighter(120)
-                              : backgroundColorActive.darker(110);
+                              : backgroundColorActive.darker(107);
         backgroundColorInactive = uiCommon().isInDarkMode()
                                 ? backgroundColorInactive.lighter(120)
-                                : backgroundColorInactive.darker(110);
+                                : backgroundColorInactive.darker(107);
     }
     pal.setColor(QPalette::Active, QPalette::Base, backgroundColorActive);
     pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColorInactive);

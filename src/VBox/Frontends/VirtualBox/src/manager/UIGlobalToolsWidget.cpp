@@ -57,7 +57,7 @@ UIGlobalToolsWidget::UIGlobalToolsWidget(QWidget *pParent, UIActionPool *pAction
 void UIGlobalToolsWidget::addToolBar(QIToolBar *pToolBar)
 {
     AssertPtrReturnVoid(m_pLayout);
-    m_pLayout->addWidget(pToolBar, 0, 1);
+    m_pLayout->addWidget(pToolBar, 0, 0, 1, 2);
 }
 
 UIToolPane *UIGlobalToolsWidget::toolPane() const
@@ -312,7 +312,7 @@ void UIGlobalToolsWidget::prepareWidgets()
         if (toolMenu())
         {
             /* Add into layout: */
-            m_pLayout->addWidget(toolMenu(), 0, 0, 2, 1);
+            m_pLayout->addWidget(toolMenu(), 1, 0);
         }
 
         /* Create tool-pane: */

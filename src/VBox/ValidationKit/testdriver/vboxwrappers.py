@@ -1998,7 +1998,7 @@ class SessionWrapper(TdTaskBase):
                 reporter.log('set controller "%s" port count to value %d' % (sController, iPort + 1))
             return True
         except:
-            reporter.log('unable to set storage controller "%s" ports count to %d' % (sController, iPort))
+            reporter.log('unable to set storage controller "%s" ports count to %d' % (sController, iPort + 1))
 
         return False
 

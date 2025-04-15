@@ -411,14 +411,6 @@ void UIMachineToolsWidget::prepareWidgets()
         pLayout->setContentsMargins(0, 0, 0, 0);
         pLayout->setSpacing(0);
 
-        /* Create tool-menu: */
-        m_pMenu = new UITools(this, UIToolClass_Machine, actionPool());
-        if (toolMenu())
-        {
-            /* Add into layout: */
-            pLayout->addWidget(toolMenu());
-        }
-
         /* Create splitter: */
         m_pSplitter = new QISplitter;
         if (m_pSplitter)
@@ -431,12 +423,37 @@ void UIMachineToolsWidget::prepareWidgets()
                 m_pSplitter->addWidget(chooser());
             }
 
-            /* Create tool-pane: */
-            m_pPaneTools = new UIToolPane(this, UIToolClass_Machine, actionPool());
-            if (toolPane())
+            /* Create container: */
+            QWidget *pWidget = new QWidget(this);
+            if (pWidget)
             {
+                /* Create container layout: */
+                QVBoxLayout *pSubLayout = new QVBoxLayout(pWidget);
+                if (pSubLayout)
+                {
+                    /* Configure layout: */
+                    pSubLayout->setContentsMargins(0, 0, 0, 0);
+                    pSubLayout->setSpacing(0);
+
+                    /* Create tool-menu: */
+                    m_pMenu = new UITools(this, UIToolClass_Machine, actionPool());
+                    if (toolMenu())
+                    {
+                        /* Add into layout: */
+                        pSubLayout->addWidget(toolMenu());
+                    }
+
+                    /* Create tool-pane: */
+                    m_pPaneTools = new UIToolPane(this, UIToolClass_Machine, actionPool());
+                    if (toolPane())
+                    {
+                        /* Add into splitter: */
+                        pSubLayout->addWidget(toolPane());
+                    }
+                }
+
                 /* Add into splitter: */
-                m_pSplitter->addWidget(toolPane());
+                m_pSplitter->addWidget(pWidget);
             }
 
             /* Set the initial distribution. The right site is bigger. */

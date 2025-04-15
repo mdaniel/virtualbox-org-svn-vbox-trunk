@@ -1232,6 +1232,8 @@ struct PlatformARM
 
     /** Nested hardware virtualization. */
     bool                    fNestedHWVirt;              //< requires settings version 1.20 (VirtualBox 7.1)
+    /** Whether GIC ITS is enabled. */
+    bool                    fGicIts;                    //< requires settings version 1.21 (VirtualBox 7.2)
 };
 #endif /* VBOX_WITH_VIRT_ARMV8 */
 

@@ -438,6 +438,10 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         uint8_t const uGicArchRev = GIC_DIST_REG_PIDR2_ARCHREV_GICV3;
         InsertConfigInteger(pCpum, "GicArchRev", uGicArchRev);
 
+        /* GIC ITS. */
+        BOOL fGicIts = FALSE;
+        hrc = platformARM->GetCPUProperty(CPUPropertyTypeARM_GICITS, &fGicIts); H();
+
         /*
          * PDM config.
          *  Load drivers in VBoxC.[so|dll]
@@ -514,10 +518,6 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         RTGCPHYS cbMmioIntcIts;
         RTGCPHYS GCPhysIntcReDist;
         RTGCPHYS cbMmioIntcReDist;
-
-        /** @todo Add API for configuring a GIC ITS for the VM and init this value from
-         *        there. */
-        BOOL fGicIts = FALSE;
 
         /* Allow for up to 256 vCPUs in the future without changing the address space layout. */
         hrc = pResMgr->assignMmioRegion("gic", _64K + 256 * _128K, &GCPhysIntcDist, &cbMmioIntcDist);     H();

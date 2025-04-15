@@ -1337,7 +1337,10 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
 
         case PlatformArchitecture_ARM:
         {
-            /** @todo BUGBUG ARM stuff here */
+            ComPtr<IPlatformARM> platformARM;
+            CHECK_ERROR_RET(platform, COMGETTER(ARM)(platformARM.asOutParam()), hrc);
+
+            SHOW_BOOLEAN_METHOD(platformARM, GetCPUProperty(CPUPropertyTypeARM_GICITS, &f), "gic-its", "GIC ITS:");
             break;
         }
 

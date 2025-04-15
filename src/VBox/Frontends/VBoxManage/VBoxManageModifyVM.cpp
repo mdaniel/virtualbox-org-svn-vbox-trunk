@@ -279,7 +279,12 @@ enum
     MODIFYVM_X86_VIRT_VMSAVE_VMLOAD,
     MODIFYVM_X86_VTXUX,
     MODIFYVM_X86_VTXVPID,
-    MODIFYVM_X86_X2APIC
+    MODIFYVM_X86_X2APIC,
+
+    /*
+     * ARM-specific stuff.
+     */
+    MODIFYVM_ARM_GIC_ITS
 };
 
 static const RTGETOPTDEF g_aModifyVMOptions[] =
@@ -540,6 +545,11 @@ static const RTGETOPTDEF g_aModifyVMOptions[] =
     OPT2("--vtx-vpid",                      "--vtxvpid",                MODIFYVM_X86_VTXVPID,               RTGETOPT_REQ_BOOL_ONOFF),
     OPT1("--x86-x2apic",                                                MODIFYVM_X86_X2APIC,                RTGETOPT_REQ_BOOL_ONOFF),
     OPT1("--x2apic",                                                    MODIFYVM_X86_X2APIC,                RTGETOPT_REQ_BOOL_ONOFF),
+
+    /*
+     * ARM-only stuff.
+     */
+    OPT1("--arm-gic-its",                                               MODIFYVM_ARM_GIC_ITS,               RTGETOPT_REQ_BOOL_ONOFF),
 };
 
 static void vrdeWarningDeprecatedOption(const char *pszOption)
@@ -851,6 +861,10 @@ static HRESULT handleModifyVM_ARM(PRTGETOPTSTATE pGetOptState, int c, PRTGETOPTU
     {
         case MODIFYVM_NESTED_HW_VIRT:
             CHECK_ERROR(platformARM, SetCPUProperty(CPUPropertyTypeARM_HWVirt, pValueUnion->f));
+            break;
+
+        case MODIFYVM_ARM_GIC_ITS:
+            CHECK_ERROR(platformARM, SetCPUProperty(CPUPropertyTypeARM_GICITS, pValueUnion->f));
             break;
 
         default:
@@ -3803,7 +3817,7 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                 }
                 else if (enmArch == PlatformArchitecture_ARM)
                 {
-                    /* For the ARM-based options we need the x86-specific platform object. */
+                    /* For the ARM-based options we need the ARM-specific platform object. */
                     ComPtr<IPlatformARM> platformARM;
                     CHECK_ERROR_RET(platform, COMGETTER(ARM)(platformARM.asOutParam()), RTEXITCODE_FAILURE);
 

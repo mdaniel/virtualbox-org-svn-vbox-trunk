@@ -289,6 +289,10 @@ HRESULT PlatformARM::getCPUProperty(CPUPropertyTypeARM_T aProperty, BOOL *aValue
             *aValue = m->bd->fNestedHWVirt;
             break;
 
+        case CPUPropertyTypeARM_GICITS:
+            *aValue = m->bd->fGicIts;
+            break;
+
         default:
             return E_INVALIDARG;
     }
@@ -313,6 +317,13 @@ HRESULT PlatformARM::setCPUProperty(CPUPropertyTypeARM_T aProperty, BOOL aValue)
         {
             m->bd.backup();
             m->bd->fNestedHWVirt = !!aValue;
+            break;
+        }
+
+        case CPUPropertyTypeARM_GICITS:
+        {
+            m->bd.backup();
+            m->bd->fGicIts = !!aValue;
             break;
         }
 

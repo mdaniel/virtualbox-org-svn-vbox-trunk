@@ -432,7 +432,9 @@ SettingsVersion_T ConfigFileBase::parseVersion(const Utf8Str &strVersion, const 
                 sv = SettingsVersion_v1_19;
             else if (uMinor == 20)
                 sv = SettingsVersion_v1_20;
-            else if (uMinor > 20)
+            else if (uMinor == 21)
+                sv = SettingsVersion_v1_21;
+            else if (uMinor > 21)
                 sv = SettingsVersion_Future;
         }
         else if (uMajor > 1)
@@ -1078,6 +1080,10 @@ void ConfigFileBase::setVersionAttribute(xml::ElementNode &elm)
             pcszVersion = "1.20";
             break;
 
+        case SettingsVersion_v1_21:
+            pcszVersion = "1.21";
+            break;
+
         default:
             // catch human error: the assertion below will trigger in debug
             // or dbgopt builds, so hopefully this will get noticed sooner in
@@ -1100,8 +1106,8 @@ void ConfigFileBase::setVersionAttribute(xml::ElementNode &elm)
                 // for "forgotten settings" this may not be the best choice,
                 // but as it's an omission of someone who changed this file
                 // it's the only generic possibility.
-                pcszVersion = "1.20";
-                m->sv = SettingsVersion_v1_20;
+                pcszVersion = "1.21";
+                m->sv = SettingsVersion_v1_21;
             }
             break;
     }
@@ -4049,14 +4055,16 @@ bool HostPCIDeviceAttachment::operator==(const HostPCIDeviceAttachment &a) const
 
 #ifdef VBOX_WITH_VIRT_ARMV8
 PlatformARM::PlatformARM() :
-    fNestedHWVirt(false)
+    fNestedHWVirt(false),
+    fGicIts(false)
 {
 }
 
 bool PlatformARM::operator==(const PlatformARM& h) const
 {
     return (this == &h)
-        || (fNestedHWVirt == h.fNestedHWVirt);
+        || (   fNestedHWVirt == h.fNestedHWVirt
+            && fGicIts       == h.fGicIts);
 }
 #endif /* VBOX_WITH_VIRT_ARMV8 */
 
@@ -5414,6 +5422,8 @@ void MachineConfigFile::readPlatformARM(const xml::ElementNode &elmPlatformARM,
             const xml::ElementNode *pelmCPUChild;
             if ((pelmCPUChild = pelChild->findChildElement("NestedHWVirt")))
                 pelmCPUChild->getAttributeValue("enabled", platARM.fNestedHWVirt);
+            if ((pelmCPUChild = pelChild->findChildElement("GicIts")))
+                pelmCPUChild->getAttributeValue("enabled", platARM.fGicIts);
         }
     }
 }
@@ -7487,6 +7497,8 @@ void MachineConfigFile::buildPlatformARMXML(xml::ElementNode &elmParent, const P
 
     if (platARM.fNestedHWVirt)
         pelmARMCPU->createChild("NestedHWVirt")->setAttribute("enabled", platARM.fNestedHWVirt);
+    if (platARM.fGicIts)
+        pelmARMCPU->createChild("GicIts")->setAttribute("enabled", platARM.fGicIts);
 }
 #endif /* VBOX_WITH_VIRT_ARMV8 */
 
@@ -9700,6 +9712,18 @@ AudioDriverType_T MachineConfigFile::getHostDefaultAudioDriver()
  */
 void MachineConfigFile::bumpSettingsVersionIfNeeded()
 {
+    if (m->sv < SettingsVersion_v1_21)
+    {
+#ifdef VBOX_WITH_VIRT_ARMV8
+        // VirtualBox 7.2 (settings v1.21) adds support enabling ITS component of the GIC.
+        if (hardwareMachine.platformSettings.arm.fGicIts)
+        {
+            m->sv = SettingsVersion_v1_21;
+            return;
+        }
+#endif
+    }
+
     if (m->sv < SettingsVersion_v1_20)
     {
         // VirtualBox 7.1 (settings v1.20) adds support for different VM platforms and the QEMU RAM based framebuffer device.

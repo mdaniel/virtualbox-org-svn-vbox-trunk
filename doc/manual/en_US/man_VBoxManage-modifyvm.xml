@@ -143,6 +143,10 @@
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
+      <arg>--arm-gic-its=<group choice="plain">
+          <arg choice="plain">on</arg>
+          <arg choice="plain">off</arg>
+        </group></arg>
       <arg>--paravirt-provider=<group choice="plain">
           <arg choice="plain">none</arg>
           <arg choice="plain">default</arg>
@@ -1005,6 +1009,14 @@ it unless this changes. -->
             </para><para>
               Disable this feature when the OS that runs on a host
               system or a guest VM is incompatible with CPU x2APIC.
+            </para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--arm-gic-its=on | off</option></term>
+          <listitem><para>
+              Enables or disables the ITS (Interrupt Translation
+              Service) component of the GIC (Generic Interrupt
+              Controller). This feature is disabled by default.
             </para></listitem>
         </varlistentry>
         <varlistentry>

@@ -665,6 +665,10 @@
   <xsd:attribute name="enabled" type="xsd:boolean"/>
 </xsd:complexType>
 
+<xsd:complexType name="TGICITS">
+  <xsd:attribute name="enabled" type="xsd:boolean"/>
+</xsd:complexType>
+
 <xsd:complexType name="TAPIC">
   <xsd:attribute name="enabled" type="xsd:boolean"/>
 </xsd:complexType>
@@ -719,6 +723,12 @@
         <xsd:field xpath="@id"/>
       </xsd:unique>
     </xsd:element>
+  </xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="TCPUARM"> <!-- Contains the "arm" sub element of the CPU element. New since v1.21. -->
+  <xsd:sequence>
+    <xsd:element name="GICITS" type="TGICITS" minOccurs="0"/>
   </xsd:sequence>
 </xsd:complexType>
 
@@ -1530,6 +1540,9 @@
 </xsd:complexType>
 
 <xsd:complexType name="TPlatformARM"> <!-- new since v1.20. -->
+    <xsd:sequence>
+      <xsd:element name="CPU" type="TCPUARM" minOccurs="0"/>
+    </xsd:sequence>
 </xsd:complexType>
 
 <xsd:complexType name="TPlatform"> <!-- new since v1.20. -->
@@ -1539,6 +1552,7 @@
     <xsd:element name="RTC" type="TRTC" minOccurs="0"/>
     <xsd:element name="CPU" type="TCPU"/>
     <xsd:element name="x86" type="TPlatformX86" minOccurs="0"/>
+    <xsd:element name="arm" type="TPlatformARM" minOccurs="0"/>
   </xsd:all>
   <xsd:attribute name="architecture" type="TPlatformArchitecture" use="required"/>
 </xsd:complexType>

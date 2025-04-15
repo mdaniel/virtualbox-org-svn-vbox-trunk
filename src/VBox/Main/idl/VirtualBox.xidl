@@ -509,7 +509,7 @@
 
   <enum
     name="SettingsVersion"
-    uuid="6ad3da60-5ed2-49cd-b882-96a72308ebf6"
+    uuid="85d84a63-bda8-424e-95fe-3650b6cf5a95"
     >
     <desc>
       Settings version of VirtualBox settings files. This is written to
@@ -676,8 +676,14 @@
             settings only).
       -->
     </const>
+	<const name="v1_21" value="23">
+	  <desc>Settings version "1.21", written by VirtualBox 7.2.x.</desc>
+	  <!--
+		  Machine changes: GIC ITS.
+	  -->
+	</const>
     <const name="Future" value="99999">
-      <desc>Settings version greater than "1.20", written by a future VirtualBox version.</desc>
+      <desc>Settings version greater than "1.21", written by a future VirtualBox version.</desc>
     </const>
   </enum>
 
@@ -1226,7 +1232,7 @@
 
   <enum
     name="CPUPropertyTypeARM"
-    uuid="c84685f6-6bd3-4071-97c6-86f34595648f"
+    uuid="f84eb90a-3e01-47cf-88c1-f8fc559dd37a"
     >
     <desc>
       Virtual CPU property type for ARM-based CPUs. This enumeration represents possible values of the
@@ -1241,6 +1247,11 @@
         This requires the nested virtualization feature on the host CPU.
       </desc>
     </const>
+	<const name="GICITS"                value="2">
+	  <desc>
+		Enables the Interrupt Translation Service (ITS) for the GIC.
+	  </desc>
+	</const>
   </enum>
 
   <enum

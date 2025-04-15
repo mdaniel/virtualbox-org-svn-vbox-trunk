@@ -505,15 +505,9 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     if (model()->currentItem(itemClass()) == this)
     {
         /* Acquire background color: */
-#ifdef VBOX_WS_MAC
         const QColor selectionColor = uiCommon().isInDarkMode()
                                     ? pal.color(QPalette::Active, QPalette::Button).lighter(150)
                                     : pal.color(QPalette::Active, QPalette::Button).darker(150);
-#else
-        const QColor selectionColor = uiCommon().isInDarkMode()
-                                    ? pal.color(QPalette::Active, QPalette::Accent)
-                                    : pal.color(QPalette::Active, QPalette::Accent);
-#endif
         QColor selectionColor1 = selectionColor;
         QColor selectionColor2 = selectionColor;
         selectionColor1.setAlpha(100);
@@ -581,16 +575,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Configure painter: */
         pPainter->setRenderHint(QPainter::Antialiasing, true);
         /* Acquire background color: */
-#ifdef VBOX_WS_MAC
         const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
-#else /* !VBOX_WS_MAC */
-        const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
-        const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
-        const int iRed = iShift30(windowColor.red(), accentColor.red());
-        const int iGreen = iShift30(windowColor.green(), accentColor.green());
-        const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
-        const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
-#endif /* !VBOX_WS_MAC */
 
         /* A bit of indentation for Machine tools in widget mode: */
         const int iIndent = itemClass() == UIToolClass_Machine
@@ -743,22 +728,3 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     /* Restore painter: */
     pPainter->restore();
 }
-
-#ifndef VBOX_WS_MAC
-/* static */
-int UIToolsItem::iShift30(int i1, int i2)
-{
-    const int iMin = qMin(i1, i2);
-    const int iMax = qMax(i1, i2);
-    const int iDiff = iMax - iMin;
-    const int iDiff10 = iDiff * 0.3;
-
-    int iResult = 0;
-    if (i1 > i2)
-        iResult = i1 - iDiff10;
-    else
-        iResult = i1 + iDiff10;
-
-    return qMin(255, iResult);
-}
-#endif /* !VBOX_WS_MAC */

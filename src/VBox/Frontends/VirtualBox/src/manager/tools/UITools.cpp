@@ -130,7 +130,7 @@ void UITools::prepareView()
     AssertPtrReturnVoid(m_pMainLayout);
 
     /* Prepare view: */
-    m_pToolsView = new UIToolsView(this, m_pToolsModel);
+    m_pToolsView = new UIToolsView(this, m_enmClass, m_pToolsModel);
     if (m_pToolsView)
     {
         m_pToolsView->show();

@@ -47,7 +47,6 @@ class UIErrorPane;
 class UIExtensionPackManagerWidget;
 class UIFileManager;
 class UIMachineToolsWidget;
-class UIManagementToolsWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
 class UISnapshotPane;
@@ -131,8 +130,6 @@ public:
       * @{ */
         /** Returns the Machine Tools Widget instance. */
         UIMachineToolsWidget *machineToolsWidget() const;
-        /** Returns the Management Tools Widget instance. */
-        UIManagementToolsWidget *managementToolsWidget() const;
     /** @} */
 
     /** @name Machine tool stuff.
@@ -192,9 +189,7 @@ private:
         UIHomePane *m_pPaneHome;
 
         /** Holds the Machine Tools Widget instance. */
-        UIMachineToolsWidget    *m_pPaneMachines;
-        /** Holds the Management Tools Widget instance. */
-        UIManagementToolsWidget *m_pPaneManagement;
+        UIMachineToolsWidget *m_pPaneMachines;
     /** @} */
 
     /** @name Machine tool stuff.

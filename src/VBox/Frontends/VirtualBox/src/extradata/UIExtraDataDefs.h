@@ -942,8 +942,7 @@ enum UIToolClass
     UIToolClass_Invalid,
     UIToolClass_Aux,
     UIToolClass_Global,
-    UIToolClass_Machine,
-    UIToolClass_Management
+    UIToolClass_Machine
 };
 
 
@@ -956,21 +955,19 @@ enum UIToolType
     /* Global types: */
     UIToolType_Home,
     UIToolType_Machines,
-    UIToolType_Managers,
+    UIToolType_Extensions,
+    UIToolType_Media,
+    UIToolType_Network,
+    UIToolType_Cloud,
+    UIToolType_CloudConsole,
+    UIToolType_Activities,
     /* Machine types: */
     UIToolType_Error,
     UIToolType_Details,
     UIToolType_Snapshots,
     UIToolType_Logs,
     UIToolType_VMActivity,
-    UIToolType_FileManager,
-    /* Management types: */
-    UIToolType_Extensions,
-    UIToolType_Media,
-    UIToolType_Network,
-    UIToolType_Cloud,
-    UIToolType_CloudConsole,
-    UIToolType_Activities
+    UIToolType_FileManager
 };
 Q_DECLARE_METATYPE(UIToolType);
 

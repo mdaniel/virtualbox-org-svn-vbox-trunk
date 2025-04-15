@@ -39,7 +39,6 @@
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
-#include "UIManagementToolsWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPane.h"
 #include "UIVirtualBoxManager.h"
@@ -240,18 +239,6 @@ UIToolType UIVirtualBoxWidget::toolsTypeMachine() const
     return globalToolsWidget()->menuToolType(UIToolClass_Machine);
 }
 
-void UIVirtualBoxWidget::setToolsTypeManagement(UIToolType enmType)
-{
-    AssertPtrReturnVoid(globalToolsWidget());
-    globalToolsWidget()->setMenuToolType(enmType);
-}
-
-UIToolType UIVirtualBoxWidget::toolsTypeManagement() const
-{
-    AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
-    return globalToolsWidget()->menuToolType(UIToolClass_Management);
-}
-
 UIToolType UIVirtualBoxWidget::currentGlobalTool() const
 {
     AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
@@ -262,12 +249,6 @@ UIToolType UIVirtualBoxWidget::currentMachineTool() const
 {
     AssertPtrReturn(machineToolsWidget(), UIToolType_Invalid);
     return machineToolsWidget()->toolType();
-}
-
-UIToolType UIVirtualBoxWidget::currentManagementTool() const
-{
-    AssertPtrReturn(managementToolsWidget(), UIToolType_Invalid);
-    return managementToolsWidget()->toolType();
 }
 
 bool UIVirtualBoxWidget::isGlobalToolOpened(UIToolType enmType) const
@@ -282,12 +263,6 @@ bool UIVirtualBoxWidget::isMachineToolOpened(UIToolType enmType) const
     return machineToolsWidget()->isToolOpened(enmType);
 }
 
-bool UIVirtualBoxWidget::isManagementToolOpened(UIToolType enmType) const
-{
-    AssertPtrReturn(managementToolsWidget(), false);
-    return managementToolsWidget()->isToolOpened(enmType);
-}
-
 void UIVirtualBoxWidget::closeGlobalTool(UIToolType enmType)
 {
     AssertPtrReturnVoid(globalToolsWidget());
@@ -298,12 +273,6 @@ void UIVirtualBoxWidget::closeMachineTool(UIToolType enmType)
 {
     AssertPtrReturnVoid(machineToolsWidget());
     machineToolsWidget()->closeTool(enmType);
-}
-
-void UIVirtualBoxWidget::closeManagementTool(UIToolType enmType)
-{
-    AssertPtrReturnVoid(managementToolsWidget());
-    managementToolsWidget()->closeTool(enmType);
 }
 
 bool UIVirtualBoxWidget::isCurrentStateItemSelected() const
@@ -494,12 +463,6 @@ void UIVirtualBoxWidget::prepareConnections()
             this, &UIVirtualBoxWidget::sigStartOrShowRequest);
     connect(chooser(), &UIChooser::sigMachineSearchWidgetVisibilityChanged,
             this, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged);
-
-    /* Management Tools Widget connections: */
-    connect(managementToolsWidget(), &UIManagementToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxWidget::sltUpdateToolbar);
-    connect(managementToolsWidget(), &UIManagementToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxWidget::sigToolTypeChangeManagement);
 }
 
 void UIVirtualBoxWidget::loadSettings()
@@ -515,7 +478,6 @@ void UIVirtualBoxWidget::updateToolbar()
     AssertPtrReturnVoid(m_pToolBar);
     AssertPtrReturnVoid(globalToolsWidget());
     AssertPtrReturnVoid(machineToolsWidget());
-    AssertPtrReturnVoid(managementToolsWidget());
 
     /* Clear toolbar initially: */
     m_pToolBar->clear();
@@ -530,9 +492,6 @@ void UIVirtualBoxWidget::updateToolbar()
             break;
         case UIToolType_Machines:
             enmType = machineToolsWidget()->toolType();
-            break;
-        case UIToolType_Managers:
-            enmType = managementToolsWidget()->toolType();
             break;
         default:
             enmType = enmGlobalType;
@@ -751,12 +710,6 @@ void UIVirtualBoxWidget::cleanupConnections()
                this, &UIVirtualBoxWidget::sigStartOrShowRequest);
     disconnect(chooser(), &UIChooser::sigMachineSearchWidgetVisibilityChanged,
                this, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged);
-
-    /* Management Tools Widget connections: */
-    disconnect(managementToolsWidget(), &UIManagementToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxWidget::sltUpdateToolbar);
-    disconnect(managementToolsWidget(), &UIManagementToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxWidget::sigToolTypeChangeManagement);
 }
 
 void UIVirtualBoxWidget::cleanup()
@@ -788,9 +741,4 @@ UIToolPane *UIVirtualBoxWidget::machineToolPane() const
 UIChooser *UIVirtualBoxWidget::chooser() const
 {
     return machineToolsWidget()->chooser();
-}
-
-UIManagementToolsWidget *UIVirtualBoxWidget::managementToolsWidget() const
-{
-    return globalToolsWidget()->managementToolsWidget();
 }

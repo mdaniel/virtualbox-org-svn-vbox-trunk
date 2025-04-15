@@ -78,8 +78,6 @@ signals:
     void sigSelectedHome();
     /** Notifies about Machines type selected. */
     void sigSelectedMach();
-    /** Notifies about Managers type selected. */
-    void sigSelectedMana();
 
 public:
 
@@ -88,10 +86,8 @@ public:
     {
         State_Home,
         State_Machines,
-        State_Managers,
         State_LeavingHome,
         State_LeavingMachines,
-        State_LeavingManagers
     };
 
     /** Constructs animation engine passing @a pParent to the base-class. */
@@ -123,8 +119,6 @@ private:
     void prepareStateHome();
     /** Prepares Machines state. */
     void prepareStateMachines();
-    /** Prepares Managers state. */
-    void prepareStateManagers();
     /** Prepares connections. */
     void prepareConnections();
 
@@ -138,8 +132,6 @@ private:
     QState *m_pStateHome;
     /** Holds the Machines state instance. */
     QState *m_pStateMach;
-    /** Holds the Managers state instance. */
-    QState *m_pStateMana;
 
     /** Holds the animation state. */
     State  m_enmState;
@@ -170,7 +162,6 @@ UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
     , m_pMachine(0)
     , m_pStateHome(0)
     , m_pStateMach(0)
-    , m_pStateMana(0)
     , m_enmState(State_Home)
 {
     prepare();
@@ -183,7 +174,6 @@ void UIToolsAnimationEngine::init()
     switch (m_pParent->toolsType(UIToolClass_Global))
     {
         case UIToolType_Machines: pInitialState = m_pStateMach; break;
-        case UIToolType_Managers: pInitialState = m_pStateMana; break;
         default: break;
     }
     m_pMachine->setInitialState(pInitialState);
@@ -201,10 +191,8 @@ void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
         /* Notify about certain item-types selected: */
         switch (enmType)
         {
-            case UIToolType_Home: emit sigSelectedHome(); break;
             case UIToolType_Machines: emit sigSelectedMach(); break;
-            case UIToolType_Managers: emit sigSelectedMana(); break;
-            default: break;
+            default: emit sigSelectedHome(); break;
         }
     }
 }
@@ -215,8 +203,6 @@ void UIToolsAnimationEngine::sltHandleAnimationStarted()
     m_enmState = State_LeavingHome;
     if (m_pMachine->configuration().contains(m_pStateMach))
         m_enmState = State_LeavingMachines;
-    else if (m_pMachine->configuration().contains(m_pStateMana))
-        m_enmState = State_LeavingManagers;
 }
 
 void UIToolsAnimationEngine::sltHandleAnimationFinished()
@@ -225,8 +211,6 @@ void UIToolsAnimationEngine::sltHandleAnimationFinished()
     m_enmState = State_Home;
     if (m_pMachine->configuration().contains(m_pStateMach))
         m_enmState = State_Machines;
-    else if (m_pMachine->configuration().contains(m_pStateMana))
-        m_enmState = State_Managers;
 
     /* Update layout one more final time: */
     m_pParent->updateLayout();
@@ -247,10 +231,8 @@ void UIToolsAnimationEngine::prepareMachine()
         /* Prepare states: */
         m_pStateHome = new QState(m_pMachine);
         m_pStateMach = new QState(m_pMachine);
-        m_pStateMana = new QState(m_pMachine);
         prepareStateHome();
         prepareStateMachines();
-        prepareStateManagers();
     }
 }
 
@@ -260,7 +242,6 @@ void UIToolsAnimationEngine::prepareStateHome()
     if (m_pStateHome)
     {
         m_pStateHome->assignProperty(m_pParent, "animationProgressMachines", 0);
-        m_pStateHome->assignProperty(m_pParent, "animationProgressManagers", 0);
 
         /* Add Home=>Machines state transition: */
         QSignalTransition *pHomeToMachines = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
@@ -269,15 +250,6 @@ void UIToolsAnimationEngine::prepareStateHome()
             /* Create animation for animationProgressMachines: */
             UIToolItemAnimation *pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, true);
             pHomeToMachines->addAnimation(pAnmHomeMach);
-        }
-
-        /* Add Home=>Managers state transition: */
-        QSignalTransition *pHomeToManagers = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
-        if (pHomeToManagers)
-        {
-            /* Create animation for animationProgressManagers: */
-            UIToolItemAnimation *pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, true);
-            pHomeToManagers->addAnimation(pAnmHomeMana);
         }
     }
 }
@@ -288,7 +260,6 @@ void UIToolsAnimationEngine::prepareStateMachines()
     if (m_pStateMach)
     {
         m_pStateMach->assignProperty(m_pParent, "animationProgressMachines", 100);
-        m_pStateMach->assignProperty(m_pParent, "animationProgressManagers", 0);
 
         /* Add Machines=>Home state transition: */
         QSignalTransition *pMachinesToHome = m_pStateMach->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
@@ -298,51 +269,6 @@ void UIToolsAnimationEngine::prepareStateMachines()
             UIToolItemAnimation *pAnmMachHome = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, false);
             pMachinesToHome->addAnimation(pAnmMachHome);
         }
-
-        /* Add Machines=>Managers state transition: */
-        QSignalTransition *pMachinesToManagers = m_pStateMach->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
-        if (pMachinesToManagers)
-        {
-            /* Create animation for animationProgressMachines: */
-            UIToolItemAnimation *pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, false);
-            pMachinesToManagers->addAnimation(pAnmMachMana1);
-
-            /* Create animation for animationProgressManagers: */
-            UIToolItemAnimation *pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, true);
-            pMachinesToManagers->addAnimation(pAnmMachMana2);
-        }
-    }
-}
-
-void UIToolsAnimationEngine::prepareStateManagers()
-{
-    /* Configure Managers state: */
-    if (m_pStateMana)
-    {
-        m_pStateMana->assignProperty(m_pParent, "animationProgressMachines", 0);
-        m_pStateMana->assignProperty(m_pParent, "animationProgressManagers", 100);
-
-        /* Add Managers=>Home state transition: */
-        QSignalTransition *pManagersToHome = m_pStateMana->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
-        if (pManagersToHome)
-        {
-            /* Create animation for animationProgressManagers: */
-            UIToolItemAnimation *pAnmManaHome = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, false);
-            pManagersToHome->addAnimation(pAnmManaHome);
-        }
-
-        /* Add Managers=>Machines state transition: */
-        QSignalTransition *pManagersToMachines = m_pStateMana->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
-        if (pManagersToMachines)
-        {
-            /* Create animation for animationProgressMachines: */
-            UIToolItemAnimation *pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, true);
-            pManagersToMachines->addAnimation(pAnmManaMach1);
-
-            /* Create animation for animationProgressManagers: */
-            UIToolItemAnimation *pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, false);
-            pManagersToMachines->addAnimation(pAnmManaMach2);
-        }
     }
 }
 
@@ -351,10 +277,8 @@ void UIToolsAnimationEngine::prepareConnections()
     connect(m_pParent, &UIToolsModel::sigSelectionChanged, this, &UIToolsAnimationEngine::sltHandleSelectionChanged);
     connect(this, &UIToolsAnimationEngine::sigSelectedHome, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
     connect(this, &UIToolsAnimationEngine::sigSelectedMach, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
-    connect(this, &UIToolsAnimationEngine::sigSelectedMana, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
     connect(m_pStateHome, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
     connect(m_pStateMach, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
-    connect(m_pStateMana, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
 }
 
 
@@ -373,9 +297,7 @@ UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass, UIActionPool 
     , m_fShowItemNames(gEDataManager->isToolTextVisible())
     , m_pAnimationEngine(0)
     , m_iOverallShiftMachines(0)
-    , m_iOverallShiftManagers(0)
     , m_iAnimatedShiftMachines(0)
-    , m_iAnimatedShiftManagers(0)
 {
     prepare();
 }
@@ -545,14 +467,12 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     {
         /* Is there something changed? */
         if (   !m_mapCurrentItems.value(UIToolClass_Global)
-            && !m_mapCurrentItems.value(UIToolClass_Machine)
-            && !m_mapCurrentItems.value(UIToolClass_Management))
+            && !m_mapCurrentItems.value(UIToolClass_Machine))
             return;
 
         /* Clear all current items: */
         m_mapCurrentItems[UIToolClass_Global] = 0;
         m_mapCurrentItems[UIToolClass_Machine] = 0;
-        m_mapCurrentItems[UIToolClass_Management] = 0;
 
         /* Notify about selection change: */
         emit sigSelectionChanged(UIToolType_Invalid);
@@ -651,25 +571,6 @@ void UIToolsModel::updateLayout()
                             iVerticalIndentGlobal += iShift;
                             break;
                         }
-                        case UIToolType_Managers:
-                        {
-                            const double fRatio = (double)animationProgressManagers() / 50 /* make it from 0.0 to 2.0 */;
-                            int iShift = 0;
-                            if (m_pAnimationEngine->state() == UIToolsAnimationEngine::State_LeavingManagers)
-                            {
-                                /* Leaving animation uses fRatio from 2.0 to 1.0: */
-                                iShift = overallShiftManagers() * (fRatio - 1);
-                                iShift = qMax(iShift, 0);
-                            }
-                            else
-                            {
-                                /* Entering animation uses fRatio from 0.0 to 1.0: */
-                                iShift = overallShiftManagers() * fRatio;
-                                iShift = qMin(iShift, overallShiftManagers());
-                            }
-                            iVerticalIndentGlobal += iShift;
-                            break;
-                        }
                         default:
                             break;
                     }
@@ -678,7 +579,6 @@ void UIToolsModel::updateLayout()
                 break;
             }
             case UIToolClass_Machine:
-            case UIToolClass_Management:
             {
                 /* Acquire item properties: */
                 const int iItemHeight = pItem->minimumHeightHint();
@@ -696,14 +596,6 @@ void UIToolsModel::updateLayout()
                             iPos = iPos
                                  + (4.0 - fRatio) * iViewportWidth /* move item from off-screen space */
                                  + iVerticalIndentSub - fRatio / 4 * overallShiftMachines() /* desync item movement */;
-                            break;
-                        }
-                        case UIToolClass_Management:
-                        {
-                            const double fRatio = (double)animationProgressManagers() / 25 /* make it from 0.0 to 4.0 */;
-                            iPos = iPos
-                                 + (4.0 - fRatio) * iViewportWidth /* move item from off-screen space */
-                                 + iVerticalIndentSub - fRatio / 4 * overallShiftManagers() /* desync item movement */;
                             break;
                         }
                         default: break;
@@ -857,7 +749,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                         }
                         case UIToolClass_Global:
                         case UIToolClass_Machine:
-                        case UIToolClass_Management:
                         {
                             /* Make clicked item the current one: */
                             if (pClickedItem->isEnabled())
@@ -898,20 +789,18 @@ void UIToolsModel::sltRetranslateUI()
             case UIToolType_Toggle:      pItem->setName(tr("Show text")); break;
             // Global
             case UIToolType_Home:        pItem->setName(tr("Home")); break;
-            case UIToolType_Machines:    pItem->setName(tr("VMs")); break;
-            case UIToolType_Managers:    pItem->setName(tr("Tools")); break;
+            case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
+            case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
+            case UIToolType_Media:       pItem->setName(tr("Media")); break;
+            case UIToolType_Network:     pItem->setName(tr("Network")); break;
+            case UIToolType_Cloud:       pItem->setName(tr("Cloud")); break;
+            case UIToolType_Activities:  pItem->setName(tr("Activities")); break;
             // Machine
             case UIToolType_Details:     pItem->setName(tr("Details")); break;
             case UIToolType_Snapshots:   pItem->setName(tr("Snapshots")); break;
             case UIToolType_Logs:        pItem->setName(tr("Logs")); break;
             case UIToolType_VMActivity:  pItem->setName(tr("Activity")); break;
             case UIToolType_FileManager: pItem->setName(tr("File Manager")); break;
-            // Management
-            case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
-            case UIToolType_Media:       pItem->setName(tr("Media")); break;
-            case UIToolType_Network:     pItem->setName(tr("Network")); break;
-            case UIToolType_Cloud:       pItem->setName(tr("Cloud")); break;
-            case UIToolType_Activities:  pItem->setName(tr("Activities")); break;
             default: break;
         }
     }
@@ -975,37 +864,30 @@ void UIToolsModel::prepareItems()
                                    UIToolType_FileManager);
     }
 
-    /* Management: */
+    /* Extensions: */
     m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
                                                             ":/extension_pack_manager_disabled_24px.png"),
-                               UIToolType_Managers);
+                               UIToolType_Extensions);
 
-    {
-        /* Extensions: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
-                                                                ":/extension_pack_manager_disabled_24px.png"),
-                                   UIToolType_Extensions);
+    /* Media: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/media_manager_24px.png",
+                                                            ":/media_manager_disabled_24px.png"),
+                               UIToolType_Media);
 
-        /* Media: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/media_manager_24px.png",
-                                                                ":/media_manager_disabled_24px.png"),
-                                   UIToolType_Media);
+    /* Network: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/host_iface_manager_24px.png",
+                                                            ":/host_iface_manager_disabled_24px.png"),
+                               UIToolType_Network);
 
-        /* Network: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/host_iface_manager_24px.png",
-                                                                ":/host_iface_manager_disabled_24px.png"),
-                                   UIToolType_Network);
+    /* Cloud: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/cloud_profile_manager_24px.png",
+                                                            ":/cloud_profile_manager_disabled_24px.png"),
+                               UIToolType_Cloud);
 
-        /* Cloud: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/cloud_profile_manager_24px.png",
-                                                                ":/cloud_profile_manager_disabled_24px.png"),
-                                   UIToolType_Cloud);
-
-        /* Activities: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
-                                                                ":/resources_monitor_disabled_24px.png"),
-                                   UIToolType_Activities);
-    }
+    /* Activities: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
+                                                            ":/resources_monitor_disabled_24px.png"),
+                               UIToolType_Activities);
 
     /* Toggle: */
     m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
@@ -1035,10 +917,10 @@ void UIToolsModel::prepareConnections()
 void UIToolsModel::loadCurrentItems()
 {
     /* Load last tool types: */
-    UIToolType enmTypeGlobal, enmTypeMachine, enmTypeManagment;
-    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine, enmTypeManagment);
-    LogRel2(("GUI: UIToolsModel: Restoring tool items as: Global=%d, Machine=%d, Management=%d\n",
-             (int)enmTypeGlobal, (int)enmTypeMachine, (int)enmTypeManagment));
+    UIToolType enmTypeGlobal, enmTypeMachine;
+    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
+    LogRel2(("GUI: UIToolsModel: Restoring tool items as: Global=%d, Machine=%d\n",
+             (int)enmTypeGlobal, (int)enmTypeMachine));
     UIToolsItem *pItem = 0;
 
     /* Global: */
@@ -1052,32 +934,24 @@ void UIToolsModel::loadCurrentItems()
     if (!pItem)
         pItem = item(UIToolType_Details);
     setCurrentItem(pItem);
-
-    /* Management: */
-    pItem = item(enmTypeManagment);
-    if (!pItem)
-        pItem = item(UIToolType_Extensions);
-    setCurrentItem(pItem);
 }
 
 void UIToolsModel::saveCurrentItems()
 {
     /* Load last tool types: */
-    UIToolType enmTypeGlobal, enmTypeMachine, enmTypeManagment;
-    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine, enmTypeManagment);
+    UIToolType enmTypeGlobal, enmTypeMachine;
+    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 
     /* Gather actual values, we are going to save them: */
     if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
         enmTypeGlobal = pItem->itemType();
     if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
         enmTypeMachine = pItem->itemType();
-    if (UIToolsItem *pItem = currentItem(UIToolClass_Management))
-        enmTypeManagment = pItem->itemType();
 
     /* Save selected items data: */
-    LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d, Management=%d\n",
-             (int)enmTypeGlobal, (int)enmTypeMachine, (int)enmTypeManagment));
-    gEDataManager->setToolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine, enmTypeManagment);
+    LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d\n",
+             (int)enmTypeGlobal, (int)enmTypeMachine));
+    gEDataManager->setToolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 }
 
 void UIToolsModel::cleanupItems()
@@ -1119,32 +993,11 @@ void UIToolsModel::recalculateOverallShifts(UIToolClass enmClass /* = UIToolClas
         if (m_iOverallShiftMachines)
             m_iOverallShiftMachines -= iSpacing;
     }
-
-    /* Recalculate minimum vertical hint for items of Management class: */
-    if (   enmClass == UIToolClass_Invalid
-        || enmClass == UIToolClass_Management)
-    {
-        const QList<UIToolType> types = restrictedToolTypes(UIToolClass_Management);
-        m_iOverallShiftManagers = 0;
-        AssertReturnVoid(!items().isEmpty());
-        foreach (UIToolsItem *pItem, items())
-            if (   !types.contains(pItem->itemType())
-                && pItem->itemClass() == UIToolClass_Management)
-                m_iOverallShiftManagers += pItem->minimumHeightHint() + iSpacing;
-        if (m_iOverallShiftManagers)
-            m_iOverallShiftManagers -= iSpacing;
-    }
 }
 
 void UIToolsModel::setAnimationProgressMachines(int iAnimatedValue)
 {
     m_iAnimatedShiftMachines = iAnimatedValue;
-    updateLayout();
-}
-
-void UIToolsModel::setAnimationProgressManagers(int iAnimatedValue)
-{
-    m_iAnimatedShiftManagers = iAnimatedValue;
     updateLayout();
 }
 

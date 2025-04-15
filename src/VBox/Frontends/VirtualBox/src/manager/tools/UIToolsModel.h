@@ -53,7 +53,6 @@ class UIToolsModel : public QObject
 {
     Q_OBJECT;
     Q_PROPERTY(int animationProgressMachines READ animationProgressMachines WRITE setAnimationProgressMachines);
-    Q_PROPERTY(int animationProgressManagers READ animationProgressManagers WRITE setAnimationProgressManagers);
 
 signals:
 
@@ -221,20 +220,14 @@ private:
      * @{ */
         /** Returns Machines overall shift. */
         int overallShiftMachines() const { return m_iOverallShiftMachines; }
-        /** Returns Managers overall shift. */
-        int overallShiftManagers() const { return m_iOverallShiftManagers; }
         /** Recalculates overall shifts.
           * @param  enmClass  Brings tool-class for which shift should be recalculated. */
         void recalculateOverallShifts(UIToolClass enmClass = UIToolClass_Invalid);
 
         /** Returns Machines animation progress. */
         int animationProgressMachines() const { return m_iAnimatedShiftMachines; }
-        /** Returns Managers animation progress. */
-        int animationProgressManagers() const { return m_iAnimatedShiftManagers; }
         /** Defines Machines animation @a iProgress. */
         void setAnimationProgressMachines(int iProgress);
-        /** Defines Managers animation @a iProgress. */
-        void setAnimationProgressManagers(int iProgress);
     /** @} */
 
     /** @name General stuff.
@@ -286,13 +279,9 @@ private:
 
         /** Holds the Machines overall shift. */
         int  m_iOverallShiftMachines;
-        /** Holds the Managers overall shift. */
-        int  m_iOverallShiftManagers;
 
         /** Holds the Machines animated shift. */
         int  m_iAnimatedShiftMachines;
-        /** Holds the Managers animated shift. */
-        int  m_iAnimatedShiftManagers;
     /** @} */
 };
 

@@ -943,16 +943,6 @@ void UIVirtualBoxManager::sltHandleMachineToolTypeChange()
     sltCloseManagerWindow(m_pWidget->toolsTypeMachine());
 }
 
-void UIVirtualBoxManager::sltHandleManagementToolTypeChange()
-{
-    /* Update actions stuff: */
-    updateActionsVisibility();
-    updateActionsAppearance();
-
-    /* Make sure separate dialog closed when corresponding tool opened: */
-    sltCloseManagerWindow(m_pWidget->toolsTypeManagement());
-}
-
 void UIVirtualBoxManager::sltCreateMedium()
 {
     /* Open Create VD Wizard: */
@@ -1016,11 +1006,6 @@ void UIVirtualBoxManager::sltOpenManagerWindow(UIToolType enmType /* = UIToolTyp
     {
         m_pWidget->setToolsTypeMachine(UIToolType_Details);
         m_pWidget->closeMachineTool(enmType);
-    }
-    if (m_pWidget->isManagementToolOpened(enmType))
-    {
-        m_pWidget->setToolsTypeManagement(UIToolType_Extensions);
-        m_pWidget->closeManagementTool(enmType);
     }
 
     /* Create instance if not yet created: */
@@ -1205,10 +1190,6 @@ void UIVirtualBoxManager::sltPerformSwitchToTool(QAction *pAction)
         case UIToolClass_Machine:
             m_pWidget->setToolsTypeGlobal(UIToolType_Machines);
             m_pWidget->setToolsTypeMachine(enmType);
-            break;
-        case UIToolClass_Management:
-            m_pWidget->setToolsTypeGlobal(UIToolType_Managers);
-            m_pWidget->setToolsTypeManagement(enmType);
             break;
         default:
             AssertFailedReturnVoid();
@@ -2518,8 +2499,6 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltHandleGlobalToolTypeChange);
     connect(m_pWidget, &UIVirtualBoxWidget::sigToolTypeChangeMachine,
             this, &UIVirtualBoxManager::sltHandleMachineToolTypeChange);
-    connect(m_pWidget, &UIVirtualBoxWidget::sigToolTypeChangeManagement,
-            this, &UIVirtualBoxManager::sltHandleManagementToolTypeChange);
     connect(m_pWidget, &UIVirtualBoxWidget::sigCreateMedium,
             this, &UIVirtualBoxManager::sltCreateMedium);
     connect(m_pWidget, &UIVirtualBoxWidget::sigCopyMedium,

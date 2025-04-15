@@ -149,8 +149,6 @@ private slots:
         void sltHandleGlobalToolTypeChange();
         /** Handles signal about Machine Tool type change.  */
         void sltHandleMachineToolTypeChange();
-        /** Handles signal about Management Tool type change.  */
-        void sltHandleManagementToolTypeChange();
 
         /** Handles create medium request. */
         void sltCreateMedium();

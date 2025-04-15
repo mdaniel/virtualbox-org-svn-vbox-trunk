@@ -42,7 +42,6 @@
 #include "UIGlobalSession.h"
 #include "UIHomePane.h"
 #include "UIMachineToolsWidget.h"
-#include "UIManagementToolsWidget.h"
 #include "UIMediumManager.h"
 #include "UINetworkManager.h"
 #include "UISnapshotPane.h"
@@ -64,7 +63,6 @@ UIToolPane::UIToolPane(QWidget *pParent, UIToolClass enmClass, UIActionPool *pAc
     , m_pLayout(0)
     , m_pPaneHome(0)
     , m_pPaneMachines(0)
-    , m_pPaneManagement(0)
     , m_pPaneExtensions(0)
     , m_pPaneMedia(0)
     , m_pPaneNetwork(0)
@@ -158,26 +156,6 @@ void UIToolPane::openTool(UIToolType enmType)
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneMachines);
                     m_pLayout->setCurrentWidget(m_pPaneMachines);
-                }
-                break;
-            }
-            case UIToolType_Managers:
-            {
-                /* Create Management Tools Widget: */
-                m_pPaneManagement = new UIManagementToolsWidget(this, m_pActionPool);
-                AssertPtrReturnVoid(m_pPaneManagement);
-                {
-                    /* Configure pane: */
-                    m_pPaneManagement->setProperty("ToolType", QVariant::fromValue(UIToolType_Managers));
-                    /// @todo connect!
-#ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneManagement->setContentsMargins(iMargin, 0, iMargin, 0);
-#endif
-
-                    /* Add into layout: */
-                    m_pLayout->addWidget(m_pPaneManagement);
-                    m_pLayout->setCurrentWidget(m_pPaneManagement);
                 }
                 break;
             }
@@ -439,7 +417,6 @@ void UIToolPane::closeTool(UIToolType enmType)
         {
             case UIToolType_Home:        m_pPaneHome = 0; break;
             case UIToolType_Machines:    m_pPaneMachines = 0; break;
-            case UIToolType_Managers:    m_pPaneManagement = 0; break;
             case UIToolType_Extensions:  m_pPaneExtensions = 0; break;
             case UIToolType_Media:       m_pPaneMedia = 0; break;
             case UIToolType_Network:     m_pPaneNetwork = 0; break;
@@ -473,9 +450,6 @@ QString UIToolPane::currentHelpKeyword() const
             break;
         case UIToolType_Machines:
             pCurrentToolWidget = m_pPaneMachines;
-            break;
-        case UIToolType_Managers:
-            pCurrentToolWidget = m_pPaneManagement;
             break;
         case UIToolType_Extensions:
             pCurrentToolWidget = m_pPaneExtensions;
@@ -519,11 +493,6 @@ QString UIToolPane::currentHelpKeyword() const
 UIMachineToolsWidget *UIToolPane::machineToolsWidget() const
 {
     return m_pPaneMachines;
-}
-
-UIManagementToolsWidget *UIToolPane::managementToolsWidget() const
-{
-    return m_pPaneManagement;
 }
 
 void UIToolPane::setErrorDetails(const QString &strDetails)
@@ -618,8 +587,6 @@ void UIToolPane::prepare()
             openTool(UIToolType_Home);
             /* Create machines pane: */
             openTool(UIToolType_Machines);
-            /* Create managers pane: */
-            openTool(UIToolType_Managers);
 
             break;
         }
@@ -627,13 +594,6 @@ void UIToolPane::prepare()
         {
             /* Create Details pane: */
             openTool(UIToolType_Details);
-
-            break;
-        }
-        case UIToolClass_Management:
-        {
-            /* Create Extensions pane: */
-            openTool(UIToolType_Extensions);
 
             break;
         }

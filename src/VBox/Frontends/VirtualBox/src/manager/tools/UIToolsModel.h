@@ -123,8 +123,6 @@ public:
 
         /** Defines restricted tool @a types for the @a enmClass specified. */
         void setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types);
-        /** Defines whether the @a enmClass specified is @a fUnsuitable. */
-        void setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable);
 
         /** Returns restricted tool types for the @a enmClass specified. */
         QList<UIToolType> restrictedToolTypes(UIToolClass enmClass) const;
@@ -254,10 +252,6 @@ private:
 
         /** Holds a map of restricted tool types. */
         QMap<UIToolClass, QList<UIToolType> >  m_mapRestrictedToolTypes;
-        /** Holds a map of unsuitable tool classes. */
-        QMap<UIToolClass, bool>                m_mapUnsuitableToolClasses;
-        /** Holds a map of animated tool classes. */
-        QMap<UIToolClass, bool>                m_mapAnimatedToolClasses;
     /** @} */
 
     /** @name Children stuff.

@@ -397,25 +397,6 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
     }
 }
 
-void UIToolsModel::setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable)
-{
-    if (m_mapUnsuitableToolClasses.value(enmClass) != fUnsuitable)
-    {
-        m_mapUnsuitableToolClasses[enmClass] = fUnsuitable;
-        foreach (UIToolsItem *pItem, items())
-        {
-            if (pItem->itemClass() != enmClass)
-                continue;
-            pItem->setHiddenByReason(fUnsuitable, UIToolsItem::HidingReason_Unsuitable);
-        }
-
-        /* Update linked values: */
-        updateLayout();
-        sltItemMinimumWidthHintChanged();
-        sltItemMinimumHeightHintChanged();
-    }
-}
-
 QList<UIToolType> UIToolsModel::restrictedToolTypes(UIToolClass enmClass) const
 {
     return m_mapRestrictedToolTypes.value(enmClass);

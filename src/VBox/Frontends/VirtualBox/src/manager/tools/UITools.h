@@ -82,8 +82,6 @@ public:
 
         /** Defines restricted tool @a types for the @a enmClass specified. */
         void setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types);
-        /** Defines whether the @a enmClass specified is @a fUnsuitable. */
-        void setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable);
     /** @} */
 
 private:

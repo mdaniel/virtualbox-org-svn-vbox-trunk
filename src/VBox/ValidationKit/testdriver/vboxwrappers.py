@@ -1985,6 +1985,23 @@ class SessionWrapper(TdTaskBase):
             self.oTstDrv.processPendingEvents();
         return True;
 
+    def ensureStorageControllerPortCount(self, sController, iPort):
+        """
+        Makes sure the specified controller attched to the VM has the necessary number of ports,
+        trying to set them if not.
+        """
+        try:
+            oCtl = self.o.machine.getStorageControllerByName(sController)
+            if iPort >= oCtl.portCount:
+                oCtl.portCount = iPort + 1
+                self.oTstDrv.processPendingEvents()
+                reporter.log('set controller "%s" port count to value %d' % (sController, iPortCount + 1))
+            return True
+        except:
+            reporter.log('unable to set storage controller "%s" ports count to %d' % (sController, iPortCount))
+
+        return False
+
     def setStorageControllerPortCount(self, sController, iPortCount):
         """
         Set maximum ports count for storage controller
@@ -2068,6 +2085,8 @@ class SessionWrapper(TdTaskBase):
 
         if not self.ensureControllerAttached(sController):
             return False;
+        if not self.ensureStorageControllerPortCount(sController, iPort):
+            return False;
 
         # Find/register the image if specified.
         oImage = None;
@@ -2126,6 +2145,8 @@ class SessionWrapper(TdTaskBase):
             return None;
 
         if not self.ensureControllerAttached(sController):
+            return False;
+        if not self.ensureStorageControllerPortCount(sController, iPort):
             return False;
 
         # Find the HD, registering it if necessary (as immutable).
@@ -2236,6 +2257,8 @@ class SessionWrapper(TdTaskBase):
         Returns True on success and False on failure.  Error information is logged.
         """
         if not self.ensureControllerAttached(sController):
+            return False;
+        if not self.ensureStorageControllerPortCount(sController, iPort):
             return False;
 
         oHd = self.createBaseHd(sHd, sFmt, cb, cMsTimeout, tMediumVariant);

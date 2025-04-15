@@ -4857,6 +4857,9 @@ void UIExtraDataManager::sltExtraDataChange(const QUuid &uMachineID, const QStri
             /* Runtime UI host-key combintation changed? */
             else if (strKey == GUI_Input_HostKeyCombination)
                 emit sigRuntimeUIHostKeyCombinationChange();
+            /* Tool labels visibility changed? */
+            else if (strKey == GUI_Tools_Text)
+                emit sigToolLabelsVisibilityChange(isToolTextVisible());
             /* Cloud Profile Manager restrictions changed: */
             else if (strKey == GUI_CloudProfileManager_Restrictions)
                 emit sigCloudProfileManagerRestrictionChange();

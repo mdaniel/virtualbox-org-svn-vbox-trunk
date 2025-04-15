@@ -694,15 +694,8 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                             {
                                 case UIToolType_Toggle:
                                 {
-                                    /* Toggle the button: */
-                                    m_fShowItemNames = !m_fShowItemNames;
-                                    /* Update geometry for all the items: */
-                                    foreach (UIToolsItem *pItem, m_items)
-                                        pItem->updateGeometry();
-                                    /* Recalculate layout: */
-                                    updateLayout();
                                     /* Save the change: */
-                                    gEDataManager->setToolTextVisible(m_fShowItemNames);
+                                    gEDataManager->setToolTextVisible(!m_fShowItemNames);
                                     return true;
                                 }
                                 default:
@@ -767,6 +760,17 @@ void UIToolsModel::sltRetranslateUI()
             default: break;
         }
     }
+}
+
+void UIToolsModel::sltHandleToolLabelsVisibilityChange(bool fVisible)
+{
+    /* Toggle the button: */
+    m_fShowItemNames = fVisible;
+    /* Update geometry for all the items: */
+    foreach (UIToolsItem *pItem, m_items)
+        pItem->updateGeometry();
+    /* Recalculate layout: */
+    updateLayout();
 }
 
 void UIToolsModel::prepare()
@@ -889,6 +893,10 @@ void UIToolsModel::prepareConnections()
     /* Translation stuff: */
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIToolsModel::sltRetranslateUI);
+
+    /* Extra-data stuff: */
+    connect(gEDataManager, &UIExtraDataManager::sigToolLabelsVisibilityChange,
+            this, &UIToolsModel::sltHandleToolLabelsVisibilityChange);
 }
 
 void UIToolsModel::loadCurrentItems()

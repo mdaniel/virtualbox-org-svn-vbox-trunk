@@ -93,6 +93,9 @@ signals:
     /** Notifies about Runtime UI host-key combination change. */
     void sigRuntimeUIHostKeyCombinationChange();
 
+    /** Notifies about tool labels visibility change. */
+    void sigToolLabelsVisibilityChange(bool fVisible);
+
     /** Notifies about Cloud Profile Manager restriction change. */
     void sigCloudProfileManagerRestrictionChange();
 

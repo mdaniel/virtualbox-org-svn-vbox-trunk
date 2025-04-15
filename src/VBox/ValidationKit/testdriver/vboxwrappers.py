@@ -1995,10 +1995,10 @@ class SessionWrapper(TdTaskBase):
             if iPort >= oCtl.portCount:
                 oCtl.portCount = iPort + 1
                 self.oTstDrv.processPendingEvents()
-                reporter.log('set controller "%s" port count to value %d' % (sController, iPortCount + 1))
+                reporter.log('set controller "%s" port count to value %d' % (sController, iPort + 1))
             return True
         except:
-            reporter.log('unable to set storage controller "%s" ports count to %d' % (sController, iPortCount))
+            reporter.log('unable to set storage controller "%s" ports count to %d' % (sController, iPort))
 
         return False
 

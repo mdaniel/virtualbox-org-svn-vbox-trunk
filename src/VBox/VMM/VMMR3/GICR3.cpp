@@ -307,9 +307,9 @@ static DECLCALLBACK(void) gicR3DbgInfoIts(PVM pVM, PCDBGFINFOHLP pHlp, const cha
 static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     NOREF(pszArgs);
-    PGIC       pGic     = VM_TO_GIC(pVM);
-    PPDMDEVINS pDevIns  = pGic->CTX_SUFF(pDevIns);
-    PCGICDEV   pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    PGIC       pGic    = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     if (!pGicDev->fLpi)
     {
         pHlp->pfnPrintf(pHlp, "GIC LPI support is not enabled for the VM\n");
@@ -370,7 +370,7 @@ static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicCpu->bmLpiPending); i += 8)
     {
         pHlp->pfnPrintf(pHlp, "    [%3u..%-3u] = %08RX64 %08RX64 %08RX64 %08RX64 %08RX64 %08RX64 %08RX64 %08RX64\n",
-                              i,                                    i + 7,
+                              i,                             i + 7,
                               pGicCpu->bmLpiPending[i],      pGicCpu->bmLpiPending[i + 1],
                               pGicCpu->bmLpiPending[i + 2],  pGicCpu->bmLpiPending[i + 3],
                               pGicCpu->bmLpiPending[i + 4],  pGicCpu->bmLpiPending[i + 5],

@@ -113,6 +113,7 @@ TPM_RESULT TPM_NVRAM_Init(void)
     }
 #endif
 
+#ifndef VBOX
     printf(" TPM_NVRAM_Init:\n");
 #ifdef TPM_NV_DISK
     /* TPM_NV_DISK TPM emulation stores in local directory determined by environment variable. */
@@ -140,6 +141,9 @@ TPM_RESULT TPM_NVRAM_Init(void)
         printf("TPM_NVRAM_Init: Rooted state path %s\n", state_directory);
     }
     return rc;
+#else
+    return TPM_FAIL;
+#endif
 }
 
 /* Load 'data' of 'length' from the 'name'.

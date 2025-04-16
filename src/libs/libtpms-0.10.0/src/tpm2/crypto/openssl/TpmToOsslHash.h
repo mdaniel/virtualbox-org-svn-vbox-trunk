@@ -96,6 +96,18 @@ int sm3_final(unsigned char* md, SM3_CTX* c);
 
 #include <openssl/ossl_typ.h>
 
+#if defined(VBOX)
+/*
+ * Our openssl symbol mangling clashes with teh defines below prefixing them with VBox_
+ * which of course breaks everything else... Lets just hope libtpms doesn't call SHA512(), etc.
+ */
+# undef SHA1
+# undef SHA256
+# undef SHA384
+# undef SHA512
+# undef HMAC
+#endif
+
 //***************************************************************
 //** Links to the OpenSSL HASH code
 //***************************************************************

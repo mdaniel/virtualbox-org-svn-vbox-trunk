@@ -133,6 +133,7 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/Attest_spt.c \
 	src/tpm2/AuditCommands.c \
 	src/tpm2/Bits.c \
+	src/tpm2/BnEccConstants.c \
 	src/tpm2/BnConvert.c \
 	src/tpm2/BnMath.c \
 	src/tpm2/BnMemory.c \
@@ -158,6 +159,7 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/Entropy.c \
 	src/tpm2/EphemeralCommands.c \
 	src/tpm2/ExecCommand.c \
+	src/tpm2/ExtraData.c \
 	src/tpm2/Global.c \
 	src/tpm2/Handle.c \
 	src/tpm2/HashCommands.c \
@@ -183,6 +185,7 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/PCR.c \
 	src/tpm2/PlatformACT.c \
 	src/tpm2/PlatformData.c \
+	src/tpm2/PlatformPCR.c \
 	src/tpm2/Policy_spt.c \
 	src/tpm2/Power.c \
 	src/tpm2/PowerPlat.c \
@@ -204,23 +207,39 @@ VBox-libtpms_tpm2_SOURCES        = \
 	src/tpm2/Ticket.c \
 	src/tpm2/Time.c \
 	src/tpm2/TpmAsn1.c \
+	src/tpm2/TpmBigNumThunks.c \
+	src/tpm2/TpmEcc_Signature_ECDAA.c \
+	src/tpm2/TpmEcc_Signature_ECDSA.c \
+	src/tpm2/TpmEcc_Signature_Schnorr.c \
+	src/tpm2/TpmEcc_Signature_SM2.c \
+	src/tpm2/TpmEcc_Signature_Util.c \
+	src/tpm2/TpmEcc_Util.c \
+	src/tpm2/TpmMath_Debug.c \
+	src/tpm2/TpmMath_Util.c \
 	src/tpm2/TpmSizeChecks.c \
 	src/tpm2/TPMCmdp.c \
 	src/tpm2/TpmFail.c \
 	src/tpm2/Unique.c \
 	src/tpm2/Unmarshal.c \
+	src/tpm2/VendorInfo.c \
 	src/tpm2/Vendor_TCG_Test.c \
 	src/tpm2/X509_ECC.c \
 	src/tpm2/X509_RSA.c \
 	src/tpm2/X509_spt.c \
+	src/tpm2/BackwardsCompatibilityBitArray.c \
 	src/tpm2/BackwardsCompatibilityObject.c \
 	src/tpm2/LibtpmsCallbacks.c \
 	src/tpm2/NVMarshal.c \
+	src/tpm2/RuntimeAlgorithm.c \
+	src/tpm2/RuntimeAttributes.c \
+	src/tpm2/RuntimeCommands.c \
+	src/tpm2/RuntimeProfile.c \
 	src/tpm2/StateMarshal.c \
 	src/tpm2/Volatile.c \
 	src/tpm2/crypto/openssl/BnToOsslMath.c \
 	src/tpm2/crypto/openssl/CryptCmac.c \
 	src/tpm2/crypto/openssl/CryptDes.c \
+	src/tpm2/crypto/openssl/CryptEccCrypt.c \
 	src/tpm2/crypto/openssl/CryptEccKeyExchange.c \
 	src/tpm2/crypto/openssl/CryptEccMain.c \
 	src/tpm2/crypto/openssl/CryptEccSignature.c \

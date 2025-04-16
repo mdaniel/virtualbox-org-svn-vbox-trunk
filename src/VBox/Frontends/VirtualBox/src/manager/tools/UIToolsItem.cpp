@@ -588,7 +588,9 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Configure painter: */
         pPainter->setRenderHint(QPainter::Antialiasing, true);
         /* Acquire background color: */
-        const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+        const QColor backgroundColor = model() && model()->view()
+                                     ? model()->view()->palette().color(QPalette::Active, QPalette::Base)
+                                     : pal.color(QPalette::Active, QPalette::Window);
 
         /* Prepare icon sub-rect: */
         QRect subRect;

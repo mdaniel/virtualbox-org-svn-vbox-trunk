@@ -441,9 +441,20 @@ QVariant UIToolsItem::data(int iKey) const
     switch (iKey)
     {
         /* Layout hints: */
-        case ToolsItemData_Margin:  return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
-        case ToolsItemData_Spacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
-        case ToolsItemData_Padding: return 4;
+        case ToolsItemData_Margin:
+        {
+            const int iHint = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
+            return iHint / 3 * 2;
+        }
+        case ToolsItemData_Spacing:
+        {
+            const int iHint = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
+            return m_enmClass == UIToolClass_Machine ? iHint / 4 : iHint / 2;
+        }
+        case ToolsItemData_Padding:
+        {
+            return 4;
+        }
 
         /* Font hints: */
         case Qt::FontRole:
@@ -460,7 +471,8 @@ QVariant UIToolsItem::data(int iKey) const
         }
 
         /* Default: */
-        default: break;
+        default:
+            break;
     }
     return QVariant();
 }

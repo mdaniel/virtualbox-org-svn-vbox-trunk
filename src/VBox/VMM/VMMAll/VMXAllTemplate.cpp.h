@@ -4483,8 +4483,7 @@ static void vmxHCTrpmTrapToPendingEvent(PVMCPUCC pVCpu)
     uint8_t     cbInstr;
     bool        fIcebp;
 
-    int rc = TRPMQueryTrapAll(pVCpu, &uVector, &enmTrpmEvent, &uErrCode, &GCPtrFaultAddress, &cbInstr, &fIcebp);
-    AssertRC(rc);
+    uVector = TRPMGetTrapAll(pVCpu, &enmTrpmEvent, &uErrCode, &GCPtrFaultAddress, &cbInstr, &fIcebp);
 
     uint32_t u32IntInfo;
     u32IntInfo  = uVector | VMX_IDT_VECTORING_INFO_VALID;

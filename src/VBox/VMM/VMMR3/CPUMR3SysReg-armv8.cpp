@@ -1,10 +1,10 @@
 /* $Id$ */
 /** @file
- * CPUM - CPU database part - ARMv8 specifics.
+ * CPUM - ARMv8 System Registers Management.
  */
 
 /*
- * Copyright (C) 2023-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2023-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,95 +33,11 @@
 #include <VBox/vmm/cpum.h>
 #include "CPUMInternal-armv8.h"
 #include <VBox/vmm/vm.h>
-#include <VBox/vmm/mm.h>
 
 #include <iprt/errcore.h>
 #include <iprt/armv8.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
-
-
-/*********************************************************************************************************************************
-*   Defined Constants And Macros                                                                                                 *
-*********************************************************************************************************************************/
-/** @def NULL_ALONE
- * For eliminating an unnecessary data dependency in standalone builds (for
- * VBoxSVC). */
-/** @def ZERO_ALONE
- * For eliminating an unnecessary data size dependency in standalone builds (for
- * VBoxSVC). */
-#ifndef CPUM_DB_STANDALONE
-# define NULL_ALONE(a_aTable)    a_aTable
-# define ZERO_ALONE(a_cTable)    a_cTable
-#else
-# define NULL_ALONE(a_aTable)    NULL
-# define ZERO_ALONE(a_cTable)    0
-#endif
-
-
-#ifndef CPUM_DB_STANDALONE
-
-/**
- * The database entries.
- *
- * 1. The first entry is special.  It is the fallback for unknown
- *    processors.  Thus, it better be pretty representative.
- *
- * 2. The first entry for a CPU vendor is likewise important as it is
- *    the default entry for that vendor.
- *
- * Generally we put the most recent CPUs first, since these tend to have the
- * most complicated and backwards compatible list of MSRs.
- */
-static CPUMDBENTRY const * const g_apCpumDbEntries[] =
-{
-    NULL
-};
-
-
-/**
- * Returns the number of entries in the CPU database.
- *
- * @returns Number of entries.
- * @sa      PFNCPUMDBGETENTRIES
- */
-VMMR3DECL(uint32_t)         CPUMR3DbGetEntries(void)
-{
-    return RT_ELEMENTS(g_apCpumDbEntries);
-}
-
-
-/**
- * Returns CPU database entry for the given index.
- *
- * @returns Pointer the CPU database entry, NULL if index is out of bounds.
- * @param   idxCpuDb            The index (0..CPUMR3DbGetEntries).
- * @sa      PFNCPUMDBGETENTRYBYINDEX
- */
-VMMR3DECL(PCCPUMDBENTRY)    CPUMR3DbGetEntryByIndex(uint32_t idxCpuDb)
-{
-    AssertReturn(idxCpuDb < RT_ELEMENTS(g_apCpumDbEntries), NULL);
-    return g_apCpumDbEntries[idxCpuDb];
-}
-
-
-/**
- * Returns CPU database entry with the given name.
- *
- * @returns Pointer the CPU database entry, NULL if not found.
- * @param   pszName             The name of the profile to return.
- * @sa      PFNCPUMDBGETENTRYBYNAME
- */
-VMMR3DECL(PCCPUMDBENTRY)    CPUMR3DbGetEntryByName(const char *pszName)
-{
-    AssertPtrReturn(pszName, NULL);
-    AssertReturn(*pszName, NULL);
-    for (size_t i = 0; i < RT_ELEMENTS(g_apCpumDbEntries); i++)
-        if (strcmp(g_apCpumDbEntries[i]->pszName, pszName) == 0)
-            return g_apCpumDbEntries[i];
-    return NULL;
-}
-
 
 
 /**
@@ -393,6 +309,4 @@ VMMR3DECL(int) CPUMR3SysRegRangesInsert(PVM pVM, PCCPUMSYSREGRANGE pNewRange)
 
     return cpumR3SysRegRangesInsert(pVM, NULL /* ppaSysRegRanges */, NULL /* pcSysRegRanges */, pNewRange);
 }
-
-#endif /* !CPUM_DB_STANDALONE */
 

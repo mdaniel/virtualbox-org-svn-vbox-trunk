@@ -59,17 +59,20 @@ static CPUMCPUIDLEAF const g_aCpuIdLeaves_Intel_80286[] =
 /**
  * Database entry for Intel(R) 80286.
  */
-static CPUMDBENTRY const g_Entry_Intel_80286 =
+static CPUMDBENTRYX86 const g_Entry_Intel_80286 =
 {
-    /*.pszName          = */ "Intel 80286",
-    /*.pszFullName      = */ "Intel(R) 80286",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel 80286",
+        /*.pszFullName  = */ "Intel(R) 80286",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_80286,
+        /*.fFlags       = */ CPUMDB_F_EXECUTE_ALL_IN_IEM,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 2,
     /*.uModel           = */ 0,
     /*.uStepping        = */ 0,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_80286,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ CPUMDB_F_EXECUTE_ALL_IN_IEM,
     /*.cMaxPhysAddrWidth= */ 24,
     /*.fMxCsrMask       = */ 0,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_80286),

@@ -256,17 +256,20 @@ static CPUMMSRRANGE const g_aMsrRanges_AMD_Phenom_II_X6_1100T[] =
 /**
  * Database entry for AMD Phenom(tm) II X6 1100T Processor.
  */
-static CPUMDBENTRY const g_Entry_AMD_Phenom_II_X6_1100T =
+static CPUMDBENTRYX86 const g_Entry_AMD_Phenom_II_X6_1100T =
 {
-    /*.pszName          = */ "AMD Phenom II X6 1100T",
-    /*.pszFullName      = */ "AMD Phenom(tm) II X6 1100T Processor",
-    /*.enmVendor        = */ CPUMCPUVENDOR_AMD,
+    {
+        /*.pszName      = */ "AMD Phenom II X6 1100T",
+        /*.pszFullName  = */ "AMD Phenom(tm) II X6 1100T Processor",
+        /*.enmVendor    = */ CPUMCPUVENDOR_AMD,
+        /*.enmMicroarch = */ kCpumMicroarch_AMD_K10,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 16,
     /*.uModel           = */ 10,
     /*.uStepping        = */ 0,
-    /*.enmMicroarch     = */ kCpumMicroarch_AMD_K10,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 48,
     /*.fMxCsrMask       = */ 0x2ffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_AMD_Phenom_II_X6_1100T),

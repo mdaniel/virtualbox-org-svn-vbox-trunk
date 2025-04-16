@@ -36,6 +36,8 @@
 #include "MediumFormatImpl.h"
 #include "SystemPropertiesWrap.h"
 
+#include <VBox/vmm/cpum.h> /* for CPUMDBENTRYTYPE */
+
 class CPUProfile;
 class PlatformProperties;
 
@@ -167,6 +169,8 @@ private:
     HRESULT i_setDefaultAdditionsISO(const com::Utf8Str &aPath);
     HRESULT i_setDefaultFrontend(const com::Utf8Str &aDefaultFrontend);
 
+    HRESULT i_loadCPUProfilesFromVMM(const char *a_pszVMM, CPUMDBENTRYTYPE a_enmEntryType);
+
     VirtualBox * const  mParent;
 
     settings::SystemProperties *m;
@@ -175,6 +179,7 @@ private:
 
     ComObjPtr<PlatformProperties> const m_platformProperties;       /**< The host's platform properties. */
     bool                                m_fLoadedX86CPUProfiles;    /**< Set if we've loaded the x86 and AMD64 CPU profiles. */
+    bool                                m_fLoadedArmCPUProfiles;    /**< Set if we've loaded the ARM CPU profiles. */
     CPUProfileList_T                    m_llCPUProfiles;            /**< List of loaded CPU profiles. */
 
     friend class VirtualBox;

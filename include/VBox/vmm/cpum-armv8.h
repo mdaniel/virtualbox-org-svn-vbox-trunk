@@ -165,38 +165,6 @@ typedef CPUMSYSREGRANGE *PCPUMSYSREGRANGE;
 typedef CPUMSYSREGRANGE const *PCCPUMSYSREGRANGE;
 
 
-/**
- * CPU database entry.
- */
-typedef struct CPUMDBENTRY
-{
-    /** The CPU name. */
-    const char     *pszName;
-    /** The full CPU name. */
-    const char     *pszFullName;
-    /** The CPU vendor (CPUMCPUVENDOR). */
-    uint8_t         enmVendor;
-    /** The CPU family. */
-    uint8_t         uFamily;
-    /** The CPU model. */
-    uint8_t         uModel;
-    /** The CPU stepping. */
-    uint8_t         uStepping;
-    /** The microarchitecture. */
-    CPUMMICROARCH   enmMicroarch;
-    /** Scalable bus frequency used for reporting other frequencies. */
-    uint64_t        uScalableBusFreq;
-    /** Flags - CPUMDB_F_XXX. */
-    uint32_t        fFlags;
-    /** The maximum physical address with of the CPU.  This should correspond to
-     * the value in CPUID leaf 0x80000008 when present. */
-    uint8_t         cMaxPhysAddrWidth;
-} CPUMDBENTRY;
-/** Pointer to a const CPU database entry. */
-typedef CPUMDBENTRY const *PCCPUMDBENTRY;
-
-
-
 /** @name Changed flags.
  * These flags are used to keep track of which important register that
  * have been changed since last they were reset. The only one allowed

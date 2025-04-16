@@ -64,6 +64,7 @@ SystemProperties::SystemProperties()
     : mParent(NULL)
     , m(new settings::SystemProperties)
     , m_fLoadedX86CPUProfiles(false)
+    , m_fLoadedArmCPUProfiles(false)
 {
 }
 
@@ -291,6 +292,88 @@ HRESULT SystemProperties::getDefaultIoCacheSettingForStorageController(StorageCo
     return S_OK;
 }
 
+/**
+ * Helper for getCPUProfiles() that loads profiles from one VMM module.
+ */
+HRESULT SystemProperties::i_loadCPUProfilesFromVMM(const char *a_pszVMM, CPUMDBENTRYTYPE a_enmEntryType)
+{
+    HRESULT hrc;
+    char szPath[RTPATH_MAX];
+    int vrc = RTPathAppPrivateArch(szPath, sizeof(szPath));
+    if (RT_SUCCESS(vrc))
+        vrc = RTPathAppend(szPath, sizeof(szPath), a_pszVMM);
+    if (RT_SUCCESS(vrc))
+        vrc = RTStrCat(szPath, sizeof(szPath), RTLdrGetSuff());
+    if (RT_SUCCESS(vrc))
+    {
+        RTLDRMOD hMod = NIL_RTLDRMOD;
+        vrc = RTLdrLoad(szPath, &hMod);
+        if (RT_SUCCESS(vrc))
+        {
+            /*
+             * Resolve the CPUMDb APIs we need.
+             */
+            PFNCPUMDBGETENTRIES      pfnGetEntries
+                = (PFNCPUMDBGETENTRIES)RTLdrGetFunction(hMod, "CPUMR3DbGetEntries");
+            PFNCPUMDBGETENTRYBYINDEX pfnGetEntryByIndex
+                = (PFNCPUMDBGETENTRYBYINDEX)RTLdrGetFunction(hMod, "CPUMR3DbGetEntryByIndex");
+            if (pfnGetEntries && pfnGetEntryByIndex)
+            {
+                size_t const cExistingProfiles = m_llCPUProfiles.size();
+
+                /*
+                 * Instantate the profiles.
+                 */
+                hrc = S_OK;
+                uint32_t const cEntries = pfnGetEntries();
+                for (uint32_t i = 0; i < cEntries; i++)
+                {
+                    PCCPUMDBENTRY pDbEntry = pfnGetEntryByIndex(i);
+                    AssertBreakStmt(pDbEntry, hrc = setError(E_UNEXPECTED, "CPUMR3DbGetEntryByIndex failed for %i", i));
+                    if (pDbEntry->enmEntryType == a_enmEntryType)
+                    {
+                        ComObjPtr<CPUProfile> ptrProfile;
+                        hrc = ptrProfile.createObject();
+                        if (SUCCEEDED(hrc))
+                        {
+                            hrc = ptrProfile->initFromDbEntry(pDbEntry);
+                            if (SUCCEEDED(hrc))
+                            {
+                                try
+                                {
+                                    m_llCPUProfiles.push_back(ptrProfile);
+                                    continue;
+                                }
+                                catch (std::bad_alloc &)
+                                {
+                                    hrc = E_OUTOFMEMORY;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                /*
+                 * If we fail, drop the profiles we added to the list.
+                 */
+                if (FAILED(hrc))
+                    m_llCPUProfiles.resize(cExistingProfiles);
+            }
+            else
+                hrc = setErrorVrc(VERR_SYMBOL_NOT_FOUND,
+                                  tr("'%s' is missing symbols: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex"), szPath);
+            RTLdrClose(hMod);
+        }
+        else
+            hrc = setErrorVrc(vrc, tr("Failed to construct load '%s': %Rrc"), szPath, vrc);
+    }
+    else
+        hrc = setErrorVrc(vrc, tr("Failed to construct path to the VMM DLL/Dylib/SharedObject: %Rrc"), vrc);
+    return hrc;
+}
+
+
 HRESULT SystemProperties::getCPUProfiles(CPUArchitecture_T aArchitecture, const com::Utf8Str &aNamePattern,
                                          std::vector<ComPtr<ICPUProfile> > &aProfiles)
 {
@@ -303,14 +386,23 @@ HRESULT SystemProperties::getCPUProfiles(CPUArchitecture_T aArchitecture, const 
     switch (aArchitecture)
     {
         case CPUArchitecture_Any:
-            aArchitecture = CPUArchitecture_AMD64;
-            RT_FALL_THROUGH();
+            fLoaded = m_fLoadedArmCPUProfiles && m_fLoadedX86CPUProfiles;
+            break;
+
         case CPUArchitecture_AMD64:
             enmSecondaryArch = CPUArchitecture_x86;
             RT_FALL_THROUGH();
         case CPUArchitecture_x86:
             fLoaded = m_fLoadedX86CPUProfiles;
             break;
+
+        case CPUArchitecture_ARMv8_64:
+            enmSecondaryArch = CPUArchitecture_ARMv8_32;
+            RT_FALL_THROUGH();
+        case CPUArchitecture_ARMv8_32:
+            fLoaded = m_fLoadedArmCPUProfiles;
+            break;
+
         default:
             return setError(E_INVALIDARG, tr("Invalid or unsupported architecture value: %d"), aArchitecture);
     }
@@ -327,110 +419,34 @@ HRESULT SystemProperties::getCPUProfiles(CPUArchitecture_T aArchitecture, const 
         AutoWriteLock alockWrite(this COMMA_LOCKVAL_SRC_POS);
 
         /*
-         * Translate the architecture to a VMM module handle.
+         * Load AMD64 & X86 profiles from VBoxVMM.dll/so/dylib if requested and required.
          */
-        const char *pszVMM;
-        switch (aArchitecture)
+        hrc = S_OK;
+        if (   (   aArchitecture == CPUArchitecture_Any
+                || aArchitecture == CPUArchitecture_AMD64
+                || aArchitecture == CPUArchitecture_x86)
+            && !m_fLoadedX86CPUProfiles)
         {
-            case CPUArchitecture_AMD64:
-            case CPUArchitecture_x86:
-                pszVMM = "VBoxVMM";
-                fLoaded = m_fLoadedX86CPUProfiles;
-                break;
-            default:
-                AssertFailedReturn(E_INVALIDARG);
+            hrc = i_loadCPUProfilesFromVMM("VBoxVMM", CPUMDBENTRYTYPE_X86);
+            if (SUCCEEDED(hrc))
+                m_fLoadedX86CPUProfiles = true;
         }
-        if (fLoaded)
-            hrc = S_OK;
-        else
+
+        /*
+         * Load ARM profiles from VBoxVMM.dll/so/dylib if requested and required.
+         */
+        if (   (   aArchitecture == CPUArchitecture_Any
+                || aArchitecture == CPUArchitecture_ARMv8_64
+                || aArchitecture == CPUArchitecture_ARMv8_32)
+            && !m_fLoadedArmCPUProfiles)
         {
-            char szPath[RTPATH_MAX];
-            int vrc = RTPathAppPrivateArch(szPath, sizeof(szPath));
-            if (RT_SUCCESS(vrc))
-                vrc = RTPathAppend(szPath, sizeof(szPath), pszVMM);
-            if (RT_SUCCESS(vrc))
-                vrc = RTStrCat(szPath, sizeof(szPath), RTLdrGetSuff());
-            if (RT_SUCCESS(vrc))
-            {
-                RTLDRMOD hMod = NIL_RTLDRMOD;
-                vrc = RTLdrLoad(szPath, &hMod);
-                if (RT_SUCCESS(vrc))
-                {
-                    /*
-                     * Resolve the CPUMDb APIs we need.
-                     */
-                    PFNCPUMDBGETENTRIES      pfnGetEntries
-                        = (PFNCPUMDBGETENTRIES)RTLdrGetFunction(hMod, "CPUMR3DbGetEntries");
-                    PFNCPUMDBGETENTRYBYINDEX pfnGetEntryByIndex
-                        = (PFNCPUMDBGETENTRYBYINDEX)RTLdrGetFunction(hMod, "CPUMR3DbGetEntryByIndex");
-                    if (pfnGetEntries && pfnGetEntryByIndex)
-                    {
-                        size_t const cExistingProfiles = m_llCPUProfiles.size();
-
-                        /*
-                         * Instantate the profiles.
-                         */
-                        hrc = S_OK;
-                        uint32_t const cEntries = pfnGetEntries();
-                        for (uint32_t i = 0; i < cEntries; i++)
-                        {
-                            PCCPUMDBENTRY pDbEntry = pfnGetEntryByIndex(i);
-                            AssertBreakStmt(pDbEntry, hrc = setError(E_UNEXPECTED, "CPUMR3DbGetEntryByIndex failed for %i", i));
-
-                            ComObjPtr<CPUProfile> ptrProfile;
-                            hrc = ptrProfile.createObject();
-                            if (SUCCEEDED(hrc))
-                            {
-                                hrc = ptrProfile->initFromDbEntry(pDbEntry);
-                                if (SUCCEEDED(hrc))
-                                {
-                                    try
-                                    {
-                                        m_llCPUProfiles.push_back(ptrProfile);
-                                        continue;
-                                    }
-                                    catch (std::bad_alloc &)
-                                    {
-                                        hrc = E_OUTOFMEMORY;
-                                    }
-                                }
-                            }
-                            break;
-                        }
-
-                        /*
-                         * On success update the flag and retake the read lock.
-                         * If we fail, drop the profiles we added to the list.
-                         */
-                        if (SUCCEEDED(hrc))
-                        {
-                            switch (aArchitecture)
-                            {
-                                case CPUArchitecture_AMD64:
-                                case CPUArchitecture_x86:
-                                    m_fLoadedX86CPUProfiles = true;
-                                    break;
-                                default:
-                                    AssertFailedStmt(hrc = E_INVALIDARG);
-                            }
-
-                            alockWrite.release();
-                            alock.acquire();
-                        }
-                        else
-                            m_llCPUProfiles.resize(cExistingProfiles);
-                    }
-                    else
-                        hrc = setErrorVrc(VERR_SYMBOL_NOT_FOUND,
-                                          tr("'%s' is missing symbols: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex"), szPath);
-                    RTLdrClose(hMod);
-                }
-                else
-                    hrc = setErrorVrc(vrc, tr("Failed to construct load '%s': %Rrc"), szPath, vrc);
-            }
-            else
-                hrc = setErrorVrc(vrc, tr("Failed to construct path to the VMM DLL/Dylib/SharedObject: %Rrc"), vrc);
+            hrc = i_loadCPUProfilesFromVMM("VBoxVMMArm", CPUMDBENTRYTYPE_ARM);
+            if (SUCCEEDED(hrc))
+                m_fLoadedArmCPUProfiles = true;
         }
+
+        alockWrite.release();
+        alock.acquire();
     }
     if (SUCCEEDED(hrc))
     {

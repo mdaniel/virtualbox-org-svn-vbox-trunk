@@ -70,12 +70,22 @@ VBoxCpuReport_DEFS      = VBOX_VMM_TARGET_X86 VBOX_IN_VMM IN_VMM_R3 IN_VBOX_CPU_
 VBoxCpuReport_INCS      = ../include
 VBoxCpuReport_SOURCES   = \
 	VBoxCpuReport.cpp \
-	VBoxCpuReportMsrSup.cpp \
 	../VMMR3/CPUMR3CpuId.cpp \
 	../VMMAll/CPUMAllCpuId.cpp
-VBoxCpuReport_SOURCES.linux = \
+
+VBoxCpuReport_SOURCES.amd64 = \
+	VBoxCpuReport-x86.cpp \
+	VBoxCpuReportMsrSup.cpp
+VBoxCpuReport_SOURCES.x86 = \
+	VBoxCpuReport-x86.cpp \
+	VBoxCpuReportMsrSup.cpp
+VBoxCpuReport_SOURCES.linux.amd64 = \
 	VBoxCpuReportMsrLinux.cpp
-VBoxCpuReport_DEFS.linux    = VBCR_HAVE_PLATFORM_MSR_PROBER
+VBoxCpuReport_SOURCES.linux.x86 = \
+	VBoxCpuReportMsrLinux.cpp
+VBoxCpuReport_DEFS.linux.amd64 = VBCR_HAVE_PLATFORM_MSR_PROBER
+VBoxCpuReport_DEFS.linux.x86   = VBCR_HAVE_PLATFORM_MSR_PROBER
+
 VBoxCpuReport_LIBS      = \
 	$(PATH_STAGE_LIB)/SUPR3Static$(VBOX_SUFF_LIB) \
 	$(VBOX_LIB_RUNTIME_STATIC)

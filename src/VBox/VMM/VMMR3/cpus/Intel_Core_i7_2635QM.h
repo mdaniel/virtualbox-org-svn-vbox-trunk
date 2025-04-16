@@ -316,17 +316,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Intel_Core_i7_2635QM[] =
 /**
  * Database entry for Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz.
  */
-static CPUMDBENTRY const g_Entry_Intel_Core_i7_2635QM =
+static CPUMDBENTRYX86 const g_Entry_Intel_Core_i7_2635QM =
 {
-    /*.pszName          = */ "Intel Core i7-2635QM",
-    /*.pszFullName      = */ "Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel Core i7-2635QM",
+        /*.pszFullName  = */ "Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_Core7_SandyBridge,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 6,
     /*.uModel           = */ 42,
     /*.uStepping        = */ 7,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_Core7_SandyBridge,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_100MHZ,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 36,
     /*.fMxCsrMask       = */ 0xffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_Core_i7_2635QM),

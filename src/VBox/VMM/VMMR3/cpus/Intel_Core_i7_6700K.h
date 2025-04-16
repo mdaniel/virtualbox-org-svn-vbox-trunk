@@ -494,17 +494,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Intel_Core_i7_6700K[] =
 /**
  * Database entry for Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz.
  */
-static CPUMDBENTRY const g_Entry_Intel_Core_i7_6700K =
+static CPUMDBENTRYX86 const g_Entry_Intel_Core_i7_6700K =
 {
-    /*.pszName          = */ "Intel Core i7-6700K",
-    /*.pszFullName      = */ "Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel Core i7-6700K",
+        /*.pszFullName  = */ "Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_Core7_Skylake,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 6,
     /*.uModel           = */ 94,
     /*.uStepping        = */ 3,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_Core7_Skylake,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_100MHZ,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 39,
     /*.fMxCsrMask       = */ 0xffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_Core_i7_6700K),

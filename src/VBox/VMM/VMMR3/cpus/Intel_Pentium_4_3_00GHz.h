@@ -261,17 +261,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Intel_Pentium_4_3_00GHz[] =
 /**
  * Database entry for Intel(R) Pentium(R) 4 CPU 3.00GHz.
  */
-static CPUMDBENTRY const g_Entry_Intel_Pentium_4_3_00GHz =
+static CPUMDBENTRYX86 const g_Entry_Intel_Pentium_4_3_00GHz =
 {
-    /*.pszName          = */ "Intel Pentium 4 3.00GHz",
-    /*.pszFullName      = */ "Intel(R) Pentium(R) 4 CPU 3.00GHz",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel Pentium 4 3.00GHz",
+        /*.pszFullName  = */ "Intel(R) Pentium(R) 4 CPU 3.00GHz",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_NB_Prescott2M,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 15,
     /*.uModel           = */ 4,
     /*.uStepping        = */ 3,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_NB_Prescott2M,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 36,
     /*.fMxCsrMask       = */ 0xffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_Pentium_4_3_00GHz),

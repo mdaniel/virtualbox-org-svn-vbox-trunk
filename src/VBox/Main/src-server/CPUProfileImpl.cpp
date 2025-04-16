@@ -67,16 +67,22 @@ HRESULT CPUProfile::initFromDbEntry(PCCPUMDBENTRY a_pDbEntry) RT_NOEXCEPT
      */
 
     /* Determin x86 or AMD64 by scanning the CPUID leaves for the long mode feature bit: */
-    m_enmArchitecture = CPUArchitecture_x86;
-    uint32_t iLeaf = a_pDbEntry->cCpuIdLeaves;
-    while (iLeaf-- > 0)
-        if (a_pDbEntry->paCpuIdLeaves[iLeaf].uLeaf <= UINT32_C(0x80000001))
-        {
-            if (   a_pDbEntry->paCpuIdLeaves[iLeaf].uLeaf == UINT32_C(0x80000001)
-                && (a_pDbEntry->paCpuIdLeaves[iLeaf].uEdx & X86_CPUID_EXT_FEATURE_EDX_LONG_MODE))
-                m_enmArchitecture = CPUArchitecture_AMD64;
-            break;
-        }
+    if (a_pDbEntry->enmEntryType == CPUMDBENTRYTYPE_X86)
+    {
+        m_enmArchitecture = CPUArchitecture_x86;
+        PCCPUMDBENTRYX86 const pDbEntryX86 = (PCCPUMDBENTRYX86)a_pDbEntry;
+        uint32_t iLeaf = pDbEntryX86->cCpuIdLeaves;
+        while (iLeaf-- > 0)
+            if (pDbEntryX86->paCpuIdLeaves[iLeaf].uLeaf <= UINT32_C(0x80000001))
+            {
+                if (   pDbEntryX86->paCpuIdLeaves[iLeaf].uLeaf == UINT32_C(0x80000001)
+                    && (pDbEntryX86->paCpuIdLeaves[iLeaf].uEdx & X86_CPUID_EXT_FEATURE_EDX_LONG_MODE))
+                    m_enmArchitecture = CPUArchitecture_AMD64;
+                break;
+            }
+    }
+    else if (a_pDbEntry->enmEntryType == CPUMDBENTRYTYPE_ARM)
+        m_enmArchitecture = CPUArchitecture_ARMv8_64;
 
     HRESULT hrc = m_strName.assignEx(a_pDbEntry->pszName);
     if (SUCCEEDED(hrc))
@@ -116,7 +122,8 @@ bool CPUProfile::i_match(CPUArchitecture_T a_enmArchitecture, CPUArchitecture_T 
                          const com::Utf8Str &a_strNamePattern) const RT_NOEXCEPT
 {
     if (   m_enmArchitecture == a_enmArchitecture
-        || m_enmArchitecture == a_enmSecondaryArch)
+        || m_enmArchitecture == a_enmSecondaryArch
+        || a_enmArchitecture == CPUArchitecture_Any)
     {
         if (a_strNamePattern.isEmpty())
             return true;

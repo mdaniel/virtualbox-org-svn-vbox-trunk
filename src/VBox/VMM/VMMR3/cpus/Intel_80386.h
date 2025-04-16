@@ -59,17 +59,20 @@ static CPUMCPUIDLEAF const g_aCpuIdLeaves_Intel_80386[] =
 /**
  * Database entry for Intel(R) 80386.
  */
-static CPUMDBENTRY const g_Entry_Intel_80386 =
+static CPUMDBENTRYX86 const g_Entry_Intel_80386 =
 {
-    /*.pszName          = */ "Intel 80386",
-    /*.pszFullName      = */ "Intel(R) 80386",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel 80386",
+        /*.pszFullName  = */ "Intel(R) 80386",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_80386,
+        /*.fFlags       = */ CPUMDB_F_EXECUTE_ALL_IN_IEM,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 3,
     /*.uModel           = */ 0,
     /*.uStepping        = */ 0,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_80386,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ CPUMDB_F_EXECUTE_ALL_IN_IEM,
     /*.cMaxPhysAddrWidth= */ 24,
     /*.fMxCsrMask       = */ 0,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_80386),

@@ -249,17 +249,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Intel_Pentium_N3530_2_16GHz[] =
 /**
  * Database entry for Intel(R) Pentium(R) CPU  N3530  @ 2.16GHz.
  */
-static CPUMDBENTRY const g_Entry_Intel_Pentium_N3530_2_16GHz =
+static CPUMDBENTRYX86 const g_Entry_Intel_Pentium_N3530_2_16GHz =
 {
-    /*.pszName          = */ "Intel Pentium N3530 2.16GHz",
-    /*.pszFullName      = */ "Intel(R) Pentium(R) CPU  N3530  @ 2.16GHz",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel Pentium N3530 2.16GHz",
+        /*.pszFullName  = */ "Intel(R) Pentium(R) CPU  N3530  @ 2.16GHz",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_Atom_Silvermont,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 6,
     /*.uModel           = */ 55,
     /*.uStepping        = */ 8,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_Atom_Silvermont,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_267MHZ,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 36,
     /*.fMxCsrMask       = */ 0xffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_Pentium_N3530_2_16GHz),

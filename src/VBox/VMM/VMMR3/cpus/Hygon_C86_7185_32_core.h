@@ -5208,17 +5208,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Hygon_C86_7185_32_core[] =
 /**
  * Database entry for Hygon C86 7185 32-core Processor.
  */
-static CPUMDBENTRY const g_Entry_Hygon_C86_7185_32_core =
+static CPUMDBENTRYX86 const g_Entry_Hygon_C86_7185_32_core =
 {
-    /*.pszName          = */ "Hygon C86 7185 32-core",
-    /*.pszFullName      = */ "Hygon C86 7185 32-core Processor",
-    /*.enmVendor        = */ CPUMCPUVENDOR_HYGON,
+    {
+        /*.pszName      = */ "Hygon C86 7185 32-core",
+        /*.pszFullName  = */ "Hygon C86 7185 32-core Processor",
+        /*.enmVendor    = */ CPUMCPUVENDOR_HYGON,
+        /*.enmMicroarch = */ kCpumMicroarch_Hygon_Dhyana,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 24,
     /*.uModel           = */ 0,
     /*.uStepping        = */ 1,
-    /*.enmMicroarch     = */ kCpumMicroarch_Hygon_Dhyana,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 48,
     /*.fMxCsrMask       = */ 0x0002ffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Hygon_C86_7185_32_core),

@@ -388,17 +388,20 @@ static CPUMMSRRANGE const g_aMsrRanges_VIA_QuadCore_L4700_1_2_GHz[] =
 /**
  * Database entry for VIA QuadCore L4700 @ 1.2+ GHz.
  */
-static CPUMDBENTRY const g_Entry_VIA_QuadCore_L4700_1_2_GHz =
+static CPUMDBENTRYX86 const g_Entry_VIA_QuadCore_L4700_1_2_GHz =
 {
-    /*.pszName          = */ "VIA QuadCore L4700 1.2+ GHz",
-    /*.pszFullName      = */ "VIA QuadCore L4700 @ 1.2+ GHz",
-    /*.enmVendor        = */ CPUMCPUVENDOR_VIA,
+    {
+        /*.pszName      = */ "VIA QuadCore L4700 1.2+ GHz",
+        /*.pszFullName  = */ "VIA QuadCore L4700 @ 1.2+ GHz",
+        /*.enmVendor    = */ CPUMCPUVENDOR_VIA,
+        /*.enmMicroarch = */ kCpumMicroarch_VIA_Isaiah,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 6,
     /*.uModel           = */ 15,
     /*.uStepping        = */ 13,
-    /*.enmMicroarch     = */ kCpumMicroarch_VIA_Isaiah,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_267MHZ, /*??*/
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 36,
     /*.fMxCsrMask       = */ 0xffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_VIA_QuadCore_L4700_1_2_GHz),

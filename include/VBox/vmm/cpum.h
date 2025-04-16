@@ -1569,6 +1569,47 @@ typedef CPUMCPUIDLEAF const *PCCPUMCPUIDLEAF;
 /** @} */
 
 
+/**
+ * Method used to deal with unknown CPUID leaves on x86.
+ */
+typedef enum CPUMUNKNOWNCPUID
+{
+    /** Invalid zero value. */
+    CPUMUNKNOWNCPUID_INVALID = 0,
+    /** Use given default values (DefCpuId). */
+    CPUMUNKNOWNCPUID_DEFAULTS,
+    /** Return the last standard leaf.
+     * Intel Sandy Bridge has been observed doing this. */
+    CPUMUNKNOWNCPUID_LAST_STD_LEAF,
+    /** Return the last standard leaf, with ecx observed.
+     * Intel Sandy Bridge has been observed doing this. */
+    CPUMUNKNOWNCPUID_LAST_STD_LEAF_WITH_ECX,
+    /** The register values are passed thru unmodified. */
+    CPUMUNKNOWNCPUID_PASSTHRU,
+    /** End of valid value. */
+    CPUMUNKNOWNCPUID_END,
+    /** Ensure 32-bit type. */
+    CPUMUNKNOWNCPUID_32BIT_HACK = 0x7fffffff
+} CPUMUNKNOWNCPUID;
+/** Pointer to unknown CPUID leaf method. */
+typedef CPUMUNKNOWNCPUID *PCPUMUNKNOWNCPUID;
+
+
+/**
+ * The register set returned by an x86 CPUID operation.
+ */
+typedef struct CPUMCPUID
+{
+    uint32_t uEax;
+    uint32_t uEbx;
+    uint32_t uEcx;
+    uint32_t uEdx;
+} CPUMCPUID;
+/** Pointer to a CPUID leaf. */
+typedef CPUMCPUID *PCPUMCPUID;
+/** Pointer to a const CPUID leaf. */
+typedef const CPUMCPUID *PCCPUMCPUID;
+
 
 /**
  * ARMv8 CPU ID registers.
@@ -1611,6 +1652,112 @@ typedef struct CPUMARMV8IDREGS
 typedef CPUMARMV8IDREGS *PCPUMARMV8IDREGS;
 /** Pointer to a const CPU ID registers structure. */
 typedef CPUMARMV8IDREGS const *PCCPUMARMV8IDREGS;
+
+
+/** For identifying the extended database entry type. */
+typedef enum CPUMDBENTRYTYPE
+{
+    CPUMDBENTRYTYPE_INVALID = 0,
+    CPUMDBENTRYTYPE_X86,
+    CPUMDBENTRYTYPE_ARM,
+    CPUMDBENTRYTYPE_END,
+    CPUMDBENTRYTYPE_32BIT_HACK = 0x7fffffff
+} CPUMDBENTRYTYPE;
+
+/**
+ * CPU database entry, common parts.
+ */
+typedef struct CPUMDBENTRY
+{
+    /** The CPU name. */
+    const char     *pszName;
+    /** The full CPU name. */
+    const char     *pszFullName;
+    /** The CPU vendor. */
+    CPUMCPUVENDOR   enmVendor;
+    /** The microarchitecture. */
+    CPUMMICROARCH   enmMicroarch;
+    /** Flags - CPUMDB_F_XXX. */
+    uint32_t        fFlags;
+    /** The database entry type. */
+    CPUMDBENTRYTYPE enmEntryType;
+} CPUMDBENTRY;
+/** Pointer to a const CPU database entry. */
+typedef CPUMDBENTRY const *PCCPUMDBENTRY;
+
+/** @name CPUMDB_F_XXX - CPUDBENTRY::fFlags
+ * @{ */
+/** Should execute all in IEM.
+ * @todo Implement this - currently done in Main...  */
+#define CPUMDB_F_EXECUTE_ALL_IN_IEM         RT_BIT_32(0)
+/** @} */
+
+
+/**
+ * CPU database entry for x86.
+ */
+typedef struct CPUMDBENTRYX86
+{
+    CPUMDBENTRY     Core;
+    /** The CPU family. */
+    uint8_t         uFamily;
+    /** The CPU model. */
+    uint8_t         uModel;
+    /** The CPU stepping. */
+    uint8_t         uStepping;
+    /** Scalable bus frequency used for reporting other frequencies. */
+    uint64_t        uScalableBusFreq;
+    /** The maximum physical address with of the CPU.  This should correspond to
+     * the value in CPUID leaf 0x80000008 when present. */
+    uint8_t         cMaxPhysAddrWidth;
+    /** The MXCSR mask. */
+    uint32_t        fMxCsrMask;
+    /** Pointer to an array of CPUID leaves.  */
+    PCCPUMCPUIDLEAF paCpuIdLeaves;
+    /** The number of CPUID leaves in the array paCpuIdLeaves points to. */
+    uint32_t        cCpuIdLeaves;
+    /** The method used to deal with unknown CPUID leaves. */
+    CPUMUNKNOWNCPUID enmUnknownCpuId;
+    /** The default unknown CPUID value. */
+    CPUMCPUID       DefUnknownCpuId;
+
+    /** MSR mask.  Several microarchitectures ignore the higher bits of ECX in
+     *  the RDMSR and WRMSR instructions. */
+    uint32_t        fMsrMask;
+
+    /** The number of ranges in the table pointed to b paMsrRanges. */
+    uint32_t        cMsrRanges;
+    /** MSR ranges for this CPU. */
+    struct CPUMMSRRANGE const *paMsrRanges;
+} CPUMDBENTRYX86;
+/** Pointer to a const X86 CPU database entry. */
+typedef CPUMDBENTRYX86 const *PCCPUMDBENTRYX86;
+
+
+/**
+ * CPU database entry for ARM.
+ */
+typedef struct CPUMDBENTRYARM
+{
+    /** The common parts. */
+    CPUMDBENTRY     Core;
+
+    /** The CPU family. */
+    uint8_t         uFamily;
+    /** The CPU model. */
+    uint8_t         uModel;
+    /** The CPU stepping. */
+    uint8_t         uStepping;
+    /** Scalable bus frequency used for reporting other frequencies. */
+    uint64_t        uScalableBusFreq;
+    /** The maximum physical address with of the CPU.  This should correspond to
+     * the value in CPUID leaf 0x80000008 when present. */
+    uint8_t         cMaxPhysAddrWidth;
+
+    /** @todo lots more to be added here... */
+} CPUMDBENTRYARM;
+/** Pointer to a const ARM CPU database entry. */
+typedef CPUMDBENTRYARM const *PCCPUMDBENTRYARM;
 
 
 /*

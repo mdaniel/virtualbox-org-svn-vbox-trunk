@@ -32,6 +32,8 @@
 #endif
 
 #include <VBox/sup.h>
+#include <VBox/vmm/cpum.h>
+#include <iprt/stream.h>
 
 RT_C_DECLS_BEGIN
 
@@ -52,10 +54,25 @@ typedef struct VBCPUREPMSRACCESSORS
 } VBCPUREPMSRACCESSORS;
 typedef VBCPUREPMSRACCESSORS *PVBCPUREPMSRACCESSORS;
 
+extern PRTSTREAM        g_pReportOut;
+extern PRTSTREAM        g_pDebugOut;
+extern CPUMCPUVENDOR    g_enmVendor;
+extern CPUMMICROARCH    g_enmMicroarch;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+extern bool             g_fNoMsrs;
+#endif
+
 extern void vbCpuRepDebug(const char *pszMsg, ...);
 extern void vbCpuRepPrintf(const char *pszMsg, ...);
+extern const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor);
+
+extern int  produceCpuReport(void); /* arch specific */
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+extern int  probeMsrs(bool fHacking, const char *pszNameC, const char *pszCpuDesc, char *pszMsrMask, size_t cbMsrMask);
 extern int  VbCpuRepMsrProberInitSupDrv(PVBCPUREPMSRACCESSORS pMsrAccessors);
 extern int  VbCpuRepMsrProberInitPlatform(PVBCPUREPMSRACCESSORS pMsrAccessors);
+#endif
 
 RT_C_DECLS_END
 

@@ -114,6 +114,7 @@ VBoxVMM_SOURCES  = \
 	VMMR3/CPUM.cpp \
 	VMMR3/CPUMR3CpuId.cpp \
 	VMMR3/CPUMR3Db.cpp \
+	VMMR3/CPUMR3Msr-x86.cpp \
 	VMMR3/CPUMDbg.cpp \
 	VMMR3/DBGF.cpp \
 	VMMR3/DBGFAddr.cpp \
@@ -456,7 +457,8 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/CPUMDbg-armv8.cpp \
  	VMMAll/CPUMAllCpuId.cpp \
  	VMMR3/CPUMR3CpuId-armv8.cpp \
- 	VMMR3/CPUMR3Db-armv8.cpp \
+ 	VMMR3/CPUMR3Db.cpp \
+ 	VMMR3/CPUMR3SysReg-armv8.cpp \
  	VMMR3/DBGF.cpp \
  	VMMR3/DBGFAddr.cpp \
  	VMMR3/DBGFAddrSpace.cpp \
@@ -1119,8 +1121,7 @@ ifndef VBOX_ONLY_BUILD
  SSMStandalone_DEFS    = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_R3 IN_VMM_STATIC SSM_STANDALONE CPUM_DB_STANDALONE $(VMM_COMMON_DEFS)
  SSMStandalone_INCS    = include
  SSMStandalone_SOURCES = \
- 	VMMR3/SSM.cpp \
- 	VMMR3/CPUMR3Db.cpp
+ 	VMMR3/SSM.cpp
 endif # !VBOX_ONLY_BUILD
 
 

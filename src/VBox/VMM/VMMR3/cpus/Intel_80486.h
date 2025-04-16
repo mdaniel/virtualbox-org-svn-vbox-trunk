@@ -57,17 +57,20 @@ static CPUMCPUIDLEAF const g_aCpuIdLeaves_Intel_80486[] =
 /**
  * Database entry for Intel(R) 80486.
  */
-static CPUMDBENTRY const g_Entry_Intel_80486 =
+static CPUMDBENTRYX86 const g_Entry_Intel_80486 =
 {
-    /*.pszName          = */ "Intel 80486",
-    /*.pszFullName      = */ "Intel(R) 80486DX2",
-    /*.enmVendor        = */ CPUMCPUVENDOR_INTEL,
+    {
+        /*.pszName      = */ "Intel 80486",
+        /*.pszFullName  = */ "Intel(R) 80486DX2",
+        /*.enmVendor    = */ CPUMCPUVENDOR_INTEL,
+        /*.enmMicroarch = */ kCpumMicroarch_Intel_80486,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 4,
     /*.uModel           = */ 3,
     /*.uStepping        = */ 0,
-    /*.enmMicroarch     = */ kCpumMicroarch_Intel_80486,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 32,
     /*.fMxCsrMask       = */ 0,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Intel_80486),

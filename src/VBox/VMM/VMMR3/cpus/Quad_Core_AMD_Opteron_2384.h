@@ -254,17 +254,20 @@ static CPUMMSRRANGE const g_aMsrRanges_Quad_Core_AMD_Opteron_2384[] =
 /**
  * Database entry for Quad-Core AMD Opteron(tm) Processor 2384.
  */
-static CPUMDBENTRY const g_Entry_Quad_Core_AMD_Opteron_2384 =
+static CPUMDBENTRYX86 const g_Entry_Quad_Core_AMD_Opteron_2384 =
 {
-    /*.pszName          = */ "Quad-Core AMD Opteron 2384",
-    /*.pszFullName      = */ "Quad-Core AMD Opteron(tm) Processor 2384",
-    /*.enmVendor        = */ CPUMCPUVENDOR_AMD,
+    {
+        /*.pszName      = */ "Quad-Core AMD Opteron 2384",
+        /*.pszFullName  = */ "Quad-Core AMD Opteron(tm) Processor 2384",
+        /*.enmVendor    = */ CPUMCPUVENDOR_AMD,
+        /*.enmMicroarch = */ kCpumMicroarch_AMD_K10,
+        /*.fFlags       = */ 0,
+        /*.enmEntryType = */ CPUMDBENTRYTYPE_X86,
+    },
     /*.uFamily          = */ 16,
     /*.uModel           = */ 4,
     /*.uStepping        = */ 2,
-    /*.enmMicroarch     = */ kCpumMicroarch_AMD_K10,
     /*.uScalableBusFreq = */ CPUM_SBUSFREQ_UNKNOWN,
-    /*.fFlags           = */ 0,
     /*.cMaxPhysAddrWidth= */ 48,
     /*.fMxCsrMask       = */ 0x2ffff,
     /*.paCpuIdLeaves    = */ NULL_ALONE(g_aCpuIdLeaves_Quad_Core_AMD_Opteron_2384),

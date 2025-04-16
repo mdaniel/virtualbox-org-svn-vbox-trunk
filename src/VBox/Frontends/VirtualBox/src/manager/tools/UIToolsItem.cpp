@@ -279,9 +279,13 @@ int UIToolsItem::minimumWidthHint() const
     /* Add pixmap size by default: */
     iProposedWidth += m_pixmapSize.width();
 
-    /* Add text size for non-Aux tools if it is requested: */
-    if (   m_enmClass != UIToolClass_Aux
-        && model()->showItemNames())
+    /* Take into account label size for non-Aux tools
+     * 1. if text labels requested or
+     * 2. machine item selected: */
+    const bool fCondition1 = m_enmClass == UIToolClass_Global && model()->showItemNames();
+    const bool fCondition2 = m_enmClass == UIToolClass_Machine && (   model()->showItemNames()
+                                                                   || model()->currentItem(itemClass()) == this);
+    if (fCondition1 || fCondition2)
     {
         iProposedWidth += m_nameSize.width();
 
@@ -339,8 +343,15 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
         m_fHovered = true;
         update();
 
-        /* Show tooltip if there is no name: */
-        if (!model()->showItemNames())
+        /* Show tooltip for all tools
+         * 0. for Aux unconditionally
+         * 1. for Global if text labels hidden
+         * 2. For Machine if text labels hidden and item isn't selected: */
+        const bool fCondition0 = m_enmClass == UIToolClass_Aux;
+        const bool fCondition1 = m_enmClass == UIToolClass_Global && !model()->showItemNames();
+        const bool fCondition2 = m_enmClass == UIToolClass_Machine && !model()->showItemNames()
+                                                                   && model()->currentItem(itemClass()) != this;
+        if (fCondition0 || fCondition1 || fCondition2)
         {
             const QPointF posAtScene = mapToScene(rect().topRight() + QPoint(3, -3));
             const QPoint posAtScreen = model()->view()->parentWidget()->mapToGlobal(posAtScene.toPoint());
@@ -632,8 +643,8 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
 #else
         int iPixmapX = 1.5 * iMargin;
 #endif
-
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
+
         /* Paint pixmap: */
         paintPixmap(/* Painter: */
                     pPainter,
@@ -652,10 +663,15 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
 #else
         int iNameX = 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
-
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
-        /* Paint name if requested: */
-        if (model()->showItemNames())
+
+        /* Paint name for non-Aux tools
+         * 1. if text labels requested or
+         * 2. machine item selected: */
+        const bool fCondition1 = m_enmClass == UIToolClass_Global && model()->showItemNames();
+        const bool fCondition2 = m_enmClass == UIToolClass_Machine && (   model()->showItemNames()
+                                                                       || model()->currentItem(itemClass()) == this);
+        if (fCondition1 || fCondition2)
             paintText(/* Painter: */
                       pPainter,
                       /* Point to paint in: */

@@ -434,6 +434,11 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
         /* Set new item as current: */
         m_mapCurrentItems[enmClass] = pItem;
 
+        /* Rebuild whole layout if names hidden for machine tools: */
+        if (   !showItemNames()
+            && m_enmClass == UIToolClass_Machine)
+            updateLayout();
+
         /* Update old item (if any): */
         if (pOldCurrentItem)
             pOldCurrentItem->update();

@@ -498,10 +498,9 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 
     /* LPI state. */
     /* We store the size followed by the data because we currently do not support the full LPI range. */
+    pHlp->pfnSSMPutU32(pSSM,  RT_SIZEOFMEMB(GICCPU, bmLpiPending));
     pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->abLpiConfig));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->abLpiConfig[0],       sizeof(pGicDev->abLpiConfig));
-    pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->bmLpiPending));
-    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmLpiPending[0],      sizeof(pGicDev->bmLpiPending));
     pHlp->pfnSSMPutU64(pSSM,  pGicDev->uLpiConfigBaseReg.u);
     pHlp->pfnSSMPutU64(pSSM,  pGicDev->uLpiPendingBaseReg.u);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fEnableLpis);
@@ -535,6 +534,9 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup0Enabled);
         pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup1Enabled);
+
+        /* LPI state. */
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmLpiPending[0], sizeof(pGicCpu->bmLpiPending));
     }
 
     return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX);
@@ -594,27 +596,25 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
     pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
 
-    /* LPI config. */
+    /* LPI state. */
+    /* LPI pending bitmap size. */
     {
         uint32_t cbData = 0;
         int const rc = pHlp->pfnSSMGetU32(pSSM, &cbData);
         AssertRCReturn(rc, rc);
-        if (cbData <= sizeof(pGicDev->abLpiConfig))
-            pHlp->pfnSSMGetMem(pSSM, &pGicDev->abLpiConfig[0], cbData);
-        else
-            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI config table size: got=%u expected=%u"),
-                                           cbData, sizeof(pGicDev->abLpiConfig));
-    }
-    /* LPI pending. */
-    {
-        uint32_t cbData = 0;
-        int const rc = pHlp->pfnSSMGetU32(pSSM, &cbData);
-        AssertRCReturn(rc, rc);
-        if (cbData <= sizeof(pGicDev->bmLpiPending))
-            pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmLpiPending[0], cbData);
-        else
+        if (cbData != RT_SIZEOFMEMB(GICCPU, bmLpiPending))
             return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI pending bitmap size: got=%u expected=%u"),
-                                           cbData, sizeof(pGicDev->bmLpiPending));
+                                           cbData, RT_SIZEOFMEMB(GICCPU, bmLpiPending));
+    }
+    /* LPI config table. */
+    {
+        uint32_t cbLpiConfig = 0;
+        int const rc = pHlp->pfnSSMGetU32(pSSM, &cbLpiConfig);
+        AssertRCReturn(rc, rc);
+        if (cbLpiConfig != sizeof(pGicDev->abLpiConfig))
+            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI config table size: got=%u expected=%u"),
+                                           cbLpiConfig, sizeof(pGicDev->abLpiConfig));
+        pHlp->pfnSSMGetMem(pSSM, &pGicDev->abLpiConfig[0], cbLpiConfig);
     }
     pHlp->pfnSSMGetU64(pSSM,  &pGicDev->uLpiConfigBaseReg.u);
     pHlp->pfnSSMGetU64(pSSM,  &pGicDev->uLpiPendingBaseReg.u);
@@ -649,6 +649,9 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup0Enabled);
         pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup1Enabled);
+
+        /* LPI pending. */
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmLpiPending[0], sizeof(pGicCpu->bmLpiPending));
     }
 
     /*
@@ -923,11 +926,11 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * 16-bits since 8192 + 2^(NumLpi+1) is >= 73727. A value of 2 or lower support
      * fewer than 15 LPIs which seem pointless and is hence disallowed. This value is
      * ignored (set to 0 in the register) when LPIs are disabled. */
-    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxLpi", &pGicDev->uMaxLpi, 10);
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxLpi", &pGicDev->uMaxLpi, 11);
     AssertLogRelRCReturn(rc, rc);
 
-    /* We currently support 2048 LPIs until we need to support more. */
-    if (pGicDev->uMaxLpi == 10)
+    /* We currently support 4096 LPIs until we need to support more. */
+    if (pGicDev->uMaxLpi == 11)
     { /* likely */ }
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,

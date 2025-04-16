@@ -141,9 +141,7 @@ typedef struct GICDEV
     /** ITS device state. */
     GITSDEV                     Gits;
     /** LPI config table. */
-    uint8_t                     abLpiConfig[2048];
-    /** LPI pending bitmap. */
-    uint32_t                    bmLpiPending[64];
+    uint8_t                     abLpiConfig[4096];
     /** The LPI config table base register (GICR_PROPBASER). */
     RTUINT64U                   uLpiConfigBaseReg;
     /** The LPI pending table base register (GICR_PENDBASER). */
@@ -234,7 +232,7 @@ typedef struct GICCPU
     /** @name LPIs.
      * @{ */
     /** LPI pending bitmap. */
-    uint64_t                    bmLpiPending[32];
+    uint64_t                    bmLpiPending[64];
     /** @} */
 
     /** @name Statistics.

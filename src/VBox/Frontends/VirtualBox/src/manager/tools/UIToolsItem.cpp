@@ -538,12 +538,21 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         const QColor highlightColor = isEnabled()
                                     ? pal.color(QPalette::Active, QPalette::Highlight)
                                     : pal.color(QPalette::Disabled, QPalette::Highlight);
+#ifdef VBOX_WS_MAC
         const QColor highlightColor1 = uiCommon().isInDarkMode()
                                      ? highlightColor.lighter(160)
                                      : highlightColor.darker(160);
         const QColor highlightColor2 = uiCommon().isInDarkMode()
                                      ? highlightColor.lighter(140)
                                      : highlightColor.darker(140);
+#else
+        const QColor highlightColor1 = uiCommon().isInDarkMode()
+                                     ? highlightColor.darker(120)
+                                     : highlightColor.lighter(120);
+        const QColor highlightColor2 = uiCommon().isInDarkMode()
+                                     ? highlightColor.darker(100)
+                                     : highlightColor.lighter(100);
+#endif
 
         /* Draw gradient background: */
         QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
@@ -730,6 +739,9 @@ void UIToolsItem::paintRoundedButton(QPainter *pPainter,
 
     /* Paint icon frame: */
     QPainterPath painterPath;
+#ifndef VBOX_WS_MAC
+    iPadding /= 2;
+#endif
     painterPath.addRoundedRect(rectangle, iPadding, iPadding);
     const QColor frameColor = uiCommon().isInDarkMode()
                             ? color.lighter(220)

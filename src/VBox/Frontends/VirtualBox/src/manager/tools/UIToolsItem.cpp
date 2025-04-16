@@ -341,7 +341,6 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
     if (!m_fHovered)
     {
         m_fHovered = true;
-        update();
 
         /* Show tooltip for all tools
          * 0. for Aux unconditionally
@@ -358,6 +357,8 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
             QToolTip::showText(posAtScreen, name());
         }
     }
+
+    update();
 }
 
 void UIToolsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
@@ -592,7 +593,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                                      ? model()->view()->palette().color(QPalette::Active, QPalette::Base)
                                      : pal.color(QPalette::Active, QPalette::Window);
 
-        /* Prepare icon sub-rect: */
+        /* Prepare button sub-rect: */
         QRect subRect;
         subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
         subRect.setWidth(subRect.height());
@@ -602,33 +603,13 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         subRect.moveTopLeft(rectangle.topLeft() + QPoint(1.5 * iMargin - iPadding, iMargin - iPadding));
 #endif
 
-        /* Paint icon frame: */
-        QPainterPath painterPath;
-        painterPath.addRoundedRect(subRect, iPadding, iPadding);
-#ifdef VBOX_WS_MAC
-        const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                      ? backgroundColor.lighter(220)
-                                      : backgroundColor.darker(140);
-#else /* !VBOX_WS_MAC */
-        const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                      ? backgroundColor.lighter(140)
-                                      : backgroundColor.darker(120);
-#endif /* !VBOX_WS_MAC */
-        pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
-        pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+        /* Prepare mouse cursor position: */
+        const QPoint  cursorPosInView = model()->view()->mapFromGlobal(QCursor::pos());
+        const QPointF cursorPosInScene = model()->view()->mapToScene(cursorPosInView);
+        const QPointF cursorPosInItem = mapFromScene(cursorPosInScene);
 
-        /* Fill icon body: */
-        pPainter->setClipPath(painterPath);
-#ifdef VBOX_WS_MAC
-        const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                      ? backgroundColor.lighter(160)
-                                      : backgroundColor.darker(120);
-#else /* !VBOX_WS_MAC */
-        const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                      ? backgroundColor.lighter(105)
-                                      : backgroundColor.darker(105);
-#endif /* !VBOX_WS_MAC */
-        pPainter->fillRect(subRect, backgroundColor2);
+        /* Paint button finally: */
+        paintRoundedButton(pPainter, subRect, cursorPosInItem, backgroundColor, iPadding);
     }
 
     /* Restore painter: */
@@ -732,6 +713,48 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
     pPainter->setPen(Qt::NoPen);
     pPainter->drawPath(textPath);
+
+    /* Restore painter: */
+    pPainter->restore();
+}
+
+/* static */
+void UIToolsItem::paintRoundedButton(QPainter *pPainter,
+                                     const QRect &rectangle,
+                                     const QPointF &cursorPosition,
+                                     const QColor &color,
+                                     int iPadding)
+{
+    /* Save painter: */
+    pPainter->save();
+
+    /* Paint icon frame: */
+    QPainterPath painterPath;
+    painterPath.addRoundedRect(rectangle, iPadding, iPadding);
+    const QColor frameColor = uiCommon().isInDarkMode()
+                            ? color.lighter(220)
+                            : color.darker(120);
+    pPainter->setPen(QPen(frameColor, 2, Qt::SolidLine, Qt::RoundCap));
+    pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+
+    /* Fill icon body: */
+    pPainter->setClipPath(painterPath);
+    const QColor backgroundColor = uiCommon().isInDarkMode()
+                                  ? color.lighter(180)
+                                  : color.darker(105);
+    pPainter->fillRect(rectangle, backgroundColor);
+
+    /* Paint active background: */
+    QRadialGradient grad(rectangle.center(), rectangle.width(), cursorPosition);
+    const QColor color1 = uiCommon().isInDarkMode()
+                        ? backgroundColor.lighter(180)
+                        : backgroundColor.lighter(120);
+    const QColor color2 = uiCommon().isInDarkMode()
+                        ? backgroundColor.darker(180)
+                        : backgroundColor.darker(120);
+    grad.setColorAt(0, color1);
+    grad.setColorAt(1, color2);
+    pPainter->fillRect(rectangle, grad);
 
     /* Restore painter: */
     pPainter->restore();

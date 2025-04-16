@@ -199,6 +199,16 @@ private:
         static void paintText(QPainter *pPainter, QPoint point,
                               const QFont &font, QPaintDevice *pPaintDevice,
                               const QString &strText);
+
+        /** Paints rounded button which moves light focus according to @a cursorPosition using passed @a pPainter.
+          * @param  rectangle  Brings the button's rectangle.
+          * @param  color      Brings the base color to work with.
+          * @param  iPadding   Brings the button rounded padding. */
+        static void paintRoundedButton(QPainter *pPainter,
+                                       const QRect &rectangle,
+                                       const QPointF &cursorPosition,
+                                       const QColor &color,
+                                       int iPadding);
     /** @} */
 
     /** @name Item stuff.

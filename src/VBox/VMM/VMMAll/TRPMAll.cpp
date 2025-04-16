@@ -439,3 +439,36 @@ VMMDECL(int) TRPMQueryTrapAll(PVMCPU pVCpu, uint8_t *pu8TrapNo, TRPMEVENT *pEnmT
     return VINF_SUCCESS;
 }
 
+
+/**
+ * Gets all info about the current trap.
+ * This must be used only when the caller has determined that a trap is active.
+ *
+ * @returns The active vector.
+ * @param   pVCpu           The cross context virtual CPU structure.
+ * @param   pEnmType        Where to store the trap type.
+ * @param   puErrorCode     Where to store the error code associated with some
+ *                          traps.
+ * @param   puCR2           Where to store the CR2 associated with a trap 0E.
+ * @param   pcbInstr        Where to store the instruction-length associated with
+ *                          some traps. Optional, can be NULL.
+ * @param   pfIcebp         Where to store whether the trap is a \#DB caused by an
+ *                          INT1/ICEBP instruction. Optional, can be NULL.
+ */
+VMMDECL(uint8_t) TRPMGetTrapAll(PVMCPU pVCpu, TRPMEVENT *pEnmType, uint32_t *puErrorCode, PRTGCUINTPTR puCR2, uint8_t *pcbInstr,
+                                bool *pfIcebp)
+{
+    Assert(pVCpu->trpm.s.uActiveVector != ~0U);
+    Assert(pEnmType);
+    Assert(puErrorCode);
+    Assert(puCR2);
+    *pEnmType    = pVCpu->trpm.s.enmActiveType;
+    *puErrorCode = pVCpu->trpm.s.uActiveErrorCode;
+    *puCR2       = pVCpu->trpm.s.uActiveCR2;
+    if (pcbInstr)
+        *pcbInstr = pVCpu->trpm.s.cbInstr;
+    if (pfIcebp)
+        *pfIcebp  = pVCpu->trpm.s.fIcebp;
+    return pVCpu->trpm.s.uActiveVector;
+}
+

@@ -83,6 +83,8 @@ VMMDECL(bool)       TRPMIsSoftwareInterrupt(PVMCPU pVCpu);
 VMMDECL(bool)       TRPMHasTrap(PVMCPU pVCpu);
 VMMDECL(int)        TRPMQueryTrapAll(PVMCPU pVCpu, uint8_t *pu8TrapNo, PTRPMEVENT pEnmType, uint32_t *puErrorCode,
                                      PRTGCUINTPTR puCR2, uint8_t *pcbInstr, bool *pfIcebp);
+VMMDECL(uint8_t)    TRPMGetTrapAll(PVMCPU pVCpu, PTRPMEVENT pEnmType, uint32_t *puErrorCode, PRTGCUINTPTR puCR2,
+                                   uint8_t *pcbInstr, bool *pfIcebp);
 
 #ifdef IN_RING3
 /** @defgroup grp_trpm_r3   TRPM Host Context Ring 3 API

@@ -478,8 +478,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     /* GITS_BASER<n>. */
     RT_ZERO(pGitsDev->aItsTableRegs);
     pGitsDev->aItsTableRegs[0].u = RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_ENTRY_SIZE, GITS_ITE_SIZE - 1)
-                                 | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_TYPE,       GITS_BASER_TYPE_DEVICES)
-                                 | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_VALID,      1);
+                                 | RT_BF_MAKE(GITS_BF_CTRL_REG_BASER_TYPE,       GITS_BASER_TYPE_DEVICES);
 
     /* GITS_CBASER, GITS_CREADR, GITS_CWRITER. */
     pGitsDev->uCmdBaseReg.u = 0;

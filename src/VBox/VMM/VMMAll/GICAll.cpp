@@ -660,12 +660,12 @@ static void gicDistHasIrqPendingForVCpu(PCGICDEV pGicDev, PCVMCPUCC pVCpu, VMCPU
 }
 
 
-static void gicDistReadLpiConfigTableFromMemory(PPDMDEVINS pDevIns, PGICDEV pGicDev)
+static void gicDistReadLpiConfigTableFromMem(PPDMDEVINS pDevIns, PGICDEV pGicDev)
 {
     Assert(pGicDev->fEnableLpis);
     LogFlowFunc(("\n"));
 
-    /* Check if the guest is disabling LPIs by setting GICR_PROPBASER.IDBits < 13. */
+    /* Check if the guest is disabling LPIs by setting the number of LPI INTID bits below the minimum required bits. */
     uint8_t const cIdBits = RT_BF_GET(pGicDev->uLpiConfigBaseReg.u, GIC_BF_REDIST_REG_PROPBASER_ID_BITS) + 1;
     if (cIdBits < GIC_LPI_ID_BITS_MIN)
         return;
@@ -679,6 +679,31 @@ static void gicDistReadLpiConfigTableFromMemory(PPDMDEVINS pDevIns, PGICDEV pGic
      *        Probably safe, but haven't verified this... */
     int const rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysLpiConfigTable, (void *)&pGicDev->abLpiConfig[0], cbLpiConfigTable);
     AssertRC(rc);
+}
+
+
+static void gicReDistReadLpiPendingBitmapFromMem(PPDMDEVINS pDevIns, PVMCPU pVCpu, PGICDEV pGicDev)
+{
+    Assert(pGicDev->fEnableLpis);
+    LogFlowFunc(("\n"));
+
+    PGICCPU    pGicCpu   = VMCPU_TO_GICCPU(pVCpu);
+    bool const fIsZeroed = RT_BF_GET(pGicDev->uLpiPendingBaseReg.u, GIC_BF_REDIST_REG_PENDBASER_PTZ);
+    if (!fIsZeroed)
+    {
+        /* Copy the LPI pending bitmap from guest memory to our internal cache. */
+        RTGCPHYS const GCPhysLpiPendingBitmap = (pGicDev->uLpiPendingBaseReg.u & GIC_BF_REDIST_REG_PENDBASER_PHYS_ADDR_MASK)
+                                              + GIC_INTID_RANGE_LPI_START;  /* Skip first 1KB (since LPI INTIDs start at 8192). */
+        uint32_t const cbLpiPendingBitmap     = sizeof(pGicDev->bmLpiPending);
+
+        /** @todo Try releasing and re-acquiring the device critical section here.
+         *        Probably safe, but haven't verified this... */
+        int const rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysLpiPendingBitmap, (void *)&pGicCpu->bmLpiPending[0],
+                                             cbLpiPendingBitmap);
+        AssertRC(rc);
+    }
+    else
+        RT_ZERO(pGicCpu->bmLpiPending); /* Paranoia. */
 }
 
 
@@ -2481,10 +2506,27 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
             Assert(uValue == 0);
             break;
         case GIC_REDIST_REG_CTLR_OFF:
-            pGicDev->fEnableLpis = RT_BOOL(uValue & GIC_REDIST_REG_CTLR_ENABLE_LPI);
-            if (pGicDev->fEnableLpis)
-                gicDistReadLpiConfigTableFromMemory(pDevIns, pGicDev);
+        {
+            /* Check if LPIs are supported and whether the enable LPI bit changed. */
+            uint32_t const uOldCtlr = pGicDev->fEnableLpis ? GIC_REDIST_REG_CTLR_ENABLE_LPI : 0;
+            uint32_t const uNewCtlr = uValue & GIC_REDIST_REG_CTLR_ENABLE_LPI;
+            if (   pGicDev->fLpi
+                && ((uNewCtlr ^ uOldCtlr) & GIC_REDIST_REG_CTLR_ENABLE_LPI))
+            {
+                pGicDev->fEnableLpis = RT_BOOL(uNewCtlr & GIC_REDIST_REG_CTLR_ENABLE_LPI);
+                if (pGicDev->fEnableLpis)
+                {
+                    gicDistReadLpiConfigTableFromMem(pDevIns, pGicDev);
+                    gicReDistReadLpiPendingBitmapFromMem(pDevIns, pVCpu, pGicDev);
+                }
+                else
+                {
+                    PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+                    RT_ZERO(pGicCpu->bmLpiPending);
+                }
+            }
             break;
+        }
         case GIC_REDIST_REG_PROPBASER_OFF:
             pGicDev->uLpiConfigBaseReg.s.Lo = uValue & RT_LO_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);
             break;
@@ -3177,6 +3219,7 @@ static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
     pGicCpu->bBinaryPtGroup1    = 0;
     pGicCpu->fIntrGroup0Enabled = false;
     pGicCpu->fIntrGroup1Enabled = false;
+    RT_ZERO(pGicCpu->bmLpiPending);
 }
 
 

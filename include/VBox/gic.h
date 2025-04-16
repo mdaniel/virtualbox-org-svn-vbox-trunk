@@ -442,6 +442,11 @@
 /** Bit 31 - Upstream Write Pending. */
 #define GIC_REDIST_REG_CTLR_UWP_BIT                     31
 #define GIC_REDIST_REG_CTLR_UWP                         RT_BIT_32(31)
+/** GICR_CTLR: Mask of valid read-write bits. */
+#define GIC_REDIST_REG_CTLR_RW_MASK                     (  GIC_REDIST_REG_CTLR_ENABLE_LPI \
+                                                         |  GIC_REDIST_REG_CTLR_DPG0 \
+                                                         | GIC_REDIST_REG_CTLR_DPG1NS \
+                                                         | GIC_REDIST_REG_CTLR_DPG1S)
 
 /** Implementer Identification Register - RO. */
 #define GIC_REDIST_REG_IIDR_OFF                         0x0004

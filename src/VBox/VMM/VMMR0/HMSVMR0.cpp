@@ -3451,7 +3451,7 @@ static void hmR0SvmTrpmTrapToPendingEvent(PVMCPUCC pVCpu)
     else
         AssertMsgFailed(("Invalid TRPM event type %d\n", enmTrpmEvent));
 
-    rc = TRPMResetTrap(pVCpu);
+    int const rc = TRPMResetTrap(pVCpu);
     AssertRC(rc);
 
     Log4(("TRPM->HM event: u=%#RX64 u8Vector=%#x uErrorCodeValid=%RTbool uErrorCode=%#RX32\n", Event.u, Event.n.u8Vector,

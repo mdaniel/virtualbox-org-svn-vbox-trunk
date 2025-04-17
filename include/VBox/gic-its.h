@@ -330,6 +330,15 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_BASER_, UINT64_C(0), UINT64_MAX,
 /** GITS_BASER: Table type - Interrupt Collections. */
 #define GITS_BASER_TYPE_INTR_COLLECTION                         3
 
+/** GITS_BASER: Page_Size: 4K. */
+#define GITS_BASER_PAGE_SIZE_4K                                 0
+/** GITS_BASER: Page_Size: 16K. */
+#define GITS_BASER_PAGE_SIZE_16K                                1
+/** GITS_BASER: Page_Size: 64K. */
+#define GITS_BASER_PAGE_SIZE_64K                                2
+/** GITS_BASER: Page_Size: Reserved (treated as 64K). */
+#define GITS_BASER_PAGE_SIZE_RSVD                               3
+
 /** GITS_PIDR2: ITS Peripheral ID2 register - RO. */
 #define GITS_CTRL_REG_PIDR2_OFF                                 0xffe8
 /** GITS_PIDR2: JEDEC - JEP code. */

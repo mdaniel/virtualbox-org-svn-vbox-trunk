@@ -63,7 +63,14 @@ typedef enum CPUMCPUVENDOR
     CPUMCPUVENDOR_CYRIX,
     CPUMCPUVENDOR_SHANGHAI,
     CPUMCPUVENDOR_HYGON,
-    CPUMCPUVENDOR_APPLE,        /**< ARM */
+
+    /* ARM: */
+    CPUMCPUVENDOR_ARM,
+    CPUMCPUVENDOR_BROADCOM,
+    CPUMCPUVENDOR_QUALCOMM,
+    CPUMCPUVENDOR_APPLE,
+    CPUMCPUVENDOR_AMPERE,
+
     CPUMCPUVENDOR_UNKNOWN,
     /** 32bit hackishness. */
     CPUMCPUVENDOR_32BIT_HACK = 0x7fffffff
@@ -1740,21 +1747,19 @@ typedef CPUMDBENTRYX86 const *PCCPUMDBENTRYX86;
 typedef struct CPUMDBENTRYARM
 {
     /** The common parts. */
-    CPUMDBENTRY     Core;
+    CPUMDBENTRY         Core;
 
-    /** The CPU family. */
-    uint8_t         uFamily;
-    /** The CPU model. */
-    uint8_t         uModel;
-    /** The CPU stepping. */
-    uint8_t         uStepping;
-    /** Scalable bus frequency used for reporting other frequencies. */
-    uint64_t        uScalableBusFreq;
-    /** The maximum physical address with of the CPU.  This should correspond to
-     * the value in CPUID leaf 0x80000008 when present. */
-    uint8_t         cMaxPhysAddrWidth;
+    /** The implementer value from MIDR_EL1. */
+    uint8_t             bImplementer;
+    /** The revision number from MIDR_EL1. */
+    uint8_t             bRevision;
+    /** The part number value from MIDR_EL1. */
+    uint16_t            uPartNum;
 
-    /** @todo lots more to be added here... */
+    /** Number of entries in the table paSysRegVals points to. */
+    uint32_t            cSysRegVals;
+    /** System register values. */
+    struct SUPARMSYSREGVAL const *paSysRegVals;
 } CPUMDBENTRYARM;
 /** Pointer to a const ARM CPU database entry. */
 typedef CPUMDBENTRYARM const *PCCPUMDBENTRYARM;

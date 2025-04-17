@@ -58,11 +58,13 @@ extern PRTSTREAM        g_pReportOut;
 extern PRTSTREAM        g_pDebugOut;
 extern CPUMCPUVENDOR    g_enmVendor;
 extern CPUMMICROARCH    g_enmMicroarch;
+extern const char      *g_pszCpuNameOverride;
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 extern bool             g_fNoMsrs;
 #endif
 
 extern void vbCpuRepDebug(const char *pszMsg, ...);
+extern void vbCpuRepFileHdr(const char *pszName, const char *pszNameC);
 extern void vbCpuRepPrintf(const char *pszMsg, ...);
 extern const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor);
 

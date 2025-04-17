@@ -195,21 +195,26 @@ typedef SUPHWVIRTMSRS *PSUPHWVIRTMSRS;
 /** Pointer to a hardware-virtualization MSRs struct. */
 typedef const SUPHWVIRTMSRS *PCSUPHWVIRTMSRS;
 
-#if defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING)
 /**
  * ARM system register value.
+ *
+ * @note Used by CPUM on non-ARM hosts.
  */
 typedef struct SUPARMSYSREGVAL
 {
-    uint32_t            idReg;
-    uint32_t            fFlags;
+    /** The register value. */
     uint64_t            uValue;
+    /** The register number (ARMV8_AARCH64_SYSREG_ID_CREATE). */
+    uint32_t            idReg;
+    /** Reserved, zero. */
+    uint32_t            fFlags;
 } SUPARMSYSREGVAL;
 /** Pointer to an ARM system register value. */
 typedef SUPARMSYSREGVAL *PSUPARMSYSREGVAL;
 /** Pointer to a const ARM system register value. */
 typedef SUPARMSYSREGVAL const *PCSUPARMSYSREGVAL;
 
+#if defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING)
 /** @name SUP_ARM_SYS_REG_F_XXX - Flags for SUPR3ArmQuerySysRegs.
  *  @{ */
 /** Include registers with value zero (default is to skip them). */

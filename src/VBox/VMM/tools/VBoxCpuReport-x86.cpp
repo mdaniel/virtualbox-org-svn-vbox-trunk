@@ -4684,52 +4684,7 @@ int produceCpuReport(void)
      * unwanted).
      */
     if (g_pReportOut)
-    {
-        RTTIMESPEC Now;
-        char       szNow[64];
-        RTTimeSpecToString(RTTimeNow(&Now), szNow, sizeof(szNow));
-        char *pchDot = strchr(szNow, '.');
-        if (pchDot)
-            strcpy(pchDot, "Z");
-
-        vbCpuRepPrintf("/* $" "Id" "$ */\n"
-                       "/** @file\n"
-                       " * CPU database entry \"%s\".\n"
-                       " * Generated at %s by VBoxCpuReport v%sr%s on %s.%s.\n"
-                       " */\n"
-                       "\n"
-                       "/*\n"
-                       " * Copyright (C) 2013-" VBOX_C_YEAR " Oracle and/or its affiliates.\n"
-                       " *\n"
-                       " * This file is part of VirtualBox base platform packages, as\n"
-                       " * available from https://www.virtualbox.org.\n"
-                       " *\n"
-                       " * This program is free software; you can redistribute it and/or\n"
-                       " * modify it under the terms of the GNU General Public License\n"
-                       " * as published by the Free Software Foundation, in version 3 of the\n"
-                       " * License.\n"
-                       " *\n"
-                       " * This program is distributed in the hope that it will be useful, but\n"
-                       " * WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-                       " * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
-                       " * General Public License for more details.\n"
-                       " *\n"
-                       " * You should have received a copy of the GNU General Public License\n"
-                       " * along with this program; if not, see <https://www.gnu.org/licenses>.\n"
-                       " *\n"
-                       " * SPDX-License-Identifier: GPL-3.0-only\n"
-                       " */\n"
-                       "\n"
-                       "#ifndef VBOX_CPUDB_%s_h\n"
-                       "#define VBOX_CPUDB_%s_h\n"
-                       "#ifndef RT_WITHOUT_PRAGMA_ONCE\n"
-                       "# pragma once\n"
-                       "#endif\n"
-                       "\n",
-                       pszName,
-                       szNow, RTBldCfgVersion(), RTBldCfgRevisionStr(), RTBldCfgTarget(), RTBldCfgTargetArch(),
-                       szNameC, szNameC);
-    }
+        vbCpuRepFileHdr(pszName, szNameC);
 
     /*
      * Extract CPUID based data.

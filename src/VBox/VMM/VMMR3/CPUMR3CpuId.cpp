@@ -107,7 +107,7 @@ static bool cpumR3CpuIdGetLeafLegacy(PCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, 
     }
     return false;
 }
-#endif /* IN_VBOX_CPU_REPORT */
+#endif /* !IN_VBOX_CPU_REPORT */
 
 
 /**

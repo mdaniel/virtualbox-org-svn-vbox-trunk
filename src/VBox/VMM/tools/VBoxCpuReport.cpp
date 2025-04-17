@@ -63,6 +63,10 @@ PRTSTREAM        g_pDebugOut;
 CPUMCPUVENDOR    g_enmVendor = CPUMCPUVENDOR_INVALID;
 /** The CPU microarchitecture.  Used by the MSR code. */
 CPUMMICROARCH    g_enmMicroarch = kCpumMicroarch_Invalid;
+/** Overrides the detected CPU name.
+ * This is main for non-x86 hosts where the processor name string isn't
+ * part of the silicone. */
+const char      *g_pszCpuNameOverride = NULL;
 
 
 
@@ -111,6 +115,56 @@ void vbCpuRepPrintf(const char *pszMsg, ...)
 }
 
 
+/** Prints the file header. */
+void vbCpuRepFileHdr(const char *pszName, const char *pszNameC)
+{
+    RTTIMESPEC Now;
+    char       szNow[64];
+    RTTimeSpecToString(RTTimeNow(&Now), szNow, sizeof(szNow));
+    char *pchDot = strchr(szNow, '.');
+    if (pchDot)
+        strcpy(pchDot, "Z");
+
+    vbCpuRepPrintf("/* $" "Id" "$ */\n"
+                   "/** @file\n"
+                   " * CPU database entry \"%s\".\n"
+                   " * Generated at %s by VBoxCpuReport v%sr%s on %s.%s.\n"
+                   " */\n"
+                   "\n"
+                   "/*\n"
+                   " * Copyright (C) 2013-" VBOX_C_YEAR " Oracle and/or its affiliates.\n"
+                   " *\n"
+                   " * This file is part of VirtualBox base platform packages, as\n"
+                   " * available from https://www.virtualbox.org.\n"
+                   " *\n"
+                   " * This program is free software; you can redistribute it and/or\n"
+                   " * modify it under the terms of the GNU General Public License\n"
+                   " * as published by the Free Software Foundation, in version 3 of the\n"
+                   " * License.\n"
+                   " *\n"
+                   " * This program is distributed in the hope that it will be useful, but\n"
+                   " * WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+                   " * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
+                   " * General Public License for more details.\n"
+                   " *\n"
+                   " * You should have received a copy of the GNU General Public License\n"
+                   " * along with this program; if not, see <https://www.gnu.org/licenses>.\n"
+                   " *\n"
+                   " * SPDX-License-Identifier: GPL-3.0-only\n"
+                   " */\n"
+                   "\n"
+                   "#ifndef VBOX_CPUDB_%s_h\n"
+                   "#define VBOX_CPUDB_%s_h\n"
+                   "#ifndef RT_WITHOUT_PRAGMA_ONCE\n"
+                   "# pragma once\n"
+                   "#endif\n"
+                   "\n",
+                   pszName,
+                   szNow, RTBldCfgVersion(), RTBldCfgRevisionStr(), RTBldCfgTarget(), RTBldCfgTargetArch(),
+                   pszNameC, pszNameC);
+}
+
+
 
 const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor)
 {
@@ -122,7 +176,13 @@ const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor)
         case CPUMCPUVENDOR_CYRIX:       return "Cyrix";
         case CPUMCPUVENDOR_SHANGHAI:    return "Shanghai";
         case CPUMCPUVENDOR_HYGON:       return "Hygon";
+
+        case CPUMCPUVENDOR_ARM:         return "ARM";
+        case CPUMCPUVENDOR_BROADCOM:    return "Broadcom";
+        case CPUMCPUVENDOR_QUALCOMM:    return "Qualecomm";
         case CPUMCPUVENDOR_APPLE:       return "Apple";
+        case CPUMCPUVENDOR_AMPERE:      return "Ampere";
+
         case CPUMCPUVENDOR_INVALID:
         case CPUMCPUVENDOR_UNKNOWN:
         case CPUMCPUVENDOR_32BIT_HACK:
@@ -143,6 +203,7 @@ int main(int argc, char **argv)
      */
     static const RTGETOPTDEF s_aOptions[] =
     {
+        { "--cpu-name",  'c', RTGETOPT_REQ_STRING },
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         { "--msrs-only", 'm', RTGETOPT_REQ_NOTHING },
         { "--msrs-dev",  'd', RTGETOPT_REQ_NOTHING },
@@ -175,6 +236,10 @@ int main(int argc, char **argv)
     {
         switch (iOpt)
         {
+            case 'c':
+                g_pszCpuNameOverride = *ValueUnion.psz ? ValueUnion.psz : NULL;
+                break;
+
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
             case 'm':
                 enmOp = kCpuReportOp_MsrsOnly;
@@ -204,7 +269,7 @@ int main(int argc, char **argv)
 #else
                 const char * const pszArchOps = "";
 #endif
-                RTPrintf("Usage: VBoxCpuReport %s[-h|--help] [-V|--version] [-o filename.h] [-l debug.log]\n",
+                RTPrintf("Usage: VBoxCpuReport %s[-c|--cpu-name <name>] [-h|--help] [-V|--version] [-o filename.h] [-l debug.log]\n",
                          pszArchOps);
                 RTPrintf("Internal tool for gathering information to the VMM CPU database.\n");
                 return RTEXITCODE_SUCCESS;

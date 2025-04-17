@@ -62,29 +62,36 @@ endif
 #
 # CPU report program (CPUM DB).
 #
-if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
+if1of ($(KBUILD_TARGET_ARCH), amd64 x86 arm64)
  PROGRAMS += VBoxCpuReport
 endif
-VBoxCpuReport_TEMPLATE := VBoxR3Static
-VBoxCpuReport_DEFS      = VBOX_VMM_TARGET_X86 VBOX_IN_VMM IN_VMM_R3 IN_VBOX_CPU_REPORT $(VMM_COMMON_DEFS)
-VBoxCpuReport_INCS      = ../include
-VBoxCpuReport_SOURCES   = \
+VBoxCpuReport_TEMPLATE   := VBoxR3Static
+VBoxCpuReport_DEFS        = VBOX_IN_VMM IN_VMM_R3 IN_VBOX_CPU_REPORT $(VMM_COMMON_DEFS)
+VBoxCpuReport_DEFS.amd64 := VBOX_VMM_TARGET_X86
+VBoxCpuReport_DEFS.x86   := VBOX_VMM_TARGET_X86
+VBoxCpuReport_DEFS.arm64 := VBOX_VMM_TARGET_ARMV8
+VBoxCpuReport_INCS       := ../include
+VBoxCpuReport_SOURCES    := \
 	VBoxCpuReport.cpp \
-	../VMMR3/CPUMR3CpuId.cpp \
 	../VMMAll/CPUMAllCpuId.cpp
 
-VBoxCpuReport_SOURCES.amd64 = \
+VBoxCpuReport_SOURCES.amd64 := \
 	VBoxCpuReport-x86.cpp \
-	VBoxCpuReportMsrSup.cpp
-VBoxCpuReport_SOURCES.x86 = \
+	VBoxCpuReportMsrSup.cpp \
+	../VMMR3/CPUMR3CpuId.cpp
+VBoxCpuReport_SOURCES.x86 := \
 	VBoxCpuReport-x86.cpp \
-	VBoxCpuReportMsrSup.cpp
-VBoxCpuReport_SOURCES.linux.amd64 = \
+	VBoxCpuReportMsrSup.cpp \
+	../VMMR3/CPUMR3CpuId.cpp
+VBoxCpuReport_SOURCES.linux.amd64 := \
 	VBoxCpuReportMsrLinux.cpp
-VBoxCpuReport_SOURCES.linux.x86 = \
+VBoxCpuReport_SOURCES.linux.x86 := \
 	VBoxCpuReportMsrLinux.cpp
-VBoxCpuReport_DEFS.linux.amd64 = VBCR_HAVE_PLATFORM_MSR_PROBER
-VBoxCpuReport_DEFS.linux.x86   = VBCR_HAVE_PLATFORM_MSR_PROBER
+VBoxCpuReport_DEFS.linux.amd64 := VBCR_HAVE_PLATFORM_MSR_PROBER
+VBoxCpuReport_DEFS.linux.x86   := VBCR_HAVE_PLATFORM_MSR_PROBER
+
+VBoxCpuReport_SOURCES.arm64 := \
+	VBoxCpuReport-arm.cpp
 
 VBoxCpuReport_LIBS      = \
 	$(PATH_STAGE_LIB)/SUPR3Static$(VBOX_SUFF_LIB) \

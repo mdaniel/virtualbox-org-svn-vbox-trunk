@@ -221,6 +221,7 @@ DECL_FORCE_INLINE(const char *) gitsGetDiagDescription(GITSDIAG enmDiag)
 static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmDiag, bool fStallQueue)
 {
     Log4Func(("enmDiag=%#RX32 (%s) fStallQueue=%RTbool\n", enmDiag, gitsGetDiagDescription(enmDiag)));
+
     GITS_CRIT_SECT_ENTER(pDevIns);
 
     /* Record the error and stall the queue. */
@@ -229,10 +230,10 @@ static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG
     if (fStallQueue)
         pGitsDev->uCmdReadReg |= GITS_BF_CTRL_REG_CREADR_STALLED_MASK;
 
+    GITS_CRIT_SECT_LEAVE(pDevIns);
+
     /* Since we don't support SEIs, so there should be nothing more to do here. */
     Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_SEIS));
-
-    GITS_CRIT_SECT_LEAVE(pDevIns);
 }
 
 
@@ -575,8 +576,10 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
             bool const fValid = RT_BF_GET(pGitsDev->auCtes[i], GITS_BF_CTE_VALID);
             if (fValid)
             {
+                uint32_t const uCte         = pGitsDev->auCtes[i];
+                uint16_t const uTargetCpuId = RT_BF_GET(pGitsDev->auCtes[i], GITS_BF_CTE_RDBASE);
+                pHlp->pfnPrintf(pHlp, "    [%3u] = %#RX32 (target cpu=%#RX16)\n", i, uCte, uTargetCpuId);
                 fHasValidCtes = true;
-                pHlp->pfnPrintf(pHlp, "    Target CPUID = %#RX16\n", i, RT_BF_GET(pGitsDev->auCtes[i], GITS_BF_CTE_RDBASE));
             }
         }
         if (!fHasValidCtes)
@@ -656,21 +659,21 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         case GITS_CMD_ID_MAPC:
                         {
                             uint64_t const uDw2 = pCmd->au64[2].u;
-                            bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
+                            uint8_t  const fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
                             uint16_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
                             uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
 
-                            GITS_CRIT_SECT_ENTER(pDevIns);
                             if (RT_LIKELY(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)))
                             {
+                                GITS_CRIT_SECT_ENTER(pDevIns);
                                 Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
                                 pGitsDev->auCtes[uIntrCollectionId] = RT_BF_MAKE(GITS_BF_CTE_VALID,  fValid)
                                                                     | RT_BF_MAKE(GITS_BF_CTE_RDBASE, uTargetCpuId);
+                                GITS_CRIT_SECT_LEAVE(pDevIns);
                             }
                             else
                                 gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
                                                      false /* fStall */);
-                            GITS_CRIT_SECT_LEAVE(pDevIns);
                             STAM_COUNTER_INC(&pGitsDev->StatCmdMapc);
                             break;
                         }

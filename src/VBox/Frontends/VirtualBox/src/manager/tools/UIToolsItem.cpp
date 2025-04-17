@@ -269,8 +269,11 @@ int UIToolsItem::minimumWidthHint() const
     /* Add 2 margins by default: */
     iProposedWidth += 2 * iMargin;
 #ifdef VBOX_WS_MAC
-    /* Additional 2 margins: */
-    iProposedWidth += 2 * iMargin;
+    /* Additional margin for non-Machine items (Global & Aux): */
+    if (m_enmClass == UIToolClass_Machine)
+        iProposedWidth += iMargin;
+    else
+        iProposedWidth += 2 * iMargin;
 #else
     /* Additional 1 margin: */
     iProposedWidth += iMargin;
@@ -607,7 +610,11 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
         subRect.setWidth(subRect.height());
 #ifdef VBOX_WS_MAC
-        subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
+        /* Take into account additional margin for non-Machine items (Global & Aux): */
+        if (m_enmClass == UIToolClass_Machine)
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(1.5 * iMargin - iPadding, iMargin - iPadding));
+        else
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
 #else
         subRect.moveTopLeft(rectangle.topLeft() + QPoint(1.5 * iMargin - iPadding, iMargin - iPadding));
 #endif
@@ -643,7 +650,12 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        int iPixmapX = 2 * iMargin;
+        /* Take into account additional margin for non-Machine items (Global & Aux): */
+        int iPixmapX = 0;
+        if (m_enmClass == UIToolClass_Machine)
+            iPixmapX = 1.5 * iMargin;
+        else
+            iPixmapX = 2 * iMargin;
 #else
         int iPixmapX = 1.5 * iMargin;
 #endif
@@ -663,7 +675,12 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        int iNameX = 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        /* Take into account additional margin for non-Machine items (Global & Aux): */
+        int iNameX = 0;
+        if (m_enmClass == UIToolClass_Machine)
+            iNameX = 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        else
+            iNameX = 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #else
         int iNameX = 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif

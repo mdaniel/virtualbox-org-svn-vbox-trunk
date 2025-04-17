@@ -161,7 +161,9 @@ typedef struct GITSDEV
      * @{
      */
     /** The collection table. */
-    uint32_t                auCtes[256];
+    uint32_t                auCtes[255];
+    /** Padding. */
+    uint32_t                auPadding0;
     /** @} */
 
     /** @name Configurables.

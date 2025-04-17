@@ -340,7 +340,7 @@ static DECLCALLBACK(void) gicR3DbgInfoLpi(PVM pVM, PCDBGFINFOHLP pHlp, const cha
         uint64_t const uReg   = pGicDev->uLpiConfigBaseReg.u;
         uint8_t const cIdBits = RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_ID_BITS);
         pHlp->pfnPrintf(pHlp, "  uLpiConfigBaseReg  = %#RX64\n", uReg);
-        pHlp->pfnPrintf(pHlp, "    ID bits            = %#x (%u bits)\n", cIdBits, cIdBits);
+        pHlp->pfnPrintf(pHlp, "    ID bits            = %#x (%u bits)\n", cIdBits, cIdBits + 1);
         pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_INNER_CACHE));
         pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",    RT_BF_GET(uReg, GIC_BF_REDIST_REG_PROPBASER_SHAREABILITY));
         pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n", uReg & GIC_BF_REDIST_REG_PROPBASER_PHYS_ADDR_MASK);

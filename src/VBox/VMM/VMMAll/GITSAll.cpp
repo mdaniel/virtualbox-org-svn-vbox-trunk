@@ -462,8 +462,8 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */  /* Locally generated errors not recommended. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,       0) */  /* Target is VCPU ID not address. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,       255)   /* Collection count. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  0) */  /* 16-bit collection IDs. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       1)     /* Collection ID limit enforced. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  7)     /* Number of collection ID bits minus 1. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       1)     /* Collection ID size set by GITS_BASER.CIDbits. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,     0) */  /* VMOVP not supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,      0) */  /* MPAM no supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,      0) */  /* VSGI not supported. */
@@ -643,7 +643,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             {
                 /* Indicate to the guest we've fetched all commands. */
                 GITS_CRIT_SECT_ENTER(pDevIns);
-                pGitsDev->uCmdReadReg = offWrite;
+                pGitsDev->uCmdReadReg   = offWrite;
                 pGitsDev->uCmdWriteReg &= ~GITS_BF_CTRL_REG_CWRITER_RETRY_MASK;
 
                 /* Don't hold the critical section while processing commands. */

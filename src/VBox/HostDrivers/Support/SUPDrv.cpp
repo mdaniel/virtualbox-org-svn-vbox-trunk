@@ -76,6 +76,9 @@
 #endif
 #include <iprt/uint128.h>
 #include <iprt/x86.h>
+#ifdef RT_ARCH_ARM64
+# include <iprt/armv8.h>
+#endif
 
 #include <VBox/param.h>
 #include <VBox/log.h>
@@ -183,7 +186,12 @@ DECLINLINE(int)             supdrvLdrLock(PSUPDRVDEVEXT pDevExt);
 DECLINLINE(int)             supdrvLdrUnlock(PSUPDRVDEVEXT pDevExt);
 static int                  supdrvIOCtl_CallServiceModule(PSUPDRVDEVEXT pDevExt, PSUPDRVSESSION pSession, PSUPCALLSERVICE pReq);
 static int                  supdrvIOCtl_LoggerSettings(PSUPLOGGERSETTINGS pReq);
-static int                  supdrvIOCtl_MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq);
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+static int                  supdrvIOCtl_X86MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq);
+#endif
+#if defined(RT_ARCH_ARM64)
+static int                  supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t cMaxRegs, uint32_t fFlags);
+#endif
 static int                  supdrvIOCtl_ResumeSuspendedKbds(void);
 
 
@@ -2167,8 +2175,8 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
         {
             /* validate */
             PSUPPAGEALLOCEX pReq = (PSUPPAGEALLOCEX)pReqHdr;
-            REQ_CHECK_EXPR(SUP_IOCTL_PAGE_ALLOC_EX, pReq->Hdr.cbIn <= SUP_IOCTL_PAGE_ALLOC_EX_SIZE_IN);
-            REQ_CHECK_SIZES_EX(SUP_IOCTL_PAGE_ALLOC_EX, SUP_IOCTL_PAGE_ALLOC_EX_SIZE_IN, SUP_IOCTL_PAGE_ALLOC_EX_SIZE_OUT(pReq->u.In.cPages));
+            REQ_CHECK_SIZE_IN(SUP_IOCTL_PAGE_ALLOC_EX, SUP_IOCTL_PAGE_ALLOC_EX_SIZE_IN);
+            REQ_CHECK_SIZE_OUT(SUP_IOCTL_PAGE_ALLOC_EX, SUP_IOCTL_PAGE_ALLOC_EX_SIZE_OUT(pReq->u.In.cPages));
             REQ_CHECK_EXPR_FMT(pReq->u.In.fKernelMapping || pReq->u.In.fUserMapping,
                                ("SUP_IOCTL_PAGE_ALLOC_EX: No mapping requested!\n"));
             REQ_CHECK_EXPR_FMT(pReq->u.In.fUserMapping,
@@ -2484,6 +2492,7 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             return 0;
         }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_MSR_PROBER):
         {
             /* validate */
@@ -2492,9 +2501,31 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             REQ_CHECK_EXPR(SUP_IOCTL_MSR_PROBER,
                            pReq->u.In.enmOp > SUPMSRPROBEROP_INVALID && pReq->u.In.enmOp < SUPMSRPROBEROP_END);
 
-            pReqHdr->rc = supdrvIOCtl_MsrProber(pDevExt, pReq);
+            pReqHdr->rc = supdrvIOCtl_X86MsrProber(pDevExt, pReq);
+
             return 0;
         }
+
+#elif defined(RT_ARCH_ARM64)
+        case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_ARM_GET_SYSREGS):
+        {
+            /* validate */
+            PSUPARMGETSYSREGS pReq  = (PSUPARMGETSYSREGS)pReqHdr;
+            uint32_t const cMaxRegs = pReq->Hdr.cbOut <= RT_UOFFSETOF(SUPARMGETSYSREGS, u.Out.aRegs) ? 0
+                                    : (pReq->Hdr.cbOut - RT_UOFFSETOF(SUPARMGETSYSREGS, u.Out.aRegs)) / sizeof(SUPARMSYSREGVAL);
+            REQ_CHECK_SIZE_IN(SUP_IOCTL_ARM_GET_SYSREGS, SUP_IOCTL_ARM_GET_SYSREGS_SIZE_IN);
+
+            REQ_CHECK_SIZE_OUT(SUP_IOCTL_ARM_GET_SYSREGS, SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(cMaxRegs));
+            REQ_CHECK_EXPR_FMT(!(pReq->u.In.fFlags & SUP_ARM_SYS_REG_F_VALID_MASK),
+                               ("SUP_IOCTL_ARM_GET_SYSREGS: fFlags=%#x!\n", pReq->u.In.fFlags));
+
+            pReqHdr->rc = supdrvIOCtl_ArmGetSysRegs(pReq, cMaxRegs, pReq->u.In.fFlags);
+            if (RT_FAILURE(pReqHdr->rc))
+                pReqHdr->cbOut = sizeof(*pReqHdr);
+
+            return 0;
+        }
+#endif
 
         case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_RESUME_SUSPENDED_KBDS):
         {
@@ -7161,6 +7192,7 @@ static int supdrvIOCtl_LoggerSettings(PSUPLOGGERSETTINGS pReq)
 }
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /**
  * Implements the MSR prober operations.
  *
@@ -7168,9 +7200,9 @@ static int supdrvIOCtl_LoggerSettings(PSUPLOGGERSETTINGS pReq)
  * @param   pDevExt     The device extension.
  * @param   pReq        The request.
  */
-static int supdrvIOCtl_MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq)
+static int supdrvIOCtl_X86MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq)
 {
-#ifdef SUPDRV_WITH_MSR_PROBER
+# ifdef SUPDRV_WITH_MSR_PROBER
     RTCPUID const idCpu = pReq->u.In.idCpu == UINT32_MAX ? NIL_RTCPUID : pReq->u.In.idCpu;
     int rc;
 
@@ -7215,11 +7247,206 @@ static int supdrvIOCtl_MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq)
     }
     RT_NOREF1(pDevExt);
     return rc;
-#else
+# else
     RT_NOREF2(pDevExt, pReq);
     return VERR_NOT_IMPLEMENTED;
-#endif
+# endif
 }
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
+
+
+#if defined(RT_ARCH_ARM64)
+/**
+ * Implements the ARM ID (and system) register getter.
+ *
+ * @returns VBox status code.
+ * @param   pReq        The request.
+ * @param   cMaxRegs    The maximum number of register we can return.
+ * @param   fFlags      The request flags.
+ */
+static int supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t const cMaxRegs, uint32_t fFlags)
+{
+    /*
+     * Reader macro.
+     */
+    uint32_t idxReg = 0;
+#  ifdef _MSC_VER
+#   define COMPILER_READ_SYS_REG(a_u64Dst, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) \
+        (a_u64Dst) = (uint64_t)_ReadStatusReg(ARMV8_AARCH64_SYSREG_ID_CREATE(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) & 0x7fff)
+#   define COMPILER_READ_SYS_REG_NAMED(a_u64Dst, a_SysRegName) \
+        (a_u64Dst) = (uint64_t)_ReadStatusReg(RT_CONCAT(ARMV8_AARCH64_SYSREG_,a_SysRegName) & 0x7fff)
+#  else
+#   define COMPILER_READ_SYS_REG(a_u64Dst, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) \
+        __asm__ __volatile__ ("mrs %0, s" #a_Op0 "_" #a_Op1 "_c" #a_CRn "_c" #a_CRm "_" #a_Op2  : "=r" (a_u64Dst))
+#   define COMPILER_READ_SYS_REG_NAMED(a_u64Dst, a_SysRegName) \
+        __asm__ __volatile__ ("mrs %0, " #a_SysRegName  : "=r" (a_u64Dst))
+#  endif
+# define READ_SYS_REG_UNDEF(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) do { \
+            uint64_t uTmp = 0; \
+            COMPILER_READ_SYS_REG(uTmp, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
+            if (uTmp != 0 || (fFlags & SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL)) \
+            { \
+                if (idxReg < cMaxRegs) \
+                { \
+                    pReq->u.Out.aRegs[idxReg].uValue = uTmp; \
+                    pReq->u.Out.aRegs[idxReg].idReg  = ARMV8_AARCH64_SYSREG_ID_CREATE(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
+                    pReq->u.Out.aRegs[idxReg].fFlags = 0; \
+                } \
+                idxReg += 1; \
+            } \
+        } while (0)
+
+# define READ_SYS_REG_NAMED(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2, a_SysRegName) do { \
+            AssertCompile(   ARMV8_AARCH64_SYSREG_ID_CREATE(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) \
+                          == RT_CONCAT(ARMV8_AARCH64_SYSREG_,a_SysRegName)); \
+            READ_SYS_REG_UNDEF(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
+        } while (0)
+
+# define READ_SYS_REG__TODO(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2, a_SysRegName) READ_SYS_REG_UNDEF(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2)
+    /*
+     * Standard ID registers.
+     */
+    READ_SYS_REG_NAMED(3, 0, 0, 0, 0, MIDR_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 0, 5, MPIDR_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 0, 6, REVIDR_EL1);
+    READ_SYS_REG__TODO(3, 1, 0, 0, 0, CCSIDR_EL1);
+    READ_SYS_REG__TODO(3, 1, 0, 0, 1, CLIDR_EL1);
+    READ_SYS_REG__TODO(3, 1, 0, 0, 7, AIDR_EL1);
+    READ_SYS_REG_NAMED(3, 3, 0, 0, 7, DCZID_EL0);
+    READ_SYS_REG_NAMED(3, 3,14, 0, 0, CNTFRQ_EL0);
+
+
+    READ_SYS_REG_NAMED(3, 0, 0, 4, 0, ID_AA64PFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 4, 1, ID_AA64PFR1_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 4, 2);
+    READ_SYS_REG_UNDEF(3, 0, 0, 4, 3);
+    READ_SYS_REG_NAMED(3, 0, 0, 4, 4, ID_AA64ZFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 4, 5, ID_AA64SMFR0_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 4, 6);
+    READ_SYS_REG_UNDEF(3, 0, 0, 4, 7);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 5, 0, ID_AA64DFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 5, 1, ID_AA64DFR1_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 5, 2);
+    READ_SYS_REG_UNDEF(3, 0, 0, 5, 3);
+    READ_SYS_REG_NAMED(3, 0, 0, 5, 4, ID_AA64AFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 5, 5, ID_AA64AFR1_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 5, 6);
+    READ_SYS_REG_UNDEF(3, 0, 0, 5, 7);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 6, 0, ID_AA64ISAR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 6, 1, ID_AA64ISAR1_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 6, 2, ID_AA64ISAR2_EL1);
+    READ_SYS_REG__TODO(3, 0, 0, 6, 3, ID_AA64ISAR3_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 6, 4);
+    READ_SYS_REG_UNDEF(3, 0, 0, 6, 5);
+    READ_SYS_REG_UNDEF(3, 0, 0, 6, 6);
+    READ_SYS_REG_UNDEF(3, 0, 0, 6, 7);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 7, 0, ID_AA64MMFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 7, 1, ID_AA64MMFR1_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 7, 2, ID_AA64MMFR2_EL1);
+    READ_SYS_REG__TODO(3, 0, 0, 7, 3, ID_AA64MMFR3_EL1);
+    READ_SYS_REG__TODO(3, 0, 0, 7, 4, ID_AA64MMFR4_EL1);
+    READ_SYS_REG_UNDEF(3, 0, 0, 7, 5);
+    READ_SYS_REG_UNDEF(3, 0, 0, 7, 6);
+    READ_SYS_REG_UNDEF(3, 0, 0, 7, 7);
+
+    /* AArch32 feature registers: */
+    /** @todo do these need to be if-aarch32-supported-guarded? */
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 0, ID_PFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 1, ID_PFR1_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 2, ID_DFR0_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 3, ID_AFR0_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 4, ID_MMFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 5, ID_MMFR1_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 6, ID_MMFR2_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 1, 7, ID_MMFR3_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 0, ID_ISAR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 1, ID_ISAR1_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 2, ID_ISAR2_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 3, ID_ISAR3_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 4, ID_ISAR4_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 5, ID_ISAR5_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 6, ID_MMFR4_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 2, 7, ID_ISAR6_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 0, MVFR0_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 1, MVFR1_EL1);
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 2, MVFR2_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 4, ID_PFR2_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 5, ID_DFR1_EL1);
+
+    READ_SYS_REG_NAMED(3, 0, 0, 3, 6, ID_MMFR5_EL1);
+
+    /* Feature dependent registers: */
+    uint64_t fMmfr2;
+    COMPILER_READ_SYS_REG_NAMED(fMmfr2, ID_AA64MMFR2_EL1);
+    if ((fMmfr2 & (UINT32_C(15) << 20) /*CCIDX*/) == RT_BIT_32(20))
+        READ_SYS_REG__TODO(3, 1, 0, 0, 2, CCSIDR2_EL1); /*?*/
+
+    uint64_t fPfr0;
+    COMPILER_READ_SYS_REG_NAMED(fPfr0, ID_AA64PFR0_EL1);
+    if (fPfr0 & ARMV8_ID_AA64PFR0_EL1_RAS_MASK)
+        READ_SYS_REG_NAMED(3, 0, 5, 3, 0, ERRIDR_EL1);
+
+    uint64_t fPfr1;
+    COMPILER_READ_SYS_REG_NAMED(fPfr1, ID_AA64PFR1_EL1);
+    if ((fPfr1 & ARMV8_ID_AA64PFR1_EL1_MTE_MASK) >= (ARMV8_ID_AA64PFR1_EL1_MTE_FULL << ARMV8_ID_AA64PFR1_EL1_MTE_SHIFT))
+        READ_SYS_REG__TODO(3, 1, 0, 0, 4, GMID_EL1);
+    if ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_MPAM_MASK) || (fPfr1 & ARMV8_ID_AA64PFR1_EL1_MPAMFRAC_MASK))
+    {
+        READ_SYS_REG__TODO(3, 0, 10, 4, 4, MPAMIDR_EL1);
+        uint64_t fMpamidr;
+        COMPILER_READ_SYS_REG(fMpamidr, 3, 0, 10, 4, 4);
+        if (fMpamidr & RT_BIT_64(56) /*HAS_BW_CTRL*/)
+            READ_SYS_REG__TODO(3, 0, 10, 4, 5, MPAMBWIDR_EL1);
+    }
+
+    uint64_t fDfr0;
+    COMPILER_READ_SYS_REG_NAMED(fDfr0, ID_AA64DFR0_EL1);
+    if (fDfr0 & (UINT64_C(15) << 32) /*PMSVer*/)
+    {
+        READ_SYS_REG__TODO(3, 0, 9, 10, 7, PMBIDR_EL1);
+        READ_SYS_REG__TODO(3, 0, 9,  8, 7, PMSIDR_EL1);
+    }
+    if (fDfr0 & (UINT64_C(15) << 44) /*TraceBuffer*/)
+        READ_SYS_REG__TODO(3, 0, 9, 11, 7, TRBIDR_EL1);
+
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR0);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR1);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR2);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR3);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR4);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR5);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR6);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR7);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR8);  */
+    /** @todo FEAT_ETE: READ_SYS_REG(TRCIDR9);  */
+
+
+# undef READ_SYS_REG
+# undef COMPILER_READ_SYS_REG
+
+    /*
+     * Complete the request output.
+     */
+    pReq->u.Out.cRegsAvailable = idxReg;
+    if (idxReg > cMaxRegs)
+        idxReg = cMaxRegs;
+    pReq->u.Out.cRegs          = idxReg;
+    pReq->Hdr.cbOut = SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(idxReg);
+    return VINF_SUCCESS;
+}
+#endif /* RT_ARCH_ARM64 */
 
 
 /**

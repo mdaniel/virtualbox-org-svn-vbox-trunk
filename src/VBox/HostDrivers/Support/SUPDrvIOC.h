@@ -1432,15 +1432,18 @@ typedef struct SUPTRACERUMODFIREPROBE
 /** @} */
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING)
 /** @name SUP_IOCTL_MSR_PROBER
  * MSR probing interface, not available in normal builds.
  *
+ * @note X86 specific.
+ *
  * @{
  */
-#define SUP_IOCTL_MSR_PROBER                        SUP_CTL_CODE_SIZE(34, SUP_IOCTL_MSR_PROBER_SIZE)
-#define SUP_IOCTL_MSR_PROBER_SIZE                   sizeof(SUPMSRPROBER)
-#define SUP_IOCTL_MSR_PROBER_SIZE_IN                sizeof(SUPMSRPROBER)
-#define SUP_IOCTL_MSR_PROBER_SIZE_OUT               sizeof(SUPMSRPROBER)
+# define SUP_IOCTL_MSR_PROBER                       SUP_CTL_CODE_SIZE(34, SUP_IOCTL_MSR_PROBER_SIZE)
+# define SUP_IOCTL_MSR_PROBER_SIZE                  sizeof(SUPMSRPROBER)
+# define SUP_IOCTL_MSR_PROBER_SIZE_IN               sizeof(SUPMSRPROBER)
+# define SUP_IOCTL_MSR_PROBER_SIZE_OUT              sizeof(SUPMSRPROBER)
 
 typedef enum SUPMSRPROBEROP
 {
@@ -1536,6 +1539,56 @@ AssertCompileMemberAlignment(SUPMSRPROBER, u, 8);
 AssertCompileMemberAlignment(SUPMSRPROBER, u.In.uArgs, 8);
 AssertCompileMembersSameSizeAndOffset(SUPMSRPROBER, u.In, SUPMSRPROBER, u.Out);
 /** @} */
+#endif /* defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING) */
+
+#if defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING)
+/** @name SUP_IOCTL_ARM_GET_SYSREGS
+ * Interface for getting ID register and in special builds some additional
+ * system register values.
+ *
+ * @note ARM specific.
+ *
+ * @{
+ */
+# define SUP_IOCTL_ARM_GET_SYSREGS                  SUP_CTL_CODE_BIG(34)
+# define SUP_IOCTL_ARM_GET_SYSREGS_SIZE(cRegs)      ((uint32_t)RT_UOFFSETOF_FLEX_ARRAY(SUPARMGETSYSREGS, u.Out.aRegs, (cRegs)))
+# define SUP_IOCTL_ARM_GET_SYSREGS_SIZE_IN          (RT_UOFFSETOF(SUPARMGETSYSREGS, u.In) + RT_SIZEOFMEMB(SUPARMGETSYSREGS, u.In))
+# define SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(cRegs)  SUP_IOCTL_ARM_GET_SYSREGS_SIZE(cRegs)
+
+typedef struct SUPARMGETSYSREGS
+{
+    /** The header. */
+    SUPREQHDR               Hdr;
+
+    /** Input/output union. */
+    union
+    {
+        /** Inputs.  */
+        struct
+        {
+            /** SUP_ARM_SYS_REG_F_XXX */
+            uint32_t                fFlags;
+        } In;
+
+        /** Outputs. */
+        struct
+        {
+            /** Number of registers returned. */
+            uint32_t                cRegs;
+            /** Number of registers available.
+             * If larger than cRegs, then retry with larger structure. */
+            uint32_t                cRegsAvailable;
+
+            /** Array of registers and their values. */
+            SUPARMSYSREGVAL         aRegs[1];
+        } Out;
+    } u;
+} SUPARMGETSYSREGS, *PSUPARMGETSYSREGS;
+AssertCompileMemberAlignment(SUPARMGETSYSREGS, u, 8);
+AssertCompileMemberAlignment(SUPARMGETSYSREGS, u.Out.aRegs, 8);
+/** @} */
+#endif /* defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING) */
+
 
 /** @name SUP_IOCTL_RESUME_SUSPENDED_KBDS
  * Resume suspended keyboard devices if any found in the system.

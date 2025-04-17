@@ -2241,6 +2241,7 @@ DECLASM(void) suplibTracerFireProbe(PVTGPROBELOC pProbeLoc, PSUPTRACERUMODFIREPR
     suplibOsIOCtl(&g_supLibData, SUP_IOCTL_TRACER_UMOD_FIRE_PROBE, pReq, SUP_IOCTL_TRACER_UMOD_FIRE_PROBE_SIZE);
 }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 
 SUPR3DECL(int) SUPR3MsrProberRead(uint32_t uMsr, RTCPUID idCpu, uint64_t *puValue, bool *pfGp)
 {
@@ -2329,6 +2330,55 @@ SUPR3DECL(int) SUPR3MsrProberModifyEx(uint32_t uMsr, RTCPUID idCpu, uint64_t fAn
     return rc;
 }
 
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
+
+#ifdef RT_ARCH_ARM64
+SUPR3DECL(int) SUPR3ArmQuerySysRegs(uint32_t fFlags, uint32_t cMaxRegs,
+                                    uint32_t *pcRegsReturned, uint32_t *pcRegsAvailable, PSUPARMSYSREGVAL paSysRegValues)
+{
+    /*
+     * Validate input.
+     */
+    AssertPtr(pcRegsReturned);
+    *pcRegsReturned = 0;
+    if (pcRegsAvailable)
+        *pcRegsAvailable = 0;
+    AssertReturn(cMaxRegs < _64K, VERR_OUT_OF_RANGE);
+    AssertReturn(!(fFlags & SUP_ARM_SYS_REG_F_VALID_MASK), VERR_INVALID_FLAGS);
+
+    /*
+     * Allocate temporary request.
+     */
+    uint32_t          cbReq = SUP_IOCTL_ARM_GET_SYSREGS_SIZE(cMaxRegs);
+    PSUPARMGETSYSREGS pReq = (PSUPARMGETSYSREGS)RTMemTmpAllocZ(cbReq);
+    AssertReturn(pReq, VERR_NO_TMP_MEMORY);
+
+    pReq->Hdr.u32Cookie           = g_u32Cookie;
+    pReq->Hdr.u32SessionCookie    = g_u32SessionCookie;
+    pReq->Hdr.cbIn                = SUP_IOCTL_ARM_GET_SYSREGS_SIZE_IN;
+    pReq->Hdr.cbOut               = SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(cMaxRegs);
+    pReq->Hdr.fFlags              = SUPREQHDR_FLAGS_DEFAULT;
+    pReq->Hdr.rc                  = VERR_INTERNAL_ERROR;
+
+    pReq->u.In.fFlags             = fFlags;
+
+    int rc = suplibOsIOCtl(&g_supLibData, SUP_IOCTL_ARM_GET_SYSREGS, pReq, cbReq);
+    if (RT_SUCCESS(rc))
+        rc = pReq->Hdr.rc;
+    if (RT_SUCCESS(rc))
+    {
+        uint32_t const cRetRegs = RT_MIN(cMaxRegs, pReq->u.Out.cRegs); /* paranoia */
+        AssertCompile(sizeof(paSysRegValues[0]) == sizeof(pReq->u.Out.aRegs[0]));
+        memcpy(paSysRegValues, pReq->u.Out.aRegs, sizeof(pReq->u.Out.aRegs[0]) * cRetRegs);
+        *pcRegsReturned = cRetRegs;
+        if (pcRegsAvailable)
+            *pcRegsAvailable = pReq->u.Out.cRegsAvailable;
+    }
+
+    RTMemTmpFree(pReq);
+    return rc;
+}
+#endif /* RT_ARCH_ARM64 */
 
 SUPR3DECL(int) SUPR3ResumeSuspendedKeyboards(void)
 {

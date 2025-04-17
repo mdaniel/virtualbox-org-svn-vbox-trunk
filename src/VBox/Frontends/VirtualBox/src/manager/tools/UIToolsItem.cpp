@@ -759,37 +759,25 @@ void UIToolsItem::paintRoundedButton(QPainter *pPainter,
     /* Save painter: */
     pPainter->save();
 
-    /* Paint icon frame: */
+    /* Configure painter path: */
     QPainterPath painterPath;
 #ifndef VBOX_WS_MAC
     iPadding /= 2;
 #endif
     painterPath.addRoundedRect(rectangle, iPadding, iPadding);
-#ifndef VBOX_WS_MAC
-    const QColor frameColor = uiCommon().isInDarkMode()
-                            ? color.lighter(220)
-                            : color.darker(120);
-    pPainter->setPen(QPen(frameColor, 2, Qt::SolidLine, Qt::RoundCap));
-    pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
-#endif
-
-    /* Fill icon body: */
     pPainter->setClipPath(painterPath);
-    const QColor backgroundColor = uiCommon().isInDarkMode()
-                                 ? color.lighter(180)
-                                 : color.darker(105);
-#ifndef VBOX_WS_MAC
-    pPainter->fillRect(rectangle, backgroundColor);
-#endif
 
     /* Paint active background: */
-    QRadialGradient grad(rectangle.center(), rectangle.width(), cursorPosition);
+    const QColor color0 = uiCommon().isInDarkMode()
+                        ? color.lighter(180)
+                        : color.darker(105);
     const QColor color1 = uiCommon().isInDarkMode()
-                        ? backgroundColor.lighter(180)
-                        : backgroundColor.lighter(120);
+                        ? color0.lighter(180)
+                        : color0.lighter(140);
     const QColor color2 = uiCommon().isInDarkMode()
-                        ? backgroundColor.darker(180)
-                        : backgroundColor.darker(120);
+                        ? color0.darker(180)
+                        : color0.darker(140);
+    QRadialGradient grad(rectangle.center(), rectangle.width(), cursorPosition);
     grad.setColorAt(0, color1);
     grad.setColorAt(1, color2);
     pPainter->fillRect(rectangle, grad);

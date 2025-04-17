@@ -736,12 +736,12 @@ void UIToolsModel::sltRetranslateUI()
             case UIToolType_Media:       pItem->setName(tr("Media")); break;
             case UIToolType_Network:     pItem->setName(tr("Network")); break;
             case UIToolType_Cloud:       pItem->setName(tr("Cloud")); break;
-            case UIToolType_Activities:  pItem->setName(tr("Activities")); break;
+            case UIToolType_Activities:  pItem->setName(tr("Resource Usage")); break;
             // Machine
             case UIToolType_Details:     pItem->setName(tr("Details")); break;
             case UIToolType_Snapshots:   pItem->setName(tr("Snapshots")); break;
             case UIToolType_Logs:        pItem->setName(tr("Logs")); break;
-            case UIToolType_VMActivity:  pItem->setName(tr("Activity")); break;
+            case UIToolType_VMActivity:  pItem->setName(tr("VM Activity")); break;
             case UIToolType_FileManager: pItem->setName(tr("File Manager")); break;
             default: break;
         }

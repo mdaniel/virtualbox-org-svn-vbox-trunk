@@ -734,15 +734,16 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     point += QPoint(0, fm.ascent());
 
     /* Draw text: */
-    QPainterPath textPath;
-    textPath.addText(0, 0, font, strText);
-    textPath.translate(point);
-    pPainter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    pPainter->setPen(QPen(uiCommon().isInDarkMode() ? Qt::black : Qt::white, 2, Qt::SolidLine, Qt::RoundCap));
-    pPainter->drawPath(QPainterPathStroker().createStroke(textPath));
-    pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
-    pPainter->setPen(Qt::NoPen);
-    pPainter->drawPath(textPath);
+    // QPainterPath textPath;
+    // textPath.addText(0, 0, font, strText);
+    // textPath.translate(point);
+    // pPainter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+    // pPainter->setPen(QPen(uiCommon().isInDarkMode() ? Qt::black : Qt::white, 2, Qt::SolidLine, Qt::RoundCap));
+    // pPainter->drawPath(QPainterPathStroker().createStroke(textPath));
+    // pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
+    // pPainter->setPen(Qt::NoPen);
+    // pPainter->drawPath(textPath);
+    pPainter->drawText(point, strText);
 
     /* Restore painter: */
     pPainter->restore();

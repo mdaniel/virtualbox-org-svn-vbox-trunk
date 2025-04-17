@@ -457,7 +457,11 @@ QVariant UIToolsItem::data(int iKey) const
         }
         case ToolsItemData_Padding:
         {
+#ifdef VBOX_WS_MAC
+            return 6;
+#else
             return 4;
+#endif
         }
 
         /* Font hints: */
@@ -760,18 +764,22 @@ void UIToolsItem::paintRoundedButton(QPainter *pPainter,
     iPadding /= 2;
 #endif
     painterPath.addRoundedRect(rectangle, iPadding, iPadding);
+#ifndef VBOX_WS_MAC
     const QColor frameColor = uiCommon().isInDarkMode()
                             ? color.lighter(220)
                             : color.darker(120);
     pPainter->setPen(QPen(frameColor, 2, Qt::SolidLine, Qt::RoundCap));
     pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+#endif
 
     /* Fill icon body: */
     pPainter->setClipPath(painterPath);
     const QColor backgroundColor = uiCommon().isInDarkMode()
-                                  ? color.lighter(180)
-                                  : color.darker(105);
+                                 ? color.lighter(180)
+                                 : color.darker(105);
+#ifndef VBOX_WS_MAC
     pPainter->fillRect(rectangle, backgroundColor);
+#endif
 
     /* Paint active background: */
     QRadialGradient grad(rectangle.center(), rectangle.width(), cursorPosition);

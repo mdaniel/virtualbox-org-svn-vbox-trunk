@@ -43,6 +43,7 @@
 /* Forward declaration: */
 class QGraphicsScene;
 class QGraphicsSceneHoverEvent;
+class UIToolsItemAnimationEngine;
 class UIToolsModel;
 
 /** QIGraphicsWidget extension used as interface
@@ -50,8 +51,17 @@ class UIToolsModel;
 class UIToolsItem : public QIGraphicsWidget
 {
     Q_OBJECT;
+    Q_PROPERTY(int hoveringProgress READ hoveringProgress WRITE setHoveringProgress);
 
 signals:
+
+    /** @name Item stuff.
+      * @{ */
+        /** Notifies listeners about item hovered. */
+        void sigHovered();
+        /** Notifies listeners about item unhovered. */
+        void sigUnhovered();
+    /** @} */
 
     /** @name Layout stuff.
       * @{ */
@@ -101,6 +111,9 @@ public:
 
         /** Defines whether item is @a fHidden by the @a enmReason. */
         void setHiddenByReason(bool fHidden, HidingReason enmReason);
+
+        /** Returns whether item is hovered. */
+        bool isHovered() const { return m_fHovered; }
     /** @} */
 
     /** @name Layout stuff.
@@ -211,6 +224,14 @@ private:
                                        int iPadding);
     /** @} */
 
+    /** @name Animation stuff.
+     * @{ */
+        /** Returns hovering progress. */
+        int hoveringProgress() const { return m_iHoveringProgress; }
+        /** Defines hovering @a iProgress. */
+        void setHoveringProgress(int iProgress);
+    /** @} */
+
     /** @name Item stuff.
       * @{ */
         /** Holds the item parent. */
@@ -245,6 +266,15 @@ private:
         QSize  m_pixmapSize;
         /** Holds the name size. */
         QSize  m_nameSize;
+    /** @} */
+
+    /** @name Animation stuff.
+     * @{ */
+        /** Holds the animation engine instance. */
+        UIToolsItemAnimationEngine *m_pAnimationEngine;
+
+        /** Holds the hovering progress. */
+        int  m_iHoveringProgress;
     /** @} */
 };
 

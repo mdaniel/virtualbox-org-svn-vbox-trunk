@@ -30,6 +30,9 @@
 #include <QApplication>
 #include <QGraphicsScene>
 #include <QPainter>
+#include <QPropertyAnimation>
+#include <QSignalTransition>
+#include <QStateMachine>
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 #include <QToolTip>
@@ -176,6 +179,162 @@ private:
 };
 
 
+/** QObject extension used as animation engine object. */
+class UIToolsItemAnimationEngine : public QObject
+{
+    Q_OBJECT;
+
+signals:
+
+    /** Initiates transition to hovered state. */
+    void sigHovered();
+    /** Initiates transition to unhovered state. */
+    void sigUnhovered();
+
+public:
+
+    /** Constructs animation engine passing @a pParent to the base-class. */
+    UIToolsItemAnimationEngine(UIToolsItem *pParent);
+
+private:
+
+    /** Prepares everything. */
+    void prepare();
+    /** Prepares machine. */
+    void prepareMachine();
+    /** Prepares connections. */
+    void prepareConnections();
+
+    /** Inits engine. */
+    void init();
+
+    /** Holds the parent item reference. */
+    UIToolsItem *m_pParent;
+
+    /** Holds the state-machine instance. */
+    QStateMachine *m_pMachine;
+
+    /** Holds the Unhovered state instance. */
+    QState *m_pStateUnhovered;
+    /** Holds the Hovered state instance. */
+    QState *m_pStateHovered;
+};
+
+
+/** QPropertyAnimation extension used as tool-item animation wrapper. */
+class UIToolsItemAnimation : public QPropertyAnimation
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs tool-item animation passing @a pParent to the base-class.
+      * @param  pTarget       Brings the object animation alters property for.
+      * @param  propertyName  Brings the name of property inside the @a pTarget.
+      * @param  fForward      Brings whether animation goes to iValue or from it. */
+    UIToolsItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward);
+};
+
+
+/*********************************************************************************************************************************
+*   Class UIToolsItemAnimationEngine implementation.                                                                             *
+*********************************************************************************************************************************/
+
+UIToolsItemAnimationEngine::UIToolsItemAnimationEngine(UIToolsItem *pParent)
+    : QObject(pParent)
+    , m_pParent(pParent)
+    , m_pMachine(0)
+    , m_pStateUnhovered(0)
+    , m_pStateHovered(0)
+{
+    prepare();
+}
+
+void UIToolsItemAnimationEngine::prepare()
+{
+    /* Prepare everything: */
+    prepareMachine();
+    prepareConnections();
+
+    /* Init can be async,
+     * but for now it's Ok that way. */
+    init();
+}
+
+void UIToolsItemAnimationEngine::prepareMachine()
+{
+    /* Prepare animation machine: */
+    m_pMachine = new QStateMachine(this);
+    if (m_pMachine)
+    {
+        /* Prepare states: */
+        m_pStateUnhovered = new QState(m_pMachine);
+        m_pStateHovered = new QState(m_pMachine);
+
+        /* Configure Unhovered state: */
+        if (m_pStateUnhovered)
+        {
+            m_pStateUnhovered->assignProperty(m_pParent, "hoveringProgress", 0);
+
+            /* Add Unhovered=>Hovered state transition: */
+            QSignalTransition *pTrnUnhoveredToHovered =
+                m_pStateUnhovered->addTransition(this, SIGNAL(sigHovered()), m_pStateHovered);
+            if (pTrnUnhoveredToHovered)
+            {
+                /* Create animation for hoveringProgress: */
+                UIToolsItemAnimation *pAnmUnhoveredToHovered =
+                    new UIToolsItemAnimation(m_pParent, "hoveringProgress", this, true);
+                pTrnUnhoveredToHovered->addAnimation(pAnmUnhoveredToHovered);
+            }
+        }
+
+        /* Configure Hovered state: */
+        if (m_pStateHovered)
+        {
+            m_pStateHovered->assignProperty(m_pParent, "hoveringProgress", 100);
+
+            /* Add Hovered=>Unhovered state transition: */
+            QSignalTransition *pTrnHoveredToUnhovered =
+                m_pStateHovered->addTransition(this, SIGNAL(sigUnhovered()), m_pStateUnhovered);
+            if (pTrnHoveredToUnhovered)
+            {
+                /* Create animation for hoveringProgress: */
+                UIToolsItemAnimation *pAnmHoveredToUnhovered =
+                    new UIToolsItemAnimation(m_pParent, "hoveringProgress", this, false);
+                pTrnHoveredToUnhovered->addAnimation(pAnmHoveredToUnhovered);
+            }
+        }
+    }
+}
+
+void UIToolsItemAnimationEngine::prepareConnections()
+{
+    connect(m_pParent, &UIToolsItem::sigHovered, this, &UIToolsItemAnimationEngine::sigHovered);
+    connect(m_pParent, &UIToolsItem::sigUnhovered, this, &UIToolsItemAnimationEngine::sigUnhovered);
+}
+
+void UIToolsItemAnimationEngine::init()
+{
+    /* Define initial animation state: */
+    m_pMachine->setInitialState(m_pParent->isHovered() ? m_pStateHovered : m_pStateUnhovered);
+    m_pMachine->start();
+}
+
+
+/*********************************************************************************************************************************
+*   Class UIToolsItemAnimation implementation.                                                                                   *
+*********************************************************************************************************************************/
+
+UIToolsItemAnimation::UIToolsItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward)
+    : QPropertyAnimation(pTarget, propertyName, pParent)
+{
+    setEasingCurve(QEasingCurve(QEasingCurve::OutQuart));
+    setStartValue(fForward ? 0 : 100);
+    setEndValue(fForward ? 100 : 0);
+    setDuration(300);
+}
+
+
 /*********************************************************************************************************************************
 *   Class UIToolsItem implementation.                                                                                            *
 *********************************************************************************************************************************/
@@ -189,6 +348,8 @@ UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon, UIToolType e
     , m_fHovered(false)
     , m_iPreviousMinimumWidthHint(0)
     , m_iPreviousMinimumHeightHint(0)
+    , m_pAnimationEngine(0)
+    , m_iHoveringProgress(0)
 {
     prepare();
 }
@@ -359,6 +520,9 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
             const QPoint posAtScreen = model()->view()->parentWidget()->mapToGlobal(posAtScene.toPoint());
             QToolTip::showText(posAtScreen, name());
         }
+
+        /* Notify listeners: */
+        emit sigHovered();
     }
 
     update();
@@ -373,6 +537,9 @@ void UIToolsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
 
         /* Hide tooltip for good: */
         QToolTip::hideText();
+
+        /* Notify listeners: */
+        emit sigUnhovered();
     }
 }
 
@@ -414,6 +581,9 @@ void UIToolsItem::prepare()
     /* Init: */
     updatePixmap();
     updateNameSize();
+
+    /* Create animation engine: */
+    m_pAnimationEngine = new UIToolsItemAnimationEngine(this);
 }
 
 void UIToolsItem::prepareConnections()
@@ -697,16 +867,32 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
         const bool fCondition2 = m_enmClass == UIToolClass_Machine && (   model()->showItemNames()
                                                                        || model()->currentItem(itemClass()) == this);
         if (fCondition1 || fCondition2)
+        {
+            /* Acquire font: */
+            const QFont fnt = data(Qt::FontRole).value<QFont>();
+
+            /* Paint text: */
             paintText(/* Painter: */
                       pPainter,
                       /* Point to paint in: */
                       QPoint(iNameX, iNameY),
                       /* Font to paint text: */
-                      data(Qt::FontRole).value<QFont>(),
+                      fnt,
                       /* Paint device: */
                       model()->paintDevice(),
                       /* Text to paint: */
                       m_strName);
+
+            /* Paint animated underline: */
+            if (hoveringProgress())
+            {
+                QFontMetrics fm(fnt);
+                const double fRatio = (double)hoveringProgress() / 100;
+                const int iLength = fRatio * fm.horizontalAdvance(m_strName);
+                pPainter->drawLine(QPoint(iNameX, iNameY + fm.height()),
+                                   QPoint(iNameX + iLength, iNameY + fm.height()));
+            }
+        }
     }
 }
 
@@ -785,3 +971,12 @@ void UIToolsItem::paintRoundedButton(QPainter *pPainter,
     /* Restore painter: */
     pPainter->restore();
 }
+
+void UIToolsItem::setHoveringProgress(int iProgress)
+{
+    m_iHoveringProgress = iProgress;
+    update();
+}
+
+
+#include "UIToolsItem.moc"

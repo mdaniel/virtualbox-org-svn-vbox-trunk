@@ -39,7 +39,6 @@
 
 /* Forward declarations: */
 class QVBoxLayout;
-class UIActionPool;
 class UIToolsModel;
 class UIToolsView;
 
@@ -60,11 +59,9 @@ signals:
 public:
 
     /** Constructs Tools-pane passing @a pParent to the base-class.
-      * @param  enmClass     Brings the tool class.
-      * @param  pActionPool  Brings the action-pool reference. */
+      * @param  enmClass  Brings the tool class. */
     UITools(QWidget *pParent,
-            UIToolClass enmClass,
-            UIActionPool *pActionPool);
+            UIToolClass enmClass);
     /** Destructs Tools-pane. */
     virtual ~UITools();
 
@@ -98,6 +95,7 @@ private:
         void prepareView();
         /** Prepares connections. */
         void prepareConnections();
+
         /** Inits model. */
         void initModel();
 
@@ -115,9 +113,6 @@ private:
       * @{ */
         /** Holds the tool class. */
         UIToolClass  m_enmClass;
-
-        /** Holds the action-pool reference. */
-        UIActionPool *m_pActionPool;
 
         /** Holds the layout alignment. */
         Qt::Alignment  m_enmAlignment;

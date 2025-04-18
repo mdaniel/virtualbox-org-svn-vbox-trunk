@@ -267,7 +267,7 @@ void UIGlobalToolsWidget::prepareWidgets()
         m_pLayout->setSpacing(0);
 
         /* Create tool-menu: */
-        m_pMenu = new UITools(this, UIToolClass_Global, actionPool());
+        m_pMenu = new UITools(this, UIToolClass_Global);
         if (toolMenu())
         {
             /* Add into layout: */

@@ -29,28 +29,24 @@
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
-#include <QScrollBar>
+#include <QTransform>
 
 /* GUI includes: */
-#include "UIActionPoolManager.h"
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
 #include "UILoggingDefs.h"
+#include "UIToolsItem.h"
 #include "UIToolsModel.h"
 #include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
-/* Type defs: */
-typedef QSet<QString> UIStringSet;
 
-
-UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass, UIActionPool *pActionPool)
+UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass)
     : QObject(pParent)
     , m_enmClass(enmClass)
-    , m_pActionPool(pActionPool)
     , m_enmAlignment(m_enmClass == UIToolClass_Machine ? Qt::Horizontal : Qt::Vertical)
     , m_pView(0)
     , m_pScene(0)
@@ -88,9 +84,9 @@ QPaintDevice *UIToolsModel::paintDevice() const
     return 0;
 }
 
-QGraphicsItem *UIToolsModel::itemAt(const QPointF &position, const QTransform &deviceTransform /* = QTransform() */) const
+QGraphicsItem *UIToolsModel::itemAt(const QPointF &position) const
 {
-    return scene() ? scene()->itemAt(position, deviceTransform) : 0;
+    return scene() ? scene()->itemAt(position, QTransform()) : 0;
 }
 
 UIToolsView *UIToolsModel::view() const

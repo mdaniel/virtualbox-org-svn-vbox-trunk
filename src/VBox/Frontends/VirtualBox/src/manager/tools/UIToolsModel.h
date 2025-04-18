@@ -34,17 +34,15 @@
 /* Qt includes: */
 #include <QObject>
 #include <QPointer>
-#include <QTransform>
 
 /* GUI includes: */
-#include "UIManagerDefs.h"
-#include "UIToolsItem.h"
+#include "UIExtraDataDefs.h"
 
 /* Forward declaration: */
 class QGraphicsItem;
 class QGraphicsScene;
 class QPaintDevice;
-class UIActionPool;
+class UIToolsItem;
 class UIToolsView;
 
 /** QObject extension used as VM Tools-pane model: */
@@ -80,11 +78,9 @@ public:
     };
 
     /** Constructs Tools-model passing @a pParent to the base-class.
-      * @param  enmClass     Brings the tool class.
-      * @param  pActionPool  Brings the action-pool reference. */
+      * @param  enmClass  Brings the tool class. */
     UIToolsModel(QObject *pParent,
-                 UIToolClass enmClass,
-                 UIActionPool *pActionPool);
+                 UIToolClass enmClass);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -93,16 +89,13 @@ public:
         /** Inits model. */
         void init();
 
-        /** Returns the action-pool reference. */
-        UIActionPool *actionPool() const { return m_pActionPool; }
-
         /** Returns the scene reference. */
         QGraphicsScene *scene() const;
         /** Returns the paint device reference. */
         QPaintDevice *paintDevice() const;
 
-        /** Returns item at @a position, taking into account possible @a deviceTransform. */
-        QGraphicsItem *itemAt(const QPointF &position, const QTransform &deviceTransform = QTransform()) const;
+        /** Returns item at @a position. */
+        QGraphicsItem *itemAt(const QPointF &position) const;
 
         /** Returns tools-view reference. */
         UIToolsView *view() const;
@@ -217,9 +210,6 @@ private:
       * @{ */
         /** Holds the tool class. */
         UIToolClass  m_enmClass;
-
-        /** Holds the action-pool reference. */
-        UIActionPool *m_pActionPool;
 
         /** Holds the layout alignment. */
         Qt::Alignment  m_enmAlignment;

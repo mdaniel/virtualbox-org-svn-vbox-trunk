@@ -436,7 +436,7 @@ void UIMachineToolsWidget::prepareWidgets()
                     pSubLayout->setSpacing(0);
 
                     /* Create tool-menu: */
-                    m_pMenu = new UITools(this, UIToolClass_Machine, actionPool());
+                    m_pMenu = new UITools(this, UIToolClass_Machine);
                     if (toolMenu())
                     {
                         /* Add into layout: */

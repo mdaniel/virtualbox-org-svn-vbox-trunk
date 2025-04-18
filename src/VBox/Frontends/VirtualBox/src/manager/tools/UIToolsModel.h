@@ -45,14 +45,12 @@ class QGraphicsItem;
 class QGraphicsScene;
 class QPaintDevice;
 class UIActionPool;
-class UIToolsAnimationEngine;
 class UIToolsView;
 
 /** QObject extension used as VM Tools-pane model: */
 class UIToolsModel : public QObject
 {
     Q_OBJECT;
-    Q_PROPERTY(int animationProgressMachines READ animationProgressMachines WRITE setAnimationProgressMachines);
 
 signals:
 
@@ -199,8 +197,6 @@ private:
         void prepareScene();
         /** Prepares items. */
         void prepareItems();
-        /** Prepares animation engine. */
-        void prepareAnimationEngine();
         /** Prepare connections. */
         void prepareConnections();
 
@@ -215,20 +211,6 @@ private:
         void cleanupScene();
         /** Cleanups all. */
         void cleanup();
-    /** @} */
-
-    /** @name Animation stuff.
-     * @{ */
-        /** Returns Machines overall shift. */
-        int overallShiftMachines() const { return m_iOverallShiftMachines; }
-        /** Recalculates overall shifts.
-          * @param  enmClass  Brings tool-class for which shift should be recalculated. */
-        void recalculateOverallShifts(UIToolClass enmClass = UIToolClass_Invalid);
-
-        /** Returns Machines animation progress. */
-        int animationProgressMachines() const { return m_iAnimatedShiftMachines; }
-        /** Defines Machines animation @a iProgress. */
-        void setAnimationProgressMachines(int iProgress);
     /** @} */
 
     /** @name General stuff.
@@ -267,18 +249,6 @@ private:
       * @{ */
         /** Holds the selected item map reference. */
         QMap<UIToolClass, QPointer<UIToolsItem> >  m_mapCurrentItems;
-    /** @} */
-
-    /** @name Animation stuff.
-     * @{ */
-        /** Holds the animation engine instance. */
-        UIToolsAnimationEngine *m_pAnimationEngine;
-
-        /** Holds the Machines overall shift. */
-        int  m_iOverallShiftMachines;
-
-        /** Holds the Machines animated shift. */
-        int  m_iAnimatedShiftMachines;
     /** @} */
 };
 

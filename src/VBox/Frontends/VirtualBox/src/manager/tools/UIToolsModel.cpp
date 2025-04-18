@@ -29,12 +29,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
-#include <QPropertyAnimation>
 #include <QScrollBar>
-#include <QSignalTransition>
-#include <QState>
-#include <QStateMachine>
-#include <QTimer>
 
 /* GUI includes: */
 #include "UIActionPoolManager.h"
@@ -52,240 +47,6 @@
 typedef QSet<QString> UIStringSet;
 
 
-/** QPropertyAnimation extension used as tool-item animation. */
-class UIToolItemAnimation : public QPropertyAnimation
-{
-    Q_OBJECT;
-
-public:
-
-    /** Constructs tool-item animation passing @a pParent to the base-class.
-      * @param  pTarget       Brings the object animation alters property for.
-      * @param  propertyName  Brings the name of property inside the @a pTarget.
-      * @param  fForward      Brings whether animation goes to iValue or from it. */
-    UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward);
-};
-
-
-/** QObject extension used as animation engine object. */
-class UIToolsAnimationEngine : public QObject
-{
-    Q_OBJECT;
-
-signals:
-
-    /** Notifies about Home type selected. */
-    void sigSelectedHome();
-    /** Notifies about Machines type selected. */
-    void sigSelectedMach();
-
-public:
-
-    /** Animation states. */
-    enum State
-    {
-        State_Home,
-        State_Machines,
-        State_LeavingHome,
-        State_LeavingMachines,
-    };
-
-    /** Constructs animation engine passing @a pParent to the base-class. */
-    UIToolsAnimationEngine(UIToolsModel *pParent);
-
-    /** Performs animation engine initialization. */
-    void init();
-
-    /** Returns animation state. */
-    State state() const { return m_enmState; }
-
-private slots:
-
-    /** Handles signal about tool @a enmType change. */
-    void sltHandleSelectionChanged(UIToolType enmType);
-
-    /** Handles animation start. */
-    void sltHandleAnimationStarted();
-    /** Handles animation finish. */
-    void sltHandleAnimationFinished();
-
-private:
-
-    /** Prepares everything. */
-    void prepare();
-    /** Prepares machine. */
-    void prepareMachine();
-    /** Prepares Home state. */
-    void prepareStateHome();
-    /** Prepares Machines state. */
-    void prepareStateMachines();
-    /** Prepares connections. */
-    void prepareConnections();
-
-    /** Holds the parent model reference. */
-    UIToolsModel *m_pParent;
-
-    /** Holds the state-machine instance. */
-    QStateMachine *m_pMachine;
-
-    /** Holds the Home state instance. */
-    QState *m_pStateHome;
-    /** Holds the Machines state instance. */
-    QState *m_pStateMach;
-
-    /** Holds the animation state. */
-    State  m_enmState;
-};
-
-
-/*********************************************************************************************************************************
-*   Class UIToolItemAnimation implementation.                                                                                    *
-*********************************************************************************************************************************/
-
-UIToolItemAnimation::UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward)
-    : QPropertyAnimation(pTarget, propertyName, pParent)
-{
-    setEasingCurve(QEasingCurve(QEasingCurve::OutQuart));
-    setStartValue(fForward ? 0 : 100);
-    setEndValue(fForward ? 100 : 0);
-    setDuration(1000);
-}
-
-
-/*********************************************************************************************************************************
-*   Class UIToolsAnimationEngine implementation.                                                                                 *
-*********************************************************************************************************************************/
-
-UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
-    : QObject(pParent)
-    , m_pParent(pParent)
-    , m_pMachine(0)
-    , m_pStateHome(0)
-    , m_pStateMach(0)
-    , m_enmState(State_Home)
-{
-    prepare();
-}
-
-void UIToolsAnimationEngine::init()
-{
-    /* Define initial animation state: */
-    QState *pInitialState = m_pStateHome;
-    switch (m_pParent->toolsType(UIToolClass_Global))
-    {
-        case UIToolType_Machines: pInitialState = m_pStateMach; break;
-        default: break;
-    }
-    m_pMachine->setInitialState(pInitialState);
-    m_pMachine->start();
-}
-
-void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
-{
-    /* Determine changed tool class: */
-    const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
-
-    /* Watch for changes in the Global class only: */
-    if (enmClass == UIToolClass_Global)
-    {
-        /* Notify about certain item-types selected: */
-        switch (enmType)
-        {
-            case UIToolType_Machines: emit sigSelectedMach(); break;
-            default: emit sigSelectedHome(); break;
-        }
-    }
-}
-
-void UIToolsAnimationEngine::sltHandleAnimationStarted()
-{
-    /* Recalculate effective state: */
-    m_enmState = State_LeavingHome;
-    if (m_pMachine->configuration().contains(m_pStateMach))
-        m_enmState = State_LeavingMachines;
-}
-
-void UIToolsAnimationEngine::sltHandleAnimationFinished()
-{
-    /* Recalculate effective state: */
-    m_enmState = State_Home;
-    if (m_pMachine->configuration().contains(m_pStateMach))
-        m_enmState = State_Machines;
-
-    /* Update layout one more final time: */
-    m_pParent->updateLayout();
-}
-
-void UIToolsAnimationEngine::prepare()
-{
-    prepareMachine();
-    prepareConnections();
-}
-
-void UIToolsAnimationEngine::prepareMachine()
-{
-    /* Prepare animation machine: */
-    m_pMachine = new QStateMachine(this);
-    if (m_pMachine)
-    {
-        /* Prepare states: */
-        m_pStateHome = new QState(m_pMachine);
-        m_pStateMach = new QState(m_pMachine);
-        prepareStateHome();
-        prepareStateMachines();
-    }
-}
-
-void UIToolsAnimationEngine::prepareStateHome()
-{
-    /* Configure Home state: */
-    if (m_pStateHome)
-    {
-        m_pStateHome->assignProperty(m_pParent, "animationProgressMachines", 0);
-
-        /* Add Home=>Machines state transition: */
-        QSignalTransition *pHomeToMachines = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
-        if (pHomeToMachines)
-        {
-            /* Create animation for animationProgressMachines: */
-            UIToolItemAnimation *pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, true);
-            pHomeToMachines->addAnimation(pAnmHomeMach);
-        }
-    }
-}
-
-void UIToolsAnimationEngine::prepareStateMachines()
-{
-    /* Configure Machines state: */
-    if (m_pStateMach)
-    {
-        m_pStateMach->assignProperty(m_pParent, "animationProgressMachines", 100);
-
-        /* Add Machines=>Home state transition: */
-        QSignalTransition *pMachinesToHome = m_pStateMach->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
-        if (pMachinesToHome)
-        {
-            /* Create animation for animationProgressMachines: */
-            UIToolItemAnimation *pAnmMachHome = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, false);
-            pMachinesToHome->addAnimation(pAnmMachHome);
-        }
-    }
-}
-
-void UIToolsAnimationEngine::prepareConnections()
-{
-    connect(m_pParent, &UIToolsModel::sigSelectionChanged, this, &UIToolsAnimationEngine::sltHandleSelectionChanged);
-    connect(this, &UIToolsAnimationEngine::sigSelectedHome, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
-    connect(this, &UIToolsAnimationEngine::sigSelectedMach, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
-    connect(m_pStateHome, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
-    connect(m_pStateMach, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
-}
-
-
-/*********************************************************************************************************************************
-*   Class UIToolsModel implementation.                                                                                           *
-*********************************************************************************************************************************/
-
 UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass, UIActionPool *pActionPool)
     : QObject(pParent)
     , m_enmClass(enmClass)
@@ -295,9 +56,6 @@ UIToolsModel::UIToolsModel(QObject *pParent, UIToolClass enmClass, UIActionPool 
     , m_pScene(0)
     , m_fItemsEnabled(true)
     , m_fShowItemNames(gEDataManager->isToolTextVisible())
-    , m_pAnimationEngine(0)
-    , m_iOverallShiftMachines(0)
-    , m_iAnimatedShiftMachines(0)
 {
     prepare();
 }
@@ -316,10 +74,6 @@ void UIToolsModel::init()
 
     /* Load current items: */
     loadCurrentItems();
-
-    /* Init animation engine: */
-    if (m_pAnimationEngine)
-        m_pAnimationEngine->init();
 }
 
 QGraphicsScene *UIToolsModel::scene() const
@@ -390,7 +144,6 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
         }
 
         /* Update linked values: */
-        recalculateOverallShifts(enmClass);
         updateLayout();
         sltItemMinimumWidthHintChanged();
         sltItemMinimumHeightHintChanged();
@@ -764,7 +517,6 @@ void UIToolsModel::prepare()
     /* Prepare everything: */
     prepareScene();
     prepareItems();
-    // prepareAnimationEngine();
     prepareConnections();
 
     /* Apply language settings: */
@@ -860,14 +612,6 @@ void UIToolsModel::prepareItems()
             AssertFailedReturnVoid();
             break;
     }
-
-    /* Calculate overall shifts: */
-    recalculateOverallShifts();
-}
-
-void UIToolsModel::prepareAnimationEngine()
-{
-    m_pAnimationEngine = new UIToolsAnimationEngine(this);
 }
 
 void UIToolsModel::prepareConnections()
@@ -970,33 +714,3 @@ void UIToolsModel::cleanup()
     cleanupItems();
     cleanupScene();
 }
-
-void UIToolsModel::recalculateOverallShifts(UIToolClass enmClass /* = UIToolClass_Invalid */)
-{
-    /* Some geometry stuff: */
-    const int iSpacing = data(UIToolsModel::ToolsModelData_Spacing).toInt();
-
-    /* Recalculate minimum vertical hint for items of Machine class: */
-    if (   enmClass == UIToolClass_Invalid
-        || enmClass == UIToolClass_Machine)
-    {
-        const QList<UIToolType> types = restrictedToolTypes(UIToolClass_Machine);
-        m_iOverallShiftMachines = 0;
-        AssertReturnVoid(!items().isEmpty());
-        foreach (UIToolsItem *pItem, items())
-            if (   !types.contains(pItem->itemType())
-                && pItem->itemClass() == UIToolClass_Machine)
-                m_iOverallShiftMachines += pItem->minimumHeightHint() + iSpacing;
-        if (m_iOverallShiftMachines)
-            m_iOverallShiftMachines -= iSpacing;
-    }
-}
-
-void UIToolsModel::setAnimationProgressMachines(int iAnimatedValue)
-{
-    m_iAnimatedShiftMachines = iAnimatedValue;
-    updateLayout();
-}
-
-
-#include "UIToolsModel.moc"

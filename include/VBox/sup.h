@@ -2038,7 +2038,6 @@ SUPR3DECL(int) SUPR3MsrProberModifyEx(uint32_t uMsr, RTCPUID idCpu, uint64_t fAn
  *
  * @returns VBox status code.
  * @param   fFlags              Query flags, SUP_ARM_SYS_REG_F_XXX.
- * @param
  * @param   cMaxRegs            Maximum number of registers @a paSysRegValues
  *                              may hold.
  * @param   pcRegsReturned      Number of registers returned.

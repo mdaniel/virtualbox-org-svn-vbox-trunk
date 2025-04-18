@@ -30,7 +30,7 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_DEV_GIC
-#include "GITSInternal.h"
+#include "GICInternal.h"
 
 #include <VBox/log.h>
 #include <VBox/gic.h>
@@ -49,20 +49,6 @@
 
 /** Gets whether the given register offset is within the specified range. */
 #define GITS_IS_REG_IN_RANGE(a_offReg, a_offFirst, a_cbRegion)    ((uint32_t)(a_offReg) - (a_offFirst) < (a_cbRegion))
-
-/** Acquire the device critical section. */
-#define GITS_CRIT_SECT_ENTER(a_pDevIns) \
-    do \
-    { \
-        int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS); \
-        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock); \
-    } while(0)
-
-/** Release the device critical section. */
-#define GITS_CRIT_SECT_LEAVE(a_pDevIns)             PDMDevHlpCritSectLeave((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
-
-/** Returns whether the critical section is held. */
-#define GITS_CRIT_SECT_IS_OWNER(a_pDevIns)          PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
 
 /** GITS diagnostic enum description expansion.
  * The below construct ensures typos in the input to this macro are caught
@@ -136,6 +122,7 @@ static const char *const g_apszGitsDiagDesc[] =
     GITSDIAG_DESC(None),
     GITSDIAG_DESC(CmdQueue_Basic_Unknown_Cmd),
     GITSDIAG_DESC(CmdQueue_Basic_Invalid_PhysAddr),
+    GITSDIAG_DESC(CmdQueue_Cmd_Invall_Icid_Overflow),
     GITSDIAG_DESC(CmdQueue_Cmd_Mapc_Icid_Overflow),
     /* kGitsDiag_End */
 };
@@ -251,7 +238,7 @@ static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG
 {
     Log4Func(("enmDiag=%#RX32 (%s) fStallQueue=%RTbool\n", enmDiag, gitsGetDiagDescription(enmDiag)));
 
-    GITS_CRIT_SECT_ENTER(pDevIns);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     /* Record the error and stall the queue. */
     pGitsDev->enmDiag = enmDiag;
@@ -259,7 +246,7 @@ static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG
     if (fStallQueue)
         pGitsDev->uCmdReadReg |= GITS_BF_CTRL_REG_CREADR_STALLED_MASK;
 
-    GITS_CRIT_SECT_LEAVE(pDevIns);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
 
     /* Since we don't support SEIs, so there should be nothing more to do here. */
     Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_SEIS));
@@ -295,7 +282,7 @@ DECL_FORCE_INLINE(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
 static void gitsCmdQueueThreadWakeUpIfNeeded(PPDMDEVINS pDevIns, PGITSDEV pGitsDev)
 {
     Log4Func(("\n"));
-    Assert(GITS_CRIT_SECT_IS_OWNER(pDevIns));
+    Assert(GIC_CRIT_SECT_IS_OWNER(pDevIns));
     if (    gitsCmdQueueCanProcessRequests(pGitsDev)
         && !gitsCmdQueueIsEmpty(pGitsDev))
     {
@@ -546,33 +533,38 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
     {
         static uint32_t const s_acbPageSize[] = { _4K, _16K, _64K, _64K };
         static const char* const s_apszType[] = { "UnImpl", "Devices", "vPEs", "Intr Collections" };
-
-        uint64_t const uReg        = pGitsDev->aItsTableRegs[i].u;
-        uint16_t const uSize       = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SIZE);
-        uint16_t const cPages      = uSize > 0 ? uSize + 1 : 0;
-        uint8_t const  idxPageSize = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_PAGESIZE);
-        uint64_t const cbItsTable  = cPages * s_acbPageSize[idxPageSize];
-        uint8_t const  uEntrySize  = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_ENTRY_SIZE);
-        uint8_t const  idxType     = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_TYPE);
-        const char *pszType        = s_apszType[idxType];
-        pHlp->pfnPrintf(pHlp, "  GITS_BASER[%u]      = %#RX64\n", i, uReg);
-        pHlp->pfnPrintf(pHlp, "    Size               = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, cbItsTable);
-        pHlp->pfnPrintf(pHlp, "    Page size          = %#x (%.Rhcb)\n", idxPageSize, s_acbPageSize[idxPageSize]);
-        pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SHAREABILITY));
-        pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64 (addr=%#RX64)\n", uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK,
-                                                                                 gitsGetBaseRegPhysAddr(uReg));
-        pHlp->pfnPrintf(pHlp, "    Entry size         = %#x (%u bytes)\n", uEntrySize, uEntrySize > 0 ? uEntrySize + 1 : 0);
-        pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_OUTER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Type               = %#x (%s)\n", idxType, pszType);
-        pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INNER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Indirect           = %RTbool\n",  RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INDIRECT)));
-        pHlp->pfnPrintf(pHlp, "    Valid              = %RTbool\n",  RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID)));
+        uint64_t const uReg    = pGitsDev->aItsTableRegs[i].u;
+        bool const     fValid  = RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID));
+        uint8_t const  idxType = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_TYPE);
+        if (   fValid
+            || idxType != GITS_BASER_TYPE_UNIMPL)
+        {
+            uint16_t const uSize       = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SIZE);
+            uint16_t const cPages      = uSize > 0 ? uSize + 1 : 0;
+            uint8_t const  idxPageSize = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_PAGESIZE);
+            uint64_t const cbItsTable  = cPages * s_acbPageSize[idxPageSize];
+            uint8_t const  uEntrySize  = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_ENTRY_SIZE);
+            bool const     fIndirect   = RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INDIRECT));
+            const char *pszType        = s_apszType[idxType];
+            pHlp->pfnPrintf(pHlp, "  GITS_BASER[%u]      = %#RX64\n", i, uReg);
+            pHlp->pfnPrintf(pHlp, "    Size               = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, cbItsTable);
+            pHlp->pfnPrintf(pHlp, "    Page size          = %#x (%.Rhcb)\n", idxPageSize, s_acbPageSize[idxPageSize]);
+            pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SHAREABILITY));
+            pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64 (addr=%#RX64)\n", uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK,
+                                                                                     gitsGetBaseRegPhysAddr(uReg));
+            pHlp->pfnPrintf(pHlp, "    Entry size         = %#x (%u bytes)\n", uEntrySize, uEntrySize > 0 ? uEntrySize + 1 : 0);
+            pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_OUTER_CACHE));
+            pHlp->pfnPrintf(pHlp, "    Type               = %#x (%s)\n", idxType, pszType);
+            pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INNER_CACHE));
+            pHlp->pfnPrintf(pHlp, "    Indirect           = %RTbool\n",  fIndirect);
+            pHlp->pfnPrintf(pHlp, "    Valid              = %RTbool\n",  fValid);
+        }
     }
 
     /* GITS_CBASER. */
     {
         uint64_t const uReg   = pGitsDev->uCmdBaseReg.u;
-        uint8_t const uSize   = RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SIZE);
+        uint8_t const  uSize  = RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SIZE);
         uint16_t const cPages = uSize > 0 ? uSize + 1 : 0;
         pHlp->pfnPrintf(pHlp, "  GITS_CBASER        = %#RX64\n", uReg);
         pHlp->pfnPrintf(pHlp, "    Size               = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, _4K * cPages);
@@ -623,7 +615,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
     Log4Func(("cbBuf=%RU32\n", cbBuf));
 
     /* Hold the critical section as we could be accessing the device state simultaneously with MMIO accesses. */
-    GITS_CRIT_SECT_ENTER(pDevIns);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     if (gitsCmdQueueCanProcessRequests(pGitsDev))
     {
@@ -644,7 +636,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
 
             /* Leave the critical section while reading (a potentially large number of) commands from guest memory. */
-            GITS_CRIT_SECT_LEAVE(pDevIns);
+            GIC_CRIT_SECT_LEAVE(pDevIns);
 
             if (offWrite > offRead)
             {
@@ -672,12 +664,12 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             if (RT_SUCCESS(rc))
             {
                 /* Indicate to the guest we've fetched all commands. */
-                GITS_CRIT_SECT_ENTER(pDevIns);
+                GIC_CRIT_SECT_ENTER(pDevIns);
                 pGitsDev->uCmdReadReg   = offWrite;
                 pGitsDev->uCmdWriteReg &= ~GITS_BF_CTRL_REG_CWRITER_RETRY_MASK;
 
                 /* Don't hold the critical section while processing commands. */
-                GITS_CRIT_SECT_LEAVE(pDevIns);
+                GIC_CRIT_SECT_LEAVE(pDevIns);
 
                 uint32_t const cCmds = cbCmds / sizeof(GITSCMD);
                 for (uint32_t idxCmd = 0; idxCmd < cCmds; idxCmd++)
@@ -688,6 +680,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                     {
                         case GITS_CMD_ID_MAPC:
                         {
+                            /* Map interrupt collection with a target CPU ID. */
                             uint64_t const uDw2 = pCmd->au64[2].u;
                             uint8_t  const fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
                             uint16_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
@@ -695,11 +688,11 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
 
                             if (RT_LIKELY(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)))
                             {
-                                GITS_CRIT_SECT_ENTER(pDevIns);
+                                GIC_CRIT_SECT_ENTER(pDevIns);
                                 Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
                                 pGitsDev->auCtes[uIntrCollectionId] = RT_BF_MAKE(GITS_BF_CTE_VALID,  fValid)
                                                                     | RT_BF_MAKE(GITS_BF_CTE_RDBASE, uTargetCpuId);
-                                GITS_CRIT_SECT_LEAVE(pDevIns);
+                                GIC_CRIT_SECT_LEAVE(pDevIns);
                             }
                             else
                                 gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
@@ -710,13 +703,22 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
 
                         case GITS_CMD_ID_SYNC:
                             /* Nothing to do since all previous commands have committed their changes to device state. */
-                            STAM_COUNTER_INC(&pGitsDev->StatCmdInvall);
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdSync);
                             break;
 
                         case GITS_CMD_ID_INVALL:
-                            /* Nothing to do as we currently do not cache interrupt mappings. */
-                            STAM_COUNTER_INC(&pGitsDev->StatCmdSync);
+                        {
+                            /* Reading the table is likely to take the same time as reading just one entry. */
+                            uint64_t const uDw2 = pCmd->au64[2].u;
+                            uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_INVALL_DW2_IC_ID);
+                            if (RT_LIKELY(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)))
+                                gicDistReadLpiConfigTableFromMem(pDevIns);
+                            else
+                                gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Invall_Icid_Overflow,
+                                                     false /* fStall */);
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdInvall);
                             break;
+                        }
 
                         default:
                         {
@@ -737,7 +739,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
         }
     }
 
-    GITS_CRIT_SECT_LEAVE(pDevIns);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
     return VINF_SUCCESS;
 }
 #endif /* IN_RING3 */

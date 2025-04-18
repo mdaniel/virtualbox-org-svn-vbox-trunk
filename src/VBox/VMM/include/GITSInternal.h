@@ -97,8 +97,8 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTE_, UINT32_C(0), UINT32_MAX,
  * Sorted alphabetically so it's easier to add and locate items, no other reason.
  *
  * @note Members of this enum are used as array indices, so no gaps in enum values
- *       are not allowed. Update g_apszGitsDiagDesc when you modify fields in this
- *       enum.
+ *       are not allowed. Update @c g_apszGitsDiagDesc when you modify fields in
+ *       this enum.
  */
 typedef enum GITSDIAG
 {
@@ -110,6 +110,7 @@ typedef enum GITSDIAG
     kGitsDiag_CmdQueue_Basic_Invalid_PhysAddr,
 
     /* Command queue: command errors. */
+    kGitsDiag_CmdQueue_Cmd_Invall_Icid_Overflow,
     kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
 
     /* Member for determining array index limit. */

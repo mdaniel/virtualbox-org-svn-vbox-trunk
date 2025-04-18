@@ -1122,8 +1122,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
             uMaxSpi, 32 * (uMaxSpi + 1),
             fExtSpi, uMaxExtSpi, GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (uMaxExtSpi + 1),
             fExtPpi, uMaxExtPpi, uExtPpiLast));
-    LogRel(("GIC: ITS=%s LPIs=%RTbool (%u:%u..%u)\n",
-            pGicDev->hMmioGits != NIL_IOMMMIOHANDLE ? "enabled" : "disabled", fLpi,
+    LogRel(("GIC: ITS=%s LPIs=%s (%u:%u..%u)\n",
+            pGicDev->hMmioGits != NIL_IOMMMIOHANDLE ? "enabled" : "disabled", fLpi ? "enabled" : "disabled",
             uMaxLpi, GIC_INTID_RANGE_LPI_START, GIC_INTID_RANGE_LPI_START - 1 + (UINT32_C(2) << uMaxLpi)));
     return VINF_SUCCESS;
 }

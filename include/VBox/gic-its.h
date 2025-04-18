@@ -517,6 +517,36 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPC_DW0_, UINT64_C(0), UINT64_MAX,
 #define GITS_BF_CMD_MAPC_DW2_VALID_MASK                         UINT64_C(0x8000000000000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPC_DW2_, UINT64_C(0), UINT64_MAX,
                             (IC_ID, RDBASE, RSVD_62_51, VALID));
+
+/** MAPC DW3: Reserved (bits 63:0). */
+#define GITS_BF_CMD_MAPC_DW3_RSVD_63_0_MASK                     UINT64_MAX
+/** @} */
+
+/** @name GITS command: INVALL.
+ * @{ */
+/** INVALL DW0: Command Id. */
+#define GITS_BF_CMD_INVALL_DW0_CMD_ID_SHIFT                     0
+#define GITS_BF_CMD_INVALL_DW0_CMD_ID_MASK                      UINT64_C(0x00000000000000ff)
+/** INVALL DW0: Reserved (bits 63:8). */
+#define GITS_BF_CMD_INVALL_DW0_RSVD_63_8_SHIFT                  8
+#define GITS_BF_CMD_INVALL_DW0_RSVD_63_8_MASK                   UINT64_C(0xffffffffffffff00)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_INVALL_DW0_, UINT64_C(0), UINT64_MAX,
+                            (CMD_ID, RSVD_63_8));
+
+/** INVALL DW1: Reserved (bits 63:0). */
+#define GITS_BF_CMD_INVALL_DW1_RSVD_63_0_MASK                   UINT64_MAX
+
+/** INVALL DW2: IC ID - The interrupt collection ID. */
+#define GITS_BF_CMD_INVALL_DW2_IC_ID_SHIFT                      0
+#define GITS_BF_CMD_INVALL_DW2_IC_ID_MASK                       UINT64_C(0x000000000000ffff)
+/** INVALL DW2: Reserved (bits 63:16). */
+#define GITS_BF_CMD_INVALL_DW2_RSVD_63_16_SHIFT                 16
+#define GITS_BF_CMD_INVALL_DW2_RSVD_63_16_MASK                  UINT64_C(0xffffffffffff0000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_INVALL_DW2_, UINT64_C(0), UINT64_MAX,
+                            (IC_ID, RSVD_63_16));
+
+/** INVALL DW3: Reserved (bits 63:0). */
+#define GITS_BF_CMD_INVALL_DW3_RSVD_63_0_MASK                   UINT64_MAX
 /** @} */
 
 #endif /* !VBOX_INCLUDED_gic_its_h */

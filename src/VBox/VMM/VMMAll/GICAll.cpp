@@ -660,15 +660,19 @@ static void gicDistHasIrqPendingForVCpu(PCGICDEV pGicDev, PCVMCPUCC pVCpu, VMCPU
 }
 
 
-static void gicDistReadLpiConfigTableFromMem(PPDMDEVINS pDevIns, PGICDEV pGicDev)
+DECLHIDDEN(void) gicDistReadLpiConfigTableFromMem(PPDMDEVINS pDevIns)
 {
+    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     Assert(pGicDev->fEnableLpis);
     LogFlowFunc(("\n"));
 
     /* Check if the guest is disabling LPIs by setting the number of LPI INTID bits below the minimum required bits. */
     uint8_t const cIdBits = RT_BF_GET(pGicDev->uLpiConfigBaseReg.u, GIC_BF_REDIST_REG_PROPBASER_ID_BITS) + 1;
     if (cIdBits < GIC_LPI_ID_BITS_MIN)
+    {
+        RT_ZERO(pGicDev->abLpiConfig);
         return;
+    }
 
     /* Copy the LPI config table from guest memory to our internal cache. */
     Assert(UINT32_C(2) << pGicDev->uMaxLpi <= RT_ELEMENTS(pGicDev->abLpiConfig));
@@ -2516,7 +2520,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
                 pGicDev->fEnableLpis = RT_BOOL(uNewCtlr & GIC_REDIST_REG_CTLR_ENABLE_LPI);
                 if (pGicDev->fEnableLpis)
                 {
-                    gicDistReadLpiConfigTableFromMem(pDevIns, pGicDev);
+                    gicDistReadLpiConfigTableFromMem(pDevIns);
                     gicReDistReadLpiPendingBitmapFromMem(pDevIns, pVCpu, pGicDev);
                 }
                 else
@@ -2667,8 +2671,7 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
                     ("out-of-range SPI interrupt ID %RU32 (%RU32)\n", uIntId, uSpiIntId),
                     VERR_INVALID_PARAMETER);
 
-    int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     /* Update the interrupt pending state. */
     if (fAsserted)
@@ -2679,7 +2682,7 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
     int const rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pGicDev));
     STAM_PROFILE_STOP(&pGicCpu->StatProfSetSpi, a);
 
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
     return rc;
 }
 
@@ -2706,8 +2709,7 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
                     ("out-of-range PPI interrupt ID %RU32 (%RU32)\n", uIntId, uPpiIntId),
                     VERR_INVALID_PARAMETER);
 
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     /* Update the interrupt pending state. */
     if (fAsserted)
@@ -2718,7 +2720,7 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
     int const rc = VBOXSTRICTRC_VAL(gicReDistUpdateIrqState(pGicDev, pVCpu));
     STAM_PROFILE_STOP(&pGicCpu->StatProfSetPpi, b);
 
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
     return rc;
 }
 
@@ -2740,7 +2742,7 @@ static VBOXSTRICTRC gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDest
     PCVMCC         pVM     = pVCpu->CTX_SUFF(pVM);
     uint32_t const cCpus   = pVM->cCpus;
     AssertReturn(uIntId <= GIC_INTID_RANGE_SGI_LAST, VERR_INVALID_PARAMETER);
-    Assert(PDMDevHlpCritSectIsOwner(pDevIns, pDevIns->pCritSectRoR3)); RT_NOREF_PV(pDevIns);
+    Assert(GIC_CRIT_SECT_IS_OWNER(pDevIns)); NOREF(pDevIns);
 
     for (VMCPUID idCpu = 0; idCpu < cCpus; idCpu++)
         if (VMCPUSET_IS_PRESENT(pDestCpuSet, idCpu))
@@ -2844,8 +2846,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     switch (u32Reg)
     {
@@ -2947,7 +2948,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             break;
     }
 
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
 
     LogFlowFunc(("pVCpu=%p u32Reg=%#x{%s} pu64Value=%RX64\n", pVCpu, u32Reg, gicIccGetRegDescription(u32Reg), *pu64Value));
     return VINF_SUCCESS;
@@ -2971,8 +2972,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     PGICCPU    pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    GIC_CRIT_SECT_ENTER(pDevIns);
 
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (u32Reg)
@@ -3137,7 +3137,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             break;
     }
 
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    GIC_CRIT_SECT_LEAVE(pDevIns);
     return rcStrict;
 }
 

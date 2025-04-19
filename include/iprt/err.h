@@ -413,6 +413,8 @@
 #define VINF_REBOOT_NEEDED                  (22428)
 /** Installation has failed. */
 #define VERR_INSTALLATION_FAILED            (-22429)
+/** Windows system integrity policy violation (device guard). */
+#define VERR_SYSTEM_INTEGRITY_POLICY_VIOLATION  (-22430)
 /** @} */
 
 

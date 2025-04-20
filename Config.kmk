@@ -5584,7 +5584,7 @@ ifeq ($(VBOX_LDR_FMT),pe)
  ifdef VBOX_WITH_DTRACE_R0
   TEMPLATE_VBoxR0_LDFLAGS          += -Merge:VTGPrLc.Data=VTGPrLc.Begin -Merge:VTGPrLc.End=VTGPrLc.Begin -Merge:VTGPrLc.Begin=VTGObj
  endif
- ifdef VBOX_SIGNING_MODE
+ if defined(VBOX_SIGNING_MODE) && !defined(VBOX_WITHOUT_DRIVER_INTEGRITY_CHECK)
   TEMPLATE_VBoxR0_LDFLAGS          += -IntegrityCheck
  endif
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142" # Don't waste space on x86/amd64-on-arm emulation optimizations.
@@ -5796,7 +5796,7 @@ ifeq ($(KBUILD_TARGET),win)
  ifdef VBOX_WITH_DTRACE_R0DRV
   TEMPLATE_VBoxR0Drv_LDFLAGS          += -Merge:VTGPrLc.Data=VTGPrLc.Begin -Merge:VTGPrLc.End=VTGPrLc.Begin -Merge:VTGPrLc.Begin=VTGObj
  endif
- ifdef VBOX_SIGNING_MODE
+ if defined(VBOX_SIGNING_MODE) && !defined(VBOX_WITHOUT_DRIVER_INTEGRITY_CHECK) ## @todo probably VBOX_SIGNING_MODE != test is appropriate here...
   TEMPLATE_VBoxR0Drv_LDFLAGS          += -IntegrityCheck
  endif
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142" # Don't waste space on x86/amd64-on-arm emulation optimizations.
@@ -6889,6 +6889,15 @@ else
  else ifeq ($(KBUILD_TARGET),solaris)
   TEMPLATE_VBoxR3Static_LATE_LIBS  += kstat
  endif
+endif
+
+#
+# A test signed version of VBoxR3Static for VBoxCpuReport on win.arm.
+#
+TEMPLATE_VBoxR3StaticSignedExe           := VBoxR3Static with test signing
+TEMPLATE_VBoxR3StaticSignedExe_EXTENDS   := VBoxR3Static
+if "$(KBUILD_TARGET)" == "win" && "$(VBOX_SIGNING_MODE)" == "test"
+ TEMPLATE_VBoxR3StaticSignedExe_POST_CMDS = $(VBOX_UTF8_MANIFEST_CMDS)$(NLTAB)$(call VBOX_SIGN_IMAGE_FN,$(out),,2)
 endif
 
 #

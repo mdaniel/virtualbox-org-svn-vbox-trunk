@@ -65,7 +65,7 @@ endif
 if1of ($(KBUILD_TARGET_ARCH), amd64 x86 arm64)
  PROGRAMS += VBoxCpuReport
 endif
-VBoxCpuReport_TEMPLATE   := VBoxR3Static
+VBoxCpuReport_TEMPLATE   := VBoxR3StaticSignedExe
 VBoxCpuReport_DEFS        = VBOX_IN_VMM IN_VMM_R3 IN_VBOX_CPU_REPORT $(VMM_COMMON_DEFS)
 VBoxCpuReport_DEFS.amd64 := VBOX_VMM_TARGET_X86
 VBoxCpuReport_DEFS.x86   := VBOX_VMM_TARGET_X86

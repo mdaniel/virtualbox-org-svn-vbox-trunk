@@ -2516,7 +2516,7 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             REQ_CHECK_SIZE_IN(SUP_IOCTL_ARM_GET_SYSREGS, SUP_IOCTL_ARM_GET_SYSREGS_SIZE_IN);
 
             REQ_CHECK_SIZE_OUT(SUP_IOCTL_ARM_GET_SYSREGS, SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(cMaxRegs));
-            REQ_CHECK_EXPR_FMT(!(pReq->u.In.fFlags & SUP_ARM_SYS_REG_F_VALID_MASK),
+            REQ_CHECK_EXPR_FMT(!(pReq->u.In.fFlags & ~SUP_ARM_SYS_REG_F_VALID_MASK),
                                ("SUP_IOCTL_ARM_GET_SYSREGS: fFlags=%#x!\n", pReq->u.In.fFlags));
 
             pReqHdr->rc = supdrvIOCtl_ArmGetSysRegs(pReq, cMaxRegs, pReq->u.In.fFlags);

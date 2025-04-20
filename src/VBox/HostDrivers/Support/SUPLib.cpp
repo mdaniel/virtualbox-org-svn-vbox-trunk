@@ -2344,7 +2344,7 @@ SUPR3DECL(int) SUPR3ArmQuerySysRegs(uint32_t fFlags, uint32_t cMaxRegs,
     if (pcRegsAvailable)
         *pcRegsAvailable = 0;
     AssertReturn(cMaxRegs < _64K, VERR_OUT_OF_RANGE);
-    AssertReturn(!(fFlags & SUP_ARM_SYS_REG_F_VALID_MASK), VERR_INVALID_FLAGS);
+    AssertReturn(!(fFlags & ~SUP_ARM_SYS_REG_F_VALID_MASK), VERR_INVALID_FLAGS);
 
     /*
      * Allocate temporary request.

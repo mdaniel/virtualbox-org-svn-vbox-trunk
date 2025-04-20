@@ -1715,7 +1715,7 @@ typedef enum CPUMCORETYPE
     kCpumCoreType_Performance,
     kCpumCoreType_Unknown,
     kCpumCoreType_End,
-    kCpumCoreType_32BitHack = 0x7fffffff,
+    kCpumCoreType_32BitHack = 0x7fffffff
 } CPUMCORETYPE;
 
 

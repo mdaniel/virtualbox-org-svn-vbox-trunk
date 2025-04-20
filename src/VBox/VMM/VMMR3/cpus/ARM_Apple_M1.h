@@ -36,13 +36,28 @@
 /**
  * System/Id Register values for Apple M1.
  */
-static SUPARMSYSREGVAL const g_aSysRegVals_ARM_Apple_M1[] =
+static SUPARMSYSREGVAL const g_aSysRegCmnVals_ARM_Apple_M1[] =
 {
-    { UINT64_C(0x00000000611f0221), ARMV8_AARCH64_SYSREG_MIDR_EL1 },
     { UINT64_C(0x0000000080000000), ARMV8_AARCH64_SYSREG_MPIDR_EL1 },
     { UINT64_C(0x0000000010305f09), ARMV8_AARCH64_SYSREG_ID_AA64DFR0_EL1 },
     { UINT64_C(0x0221100110212120), ARMV8_AARCH64_SYSREG_ID_AA64ISAR0_EL1 },
     { UINT64_C(0x0000011110211202), ARMV8_AARCH64_SYSREG_ID_AA64ISAR1_EL1 },
+};
+
+/**
+ * System/Id Register values for Apple M1 (Icestorm), variant 0.
+ */
+static SUPARMSYSREGVAL const g_aSysRegVals_Var0_ARM_Apple_M1[] =
+{
+    { UINT64_C(0x00000000611f0221), ARMV8_AARCH64_SYSREG_MIDR_EL1 },
+};
+
+/**
+ * System/Id Register values for Apple M1 (Firestorm), variant 0.
+ */
+static SUPARMSYSREGVAL const g_aSysRegVals_Var1_ARM_Apple_M1[] =
+{
+    { UINT64_C(0x00000000611f0231), ARMV8_AARCH64_SYSREG_MIDR_EL1 },
 };
 
 
@@ -59,11 +74,49 @@ static CPUMDBENTRYARM const g_Entry_ARM_Apple_M1 =
         /*.fFlags       = */ 0,
         /*.enmEntryType = */ CPUMDBENTRYTYPE_ARM,
     },
-    /*.bImplementer     = */ 0x61,
-    /*.bRevision        = */ 0x01,
-    /*.uPartNum         = */ 0x0022,
-    /*.cSysRegVals      = */ RT_ELEMENTS(g_aSysRegVals_ARM_Apple_M1),
-    /*.paSysRegVals     = */ g_aSysRegVals_ARM_Apple_M1,
+
+    /*.paSysRegVals     = */ g_aSysRegCmnVals_ARM_Apple_M1,
+    /*.cSysRegVals      = */ RT_ELEMENTS(g_aSysRegCmnVals_ARM_Apple_M1),
+    /*.cVariants        = */ 2,
+    /*.aVariants        = */
+    {
+        /*.aVariants[0] = */
+        {
+            /*.pszName  = */ "Apple M1 (Icestorm)",
+            /*.Midr = */
+            {
+                /* .s = */
+                {
+                    /*.bRevision        = */ 0x1,
+                    /*.uPartNum         = */ 0x022,
+                    /*.bArch            = */ 0xf,
+                    /*.bVariant         = */ 0x1,
+                    /*.bImplementer     = */ 0x61,
+                }
+            },
+            /*.enmCoreType      = */ kCpumCoreType_Performance,
+            /*.cSysRegVals      = */ RT_ELEMENTS(g_aSysRegVals_Var0_ARM_Apple_M1),
+            /*.paSysRegVals     = */ g_aSysRegVals_Var0_ARM_Apple_M1,
+        },
+        /*.aVariants[1] = */
+        {
+            /*.pszName  = */ "Apple M1 (Firestorm)",
+            /*.Midr = */
+            {
+                /* .s = */
+                {
+                    /*.bRevision        = */ 0x1,
+                    /*.uPartNum         = */ 0x023,
+                    /*.bArch            = */ 0xf,
+                    /*.bVariant         = */ 0x1,
+                    /*.bImplementer     = */ 0x61,
+                }
+            },
+            /*.enmCoreType      = */ kCpumCoreType_Efficiency,
+            /*.cSysRegVals      = */ RT_ELEMENTS(g_aSysRegVals_Var1_ARM_Apple_M1),
+            /*.paSysRegVals     = */ g_aSysRegVals_Var1_ARM_Apple_M1,
+        },
+    }
 };
 
 #endif /* !VBOX_CPUDB_ARM_Apple_M1_h */

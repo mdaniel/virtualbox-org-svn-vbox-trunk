@@ -294,7 +294,14 @@ typedef enum CPUMMICROARCH
     kCpumMicroarch_Apple_First,
     kCpumMicroarch_Apple_M1 = kCpumMicroarch_Apple_First,
     kCpumMicroarch_Apple_M2,
+    kCpumMicroarch_Apple_M3,
+    kCpumMicroarch_Apple_M4,
     kCpumMicroarch_Apple_End,
+
+    kCpumMicroarch_Qualcomm_First,
+    kCpumMicroarch_Qualcomm_Kyro = kCpumMicroarch_Qualcomm_First,
+    kCpumMicroarch_Qualcomm_Oryon,
+    kCpumMicroarch_Qualcomm_End,
 
     /*
      * Unknown.
@@ -1700,6 +1707,18 @@ typedef CPUMDBENTRY const *PCCPUMDBENTRY;
 /** @} */
 
 
+/** CPU core type. */
+typedef enum CPUMCORETYPE
+{
+    kCpumCoreType_Invalid = 0,
+    kCpumCoreType_Unknown,
+    kCpumCoreType_Performance,
+    kCpumCoreType_Efficiency,
+    kCpumCoreType_End,
+    kCpumCoreType_32BitHack = 0x7fffffff,
+} CPUMCORETYPE;
+
+
 /**
  * CPU database entry for x86.
  */
@@ -1747,19 +1766,45 @@ typedef CPUMDBENTRYX86 const *PCCPUMDBENTRYX86;
 typedef struct CPUMDBENTRYARM
 {
     /** The common parts. */
-    CPUMDBENTRY         Core;
+    CPUMDBENTRY                     Core;
 
-    /** The implementer value from MIDR_EL1. */
-    uint8_t             bImplementer;
-    /** The revision number from MIDR_EL1. */
-    uint8_t             bRevision;
-    /** The part number value from MIDR_EL1. */
-    uint16_t            uPartNum;
+    /** System register values common to all the core variations. */
+    struct SUPARMSYSREGVAL const   *paSysRegCmnVals;
+    /** Number of entries in the table paSysRegCmnVals points to. */
+    uint32_t                        cSysRegCmnVals;
+    /** Number of core variants in aVariants below. */
+    uint32_t                        cVariants;
 
-    /** Number of entries in the table paSysRegVals points to. */
-    uint32_t            cSysRegVals;
-    /** System register values. */
-    struct SUPARMSYSREGVAL const *paSysRegVals;
+    /** CPU core variation details. */
+    struct
+    {
+        /** The name of this CPU core variation. */
+        const char                     *pszName;
+        /** MIDR_EL1 for this CPU core variation. */
+        union
+        {
+            struct
+            {
+                /** CPU revision. */
+                uint32_t                u4Revision    :  4;
+                /** Part number. */
+                uint32_t                u12PartNum    : 12;
+                /** ARM architecture indicator. */
+                uint32_t                u4Arch        :  4;
+                /** Implementer specific variant. */
+                uint32_t                u4Variant     :  4;
+                /** The implementer. */
+                uint32_t                u8Implementer :  8;
+            } s;
+            uint64_t                    u64;
+        } Midr;
+        /** The CPU core type. */
+        CPUMCORETYPE                    enmCoreType;
+        /** Number of entries in the table paSysRegVals points to. */
+        uint32_t                        cSysRegVals;
+        /** System register values specific to this CPU core variant. */
+        struct SUPARMSYSREGVAL const   *paSysRegVals;
+    } aVariants[2];
 } CPUMDBENTRYARM;
 /** Pointer to a const ARM CPU database entry. */
 typedef CPUMDBENTRYARM const *PCCPUMDBENTRYARM;

@@ -190,7 +190,7 @@ static int                  supdrvIOCtl_LoggerSettings(PSUPLOGGERSETTINGS pReq);
 static int                  supdrvIOCtl_X86MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq);
 #endif
 #if defined(RT_ARCH_ARM64)
-static int                  supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t cMaxRegs, uint32_t fFlags);
+static int                  supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t cMaxRegs, RTCPUID idCpu, uint32_t fFlags);
 #endif
 static int                  supdrvIOCtl_ResumeSuspendedKbds(void);
 
@@ -2519,7 +2519,7 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             REQ_CHECK_EXPR_FMT(!(pReq->u.In.fFlags & ~SUP_ARM_SYS_REG_F_VALID_MASK),
                                ("SUP_IOCTL_ARM_GET_SYSREGS: fFlags=%#x!\n", pReq->u.In.fFlags));
 
-            pReqHdr->rc = supdrvIOCtl_ArmGetSysRegs(pReq, cMaxRegs, pReq->u.In.fFlags);
+            pReqHdr->rc = supdrvIOCtl_ArmGetSysRegs(pReq, cMaxRegs, pReq->u.In.idCpu, pReq->u.In.fFlags);
             if (RT_FAILURE(pReqHdr->rc))
                 pReqHdr->cbOut = sizeof(*pReqHdr);
 
@@ -7256,15 +7256,14 @@ static int supdrvIOCtl_X86MsrProber(PSUPDRVDEVEXT pDevExt, PSUPMSRPROBER pReq)
 
 
 #if defined(RT_ARCH_ARM64)
+
 /**
- * Implements the ARM ID (and system) register getter.
+ * Gathers ARM system registers.
  *
- * @returns VBox status code.
- * @param   pReq        The request.
- * @param   cMaxRegs    The maximum number of register we can return.
- * @param   fFlags      The request flags.
+ * This is either called directly or via RTMpOnSpecific.  The latter means that
+ * we must not trigger any paging activity or block.
  */
-static int supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t const cMaxRegs, uint32_t fFlags)
+static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t const cMaxRegs, uint32_t fFlags)
 {
     /*
      * Reader macro.
@@ -7444,10 +7443,58 @@ static int supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t const cMax
         idxReg = cMaxRegs;
     pReq->u.Out.cRegs          = idxReg;
     pReq->Hdr.cbOut = SUP_IOCTL_ARM_GET_SYSREGS_SIZE_OUT(idxReg);
-    return VINF_SUCCESS;
 }
-#endif /* RT_ARCH_ARM64 */
 
+
+/** Argument package for updrvIOCtl_ArmGetSysRegsOnCpuWorker. */
+typedef struct SUPARMGETSYSREGSONCPUARGS
+{
+    uint32_t            cMaxRegs;
+    uint32_t            fFlags;
+} SUPARMGETSYSREGSONCPUARGS;
+
+
+/** @callback_method_impl{FNRTMPWORKER}   */
+DECLCALLBACK(void) supdrvIOCtl_ArmGetSysRegsOnCpuCallback(RTCPUID idCpu, void *pvUser1, void *pvUser2)
+{
+    const SUPARMGETSYSREGSONCPUARGS *pArgs = (const SUPARMGETSYSREGSONCPUARGS *)pvUser2;
+    supdrvIOCtl_ArmGetSysRegsOnCpu((PSUPARMGETSYSREGS)pvUser1, pArgs->cMaxRegs, pArgs->fFlags);
+    RT_NOREF(idCpu);
+}
+
+
+/**
+ * Implements the ARM ID (and system) register getter.
+ *
+ * @returns VBox status code.
+ * @param   pReq        The request.
+ * @param   cMaxRegs    The maximum number of register we can return.
+ * @param   idCpu       The CPU to get system registers for.
+ * @param   fFlags      The request flags.
+ */
+static int supdrvIOCtl_ArmGetSysRegs(PSUPARMGETSYSREGS pReq, uint32_t const cMaxRegs, RTCPUID idCpu, uint32_t fFlags)
+{
+    int rc;
+
+    /* Zero the request array just in case someone hands us a pagable buffer. */
+    RT_BZERO(&pReq->u.Out.aRegs[0], cMaxRegs * sizeof(pReq->u.Out.aRegs[0]));
+
+    if (idCpu == NIL_RTCPUID)
+    {
+        supdrvIOCtl_ArmGetSysRegsOnCpu(pReq, cMaxRegs, fFlags);
+        rc = VINF_SUCCESS;
+    }
+    else
+    {
+        SUPARMGETSYSREGSONCPUARGS Args;
+        Args.cMaxRegs = cMaxRegs;
+        Args.fFlags   = fFlags;
+        rc = RTMpOnSpecific(idCpu, supdrvIOCtl_ArmGetSysRegsOnCpuCallback, pReq, &Args);
+    }
+    return rc;
+}
+
+#endif /* RT_ARCH_ARM64 */
 
 /**
  * Resume built-in keyboard on MacBook Air and Pro hosts.

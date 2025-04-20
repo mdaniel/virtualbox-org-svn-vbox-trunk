@@ -2333,7 +2333,7 @@ SUPR3DECL(int) SUPR3MsrProberModifyEx(uint32_t uMsr, RTCPUID idCpu, uint64_t fAn
 #endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 #ifdef RT_ARCH_ARM64
-SUPR3DECL(int) SUPR3ArmQuerySysRegs(uint32_t fFlags, uint32_t cMaxRegs,
+SUPR3DECL(int) SUPR3ArmQuerySysRegs(RTCPUID idCpu, uint32_t fFlags, uint32_t cMaxRegs,
                                     uint32_t *pcRegsReturned, uint32_t *pcRegsAvailable, PSUPARMSYSREGVAL paSysRegValues)
 {
     /*
@@ -2360,6 +2360,7 @@ SUPR3DECL(int) SUPR3ArmQuerySysRegs(uint32_t fFlags, uint32_t cMaxRegs,
     pReq->Hdr.fFlags              = SUPREQHDR_FLAGS_DEFAULT;
     pReq->Hdr.rc                  = VERR_INTERNAL_ERROR;
 
+    pReq->u.In.idCpu              = idCpu;
     pReq->u.In.fFlags             = fFlags;
 
     int rc = suplibOsIOCtl(&g_supLibData, SUP_IOCTL_ARM_GET_SYSREGS, pReq, cbReq);

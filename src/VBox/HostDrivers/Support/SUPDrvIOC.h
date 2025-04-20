@@ -1566,6 +1566,8 @@ typedef struct SUPARMGETSYSREGS
         /** Inputs.  */
         struct
         {
+            /** Which CPU to query system registers for. */
+            RTCPUID                 idCpu;
             /** SUP_ARM_SYS_REG_F_XXX */
             uint32_t                fFlags;
         } In;

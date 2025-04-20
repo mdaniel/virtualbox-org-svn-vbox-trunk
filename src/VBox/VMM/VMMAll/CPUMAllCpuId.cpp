@@ -662,6 +662,11 @@ VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
 
         CASE_RET_STR(kCpumMicroarch_Apple_M1);
         CASE_RET_STR(kCpumMicroarch_Apple_M2);
+        CASE_RET_STR(kCpumMicroarch_Apple_M3);
+        CASE_RET_STR(kCpumMicroarch_Apple_M4);
+
+        CASE_RET_STR(kCpumMicroarch_Qualcomm_Kyro);
+        CASE_RET_STR(kCpumMicroarch_Qualcomm_Oryon);
 
         CASE_RET_STR(kCpumMicroarch_Unknown);
 
@@ -686,6 +691,7 @@ VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
         case kCpumMicroarch_Cyrix_End:
         case kCpumMicroarch_NEC_End:
         case kCpumMicroarch_Apple_End:
+        case kCpumMicroarch_Qualcomm_End:
         case kCpumMicroarch_32BitHack:
             break;
         /* no default! */

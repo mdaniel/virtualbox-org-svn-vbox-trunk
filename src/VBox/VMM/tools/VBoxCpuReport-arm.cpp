@@ -51,14 +51,26 @@ typedef struct PARTNUMINFO
     CPUMMICROARCH   enmMicroarch;
     const char     *pszName;
     const char     *pszFullName;
+    CPUMCORETYPE    enmCoreType;
 } PARTNUMINFO;
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-static uint32_t        g_cSysRegVals = 0;
-static SUPARMSYSREGVAL g_aSysRegVals[4096];
+static struct
+{
+    RTCPUSET            bmMembers;
+    uint32_t            cCores;
+    uint32_t            cSysRegVals;
+    SUPARMSYSREGVAL     aSysRegVals[256];
+}                       g_aVariations[RTCPUSET_MAX_CPUS];
+static uint32_t         g_cVariations    = 0;
+static uint32_t         g_cCores         = 0;
+
+static uint32_t         g_cCmnSysRegVals = 0;
+static SUPARMSYSREGVAL  g_aCmnSysRegVals[256];
+
 
 /** ARM CPU info by part number. */
 static PARTNUMINFO const g_aPartNumDbArm[] =
@@ -75,24 +87,27 @@ static PARTNUMINFO const g_aPartNumDbBroadcom[] =
 /** Qualcomm CPU info by part number. */
 static PARTNUMINFO const g_aPartNumDbQualcomm[] =
 {
-    { 0xfff,    kCpumMicroarch_Unknown,             "TODO",                 "TODO" },
+    { 0x0d4b,   kCpumMicroarch_Qualcomm_Kyro,       "Snapdragon 8cx Gen 3", "Snapdragon 8cx Gen 3 (Kryo Prime)",   kCpumCoreType_Efficiency  }, /* Guessing which part */    /*MIDR_EL1=0x410FD4B0*/
+    { 0x0d4c,   kCpumMicroarch_Qualcomm_Kyro,       "Snapdragon 8cx Gen 3", "Snapdragon 8cx Gen 3 (Kryo Gold)",    kCpumCoreType_Performance }, /* is for which core... */   /*MIDR_EL1=0x410FD4C0*/
+    { 0x1001,   kCpumMicroarch_Qualcomm_Oryon,      "Snapdragon X",         "Snapdragon X (Oryon var 1)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x511f0011 (perf?)*/
+    { 0x2001,   kCpumMicroarch_Qualcomm_Oryon,      "Snapdragon X",         "Snapdragon X (Oryon var 2)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x512f0011 (eff?)*/
 };
 
 /** Apple CPU info by part number. */
 static PARTNUMINFO const g_aPartNumDbApple[] =
 {
-    { 0x022,    kCpumMicroarch_Apple_M1,            "Apple M1",             "Apple M1 (Icestorm)" },
-    { 0x023,    kCpumMicroarch_Apple_M1,            "Apple M1",             "Apple M1 (Firestorm)" },
-    { 0x024,    kCpumMicroarch_Apple_M1,            "Apple M1 Pro",         "Apple M1 Pro (Icestorm)" },
-    { 0x025,    kCpumMicroarch_Apple_M1,            "Apple M1 Pro",         "Apple M1 Pro (Firestorm)" },
-    { 0x028,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Icestorm)" },
-    { 0x029,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Firestorm)" },
-    { 0x032,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Blizzard)" },
-    { 0x033,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Avalanche)" },
-    { 0x034,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Blizzard)" },
-    { 0x035,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Avalanche)" },
-    { 0x038,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Blizzard)" },
-    { 0x039,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Avalanche)" },
+    { 0x022,    kCpumMicroarch_Apple_M1,            "Apple M1",             "Apple M1 (Icestorm)",          kCpumCoreType_Efficiency  },
+    { 0x023,    kCpumMicroarch_Apple_M1,            "Apple M1",             "Apple M1 (Firestorm)",         kCpumCoreType_Performance },
+    { 0x024,    kCpumMicroarch_Apple_M1,            "Apple M1 Pro",         "Apple M1 Pro (Icestorm)",      kCpumCoreType_Efficiency  },
+    { 0x025,    kCpumMicroarch_Apple_M1,            "Apple M1 Pro",         "Apple M1 Pro (Firestorm)",     kCpumCoreType_Performance },
+    { 0x028,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Icestorm)",      kCpumCoreType_Efficiency  },
+    { 0x029,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Firestorm)",     kCpumCoreType_Performance },
+    { 0x032,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Blizzard)",          kCpumCoreType_Efficiency  },
+    { 0x033,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Avalanche)",         kCpumCoreType_Performance },
+    { 0x034,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Blizzard)",      kCpumCoreType_Efficiency  },
+    { 0x035,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Avalanche)",     kCpumCoreType_Performance },
+    { 0x038,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Blizzard)",      kCpumCoreType_Efficiency  },
+    { 0x039,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Avalanche)",     kCpumCoreType_Performance },
 };
 
 /** Ampere CPU info by part number. */
@@ -102,12 +117,28 @@ static PARTNUMINFO const g_aPartNumDbAmpere[] =
 };
 
 
-/** Looks up a register value in g_aSysRegVals. */
-static uint64_t getSysRegVal(uint32_t idReg, uint64_t uNotFoundValue = 0)
+/** Looks up a register entry in an array. */
+static SUPARMSYSREGVAL *lookupSysReg(SUPARMSYSREGVAL *paSysRegVals, uint32_t const cSysRegVals, uint32_t const idReg)
 {
-    for (uint32_t i = 0; i < g_cSysRegVals; i++)
-        if (g_aSysRegVals[i].idReg == idReg)
-            return g_aSysRegVals[i].uValue;
+    for (uint32_t i = 0; i < cSysRegVals; i++)
+        if (paSysRegVals[i].idReg == idReg)
+            return &paSysRegVals[i];
+    return NULL;
+}
+
+
+/** Looks up a register value in g_aSysRegVals. */
+static uint64_t getSysRegVal(uint32_t idReg, uint64_t uNotFoundValue = 0, uint32_t iVar = 0)
+{
+    for (uint32_t i = 0; i < g_cCmnSysRegVals; i++)
+        if (g_aCmnSysRegVals[i].idReg == idReg)
+            return g_aCmnSysRegVals[i].uValue;
+
+    if (iVar < g_cVariations)
+        for (uint32_t i = 0; i < g_aVariations[iVar].cSysRegVals; i++)
+            if (g_aVariations[iVar].aSysRegVals[i].idReg == idReg)
+                return g_aVariations[iVar].aSysRegVals[i].uValue;
+
     return uNotFoundValue;
 }
 
@@ -264,18 +295,178 @@ static int populateSystemRegisters(void)
     int rc = SUPR3Init(NULL);
     if (RT_SUCCESS(rc))
     {
-        uint32_t cRegAvailable = 0;
-        rc = SUPR3ArmQuerySysRegs(SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL | SUP_ARM_SYS_REG_F_EXTENDED,
-                                  RT_ELEMENTS(g_aSysRegVals), &g_cSysRegVals, &cRegAvailable, g_aSysRegVals);
-        vbCpuRepDebug("SUPR3ArmQuerySysRegs -> %Rrc (%u/%u regs)\n", rc, g_cSysRegVals, cRegAvailable);
-        if (RT_FAILURE(rc))
-            return RTMsgErrorRc(rc, "SUPR3ArmQuerySysRegs failed: %Rrc", rc);
-        if (cRegAvailable > g_cSysRegVals)
-            return RTMsgErrorRc(rc,
-                                "SUPR3ArmQuerySysRegs claims there are %u more registers availble.\n"
-                                "Increase size of g_aSysRegVals to at least %u entries and retry!",
-                                cRegAvailable - g_cSysRegVals, cRegAvailable);
-        RTSortShell(g_aSysRegVals, g_cSysRegVals, sizeof(g_aSysRegVals[0]), sysRegValSortCmp, NULL);
+        /*
+         * Get the registers for online each CPU in the system, sorting them.
+         */
+        RTCPUSET  OnlineSet;
+        int const idxLast = RTCpuLastIndex(RTMpGetOnlineSet(&OnlineSet));
+        for (int idxCpu = 0, iVar = 0; idxCpu <= idxLast; idxCpu++)
+            if (RTCpuSetIsMemberByIndex(&OnlineSet, idxCpu))
+            {
+                RTCPUID const idCpu         = RTMpCpuIdFromSetIndex(idxCpu);
+                uint32_t      cRegAvailable = 0;
+                g_aVariations[iVar].cSysRegVals = 0;
+                rc = SUPR3ArmQuerySysRegs(idCpu,
+                                          SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL | SUP_ARM_SYS_REG_F_EXTENDED,
+                                          RT_ELEMENTS(g_aVariations[iVar].aSysRegVals),
+                                          &g_aVariations[iVar].cSysRegVals,
+                                          &cRegAvailable,
+                                          g_aVariations[iVar].aSysRegVals);
+                vbCpuRepDebug("SUPR3ArmQuerySysRegs(%u/%u) -> %Rrc (%u/%u regs)\n",
+                              idCpu, idxCpu, rc, g_aVariations[iVar].cSysRegVals, cRegAvailable);
+                if (RT_FAILURE(rc))
+                    return RTMsgErrorRc(rc, "SUPR3ArmQuerySysRegs failed: %Rrc", rc);
+                if (cRegAvailable > g_aVariations[iVar].cSysRegVals)
+                    return RTMsgErrorRc(rc,
+                                        "SUPR3ArmQuerySysRegs claims there are %u more registers availble.\n"
+                                        "Increase size of g_aSysRegVals to at least %u entries and retry!",
+                                        cRegAvailable - g_aVariations[iVar].cSysRegVals, cRegAvailable);
+                /* Sort it. */
+                RTSortShell(g_aVariations[iVar].aSysRegVals, g_aVariations[iVar].cSysRegVals,
+                            sizeof(g_aVariations[iVar].aSysRegVals[0]), sysRegValSortCmp, NULL);
+
+                /* Sanitize the MP affinity register. */
+                SUPARMSYSREGVAL *pReg = lookupSysReg(g_aVariations[iVar].aSysRegVals, g_aVariations[iVar].cSysRegVals,
+                                                     ARMV8_AARCH64_SYSREG_MPIDR_EL1);
+                if (pReg)
+                {
+                    pReg->uValue &= ~UINT64_C(0xff00ffffff); /* Zero the Aff3, Aff2, Aff1 & Aff0 fields. */
+                    pReg->fFlags = 1;
+                }
+
+                /* Check if it's the same as an existing variation. */
+                int iVarMatch;
+                for (iVarMatch = iVar - 1; iVarMatch >= 0; iVarMatch--)
+                    if (   g_aVariations[iVarMatch].cSysRegVals == g_aVariations[iVar].cSysRegVals
+                        && memcmp(&g_aVariations[iVarMatch].aSysRegVals,
+                                  &g_aVariations[iVar].aSysRegVals, g_aVariations[iVar].cSysRegVals) == 0)
+                        break;
+                if (iVarMatch >= 0)
+                {
+                    /* Add to existing */
+                    vbCpuRepDebug("CPU %u/%u is same as variant #%u\n", idCpu, idxCpu, iVarMatch);
+                    g_aVariations[iVarMatch].cCores += 1;
+                    RTCpuSetAddByIndex(&g_aVariations[iVarMatch].bmMembers, idxCpu);
+                }
+                else
+                {
+                    vbCpuRepDebug("CPU %u/%u is a new variant #%u\n", idCpu, idxCpu, iVar);
+                    g_aVariations[iVar].cCores = 1;
+                    RTCpuSetEmpty(&g_aVariations[iVar].bmMembers);
+                    RTCpuSetAddByIndex(&g_aVariations[iVar].bmMembers, idxCpu);
+
+                    /* Set remaining entries to 0xffff to guard against trouble below when
+                       finding common register values. */
+                    for (uint32_t i = g_aVariations[iVar].cSysRegVals; i < RT_ELEMENTS(g_aVariations[iVar].aSysRegVals); i++)
+                    {
+                        g_aVariations[iVar].aSysRegVals[i].idReg  = UINT32_MAX;
+                        g_aVariations[iVar].aSysRegVals[i].uValue = 0;
+                        g_aVariations[iVar].aSysRegVals[i].fFlags = 0;
+                    }
+
+                    g_cVariations = ++iVar;
+                }
+                g_cCores += 1;
+            }
+        vbCpuRepDebug("Detected %u variants across %u online CPUs\n", g_cVariations, g_cCores);
+
+        /*
+         * Now, destill similar register values and unique ones.
+         * This isn't too complicated since the arrays have been sorted.
+         */
+        g_cCmnSysRegVals = 0;
+
+        uint32_t cMaxRegs = g_aVariations[0].cSysRegVals;
+        for (unsigned i = 0; i < g_cVariations; i++)
+            cMaxRegs = RT_MAX(cMaxRegs, g_aVariations[i].cSysRegVals);
+
+        struct
+        {
+            unsigned idxSrc;
+            unsigned idxDst;
+        } aState[RTCPUSET_MAX_CPUS] = { {0, 0} };
+
+        for (;;)
+        {
+            /* Find the min & max register value. */
+            uint32_t idRegMax = 0;
+            uint32_t idRegMin = UINT32_MAX;
+            for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+            {
+                unsigned const idxSrc = aState[iVar].idxSrc;
+
+                uint32_t const idReg  = idxSrc < g_aVariations[iVar].cSysRegVals
+                                      ? g_aVariations[iVar].aSysRegVals[idxSrc].idReg : UINT32_MAX;
+                idRegMax = RT_MAX(idRegMax, idReg);
+                idRegMin = RT_MIN(idRegMin, idReg);
+            }
+            if (idRegMin == UINT32_MAX)
+                break;
+
+            /* Advance all arrays till we've reached idRegMax. */
+            unsigned cMatchedMax = 0;
+            for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+            {
+                unsigned idxSrc = aState[iVar].idxSrc;
+                unsigned idxDst = aState[iVar].idxDst;
+                while (   idxSrc < g_aVariations[iVar].cSysRegVals
+                       && g_aVariations[iVar].aSysRegVals[idxSrc].idReg < idRegMax)
+                    g_aVariations[iVar].aSysRegVals[idxDst++] = g_aVariations[iVar].aSysRegVals[idxSrc++];
+                cMatchedMax += idxSrc < g_aVariations[iVar].cSysRegVals
+                            && g_aVariations[iVar].aSysRegVals[idxSrc].idReg == idRegMax;
+                aState[iVar].idxSrc = idxSrc;
+                aState[iVar].idxDst = idxDst;
+            }
+            if (idRegMax == UINT32_MAX)
+                break;
+
+            if (cMatchedMax == g_cVariations)
+            {
+                /* Check if all the values match. */
+                uint64_t const uValue0  = g_aVariations[0].aSysRegVals[aState[0].idxSrc].uValue;
+                uint32_t const fFlags0  = g_aVariations[0].aSysRegVals[aState[0].idxSrc].fFlags;
+                unsigned       cMatches = 1;
+                for (unsigned iVar = 1; iVar < g_cVariations; iVar++)
+                {
+                    unsigned const idxSrc = aState[iVar].idxSrc;
+                    Assert(idxSrc < g_aVariations[iVar].cSysRegVals);
+                    Assert(g_aVariations[iVar].aSysRegVals[idxSrc].idReg == idRegMax);
+                    cMatches += g_aVariations[iVar].aSysRegVals[idxSrc].uValue == uValue0
+                             && g_aVariations[iVar].aSysRegVals[idxSrc].fFlags == fFlags0;
+                }
+                if (cMatches == g_cVariations)
+                {
+                    g_aCmnSysRegVals[g_cCmnSysRegVals++] = g_aVariations[0].aSysRegVals[aState[0].idxSrc];
+                    for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+                        aState[iVar].idxSrc += 1;
+                    continue;
+                }
+                vbCpuRepDebug("%#x: missed #2\n", idRegMax);
+            }
+            else
+                vbCpuRepDebug("%#x: missed #1\n", idRegMax);
+
+            for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+            {
+                Assert(aState[iVar].idxSrc < g_aVariations[iVar].cSysRegVals);
+                g_aVariations[iVar].aSysRegVals[aState[iVar].idxDst++]
+                    = g_aVariations[iVar].aSysRegVals[aState[iVar].idxSrc++];
+            }
+        }
+        vbCpuRepDebug("Common register values: %u\n", g_cCmnSysRegVals);
+
+        /* Anything left in any of the arrays are considered unique and needs to be moved up. */
+        for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+        {
+            unsigned idxSrc = aState[iVar].idxSrc;
+            unsigned idxDst = aState[iVar].idxDst;
+            Assert(idxDst <= idxSrc);
+            Assert(idxSrc == g_aVariations[iVar].cSysRegVals);
+            while (idxSrc < g_aVariations[iVar].cSysRegVals)
+                g_aVariations[iVar].aSysRegVals[idxDst++] = g_aVariations[iVar].aSysRegVals[idxSrc++];
+            g_aVariations[iVar].cSysRegVals = idxDst;
+            vbCpuRepDebug("Var #%u register values: %u\n", iVar, idxDst);
+        }
         return rc;
     }
     return RTMsgErrorRc(rc, "Unable to initialize the support library (%Rrc).", rc);
@@ -284,24 +475,39 @@ static int populateSystemRegisters(void)
 }
 
 
-/**
- * Populate the system register array and output it.
- */
-static int produceSysRegArray(const char *pszNameC, const char *pszCpuDesc)
+static void printSysRegArray(const char *pszNameC, uint32_t cSysRegVals, SUPARMSYSREGVAL const *paSysRegVals,
+                             const char *pszCpuDesc, uint32_t iVariation = UINT32_MAX)
 {
-    RT_NOREF(pszNameC, pszCpuDesc);
+    if (!g_cCmnSysRegVals)
+        return;
 
-    /* Output the array. */
     vbCpuRepPrintf("\n"
-                   "/*\n"
-                   " * System Register Values for %s.\n"
-                   " */\n"
-                   "static SUPARMSYSREGVAL const g_aSysRegVals_%s[] =\n"
-                   "{\n",
-                   pszCpuDesc, pszNameC);
-    for (uint32_t i = 0; i < g_cSysRegVals; i++)
+                   "/*\n");
+    if (iVariation == UINT32_MAX)
+        vbCpuRepPrintf(" * Common system register values for %s.\n"
+                       " */\n"
+                       "static SUPARMSYSREGVAL const g_aCmnSysRegVals_%s[] =\n"
+                       "{\n",
+                       pszCpuDesc, pszNameC);
+    else
     {
-        uint32_t const     idReg = g_aSysRegVals[i].idReg;
+        vbCpuRepPrintf(" * System register values for %s, variation #%u.\n"
+                       " * %u CPUs shares this variant: ",
+                       pszCpuDesc, iVariation,
+                       g_aVariations[iVariation].cCores);
+        int iLast = RTCpuLastIndex(&g_aVariations[iVariation].bmMembers);
+        for (int i = 0, cPrinted = 0; i <= iLast; i++)
+            if (RTCpuSetIsMemberByIndex(&g_aVariations[iVariation].bmMembers, i))
+                vbCpuRepPrintf(cPrinted++ == 0 ? "%u" : ", %u", i);
+        vbCpuRepPrintf("\n"
+                       " */\n"
+                       "static SUPARMSYSREGVAL const g_aVar%uSysRegVals_%s[] =\n"
+                       "{\n",
+                       iVariation, pszNameC);
+    }
+    for (uint32_t i = 0; i < cSysRegVals; i++)
+    {
+        uint32_t const     idReg = paSysRegVals[i].idReg;
         uint32_t const     uOp0  = ARMV8_AARCH64_SYSREG_OP0_GET(idReg);
         uint32_t const     uOp1  = ARMV8_AARCH64_SYSREG_OP1_GET(idReg);
         uint32_t const     uCRn  = ARMV8_AARCH64_SYSREG_CRN_GET(idReg);
@@ -310,11 +516,22 @@ static int produceSysRegArray(const char *pszNameC, const char *pszCpuDesc)
         const char * const pszNm = sysRegNoToName(idReg);
 
         vbCpuRepPrintf("    { UINT64_C(%#018RX64), ARMV8_AARCH64_SYSREG_ID_CREATE(%u, %u,%2u,%2u, %u), %#x },%s%s%s\n",
-                       g_aSysRegVals[i].uValue, uOp0, uOp1, uCRn, uCRm, uOp2, g_aSysRegVals[i].fFlags,
-                       pszNm ? " /* " : "", pszNm, pszNm ? " */" : "");
+                paSysRegVals[i].uValue, uOp0, uOp1, uCRn, uCRm, uOp2, paSysRegVals[i].fFlags,
+                pszNm ? " /* " : "", pszNm, pszNm ? " */" : "");
     }
     vbCpuRepPrintf("};\n"
                    "\n");
+}
+
+
+/**
+ * Populate the system register array and output it.
+ */
+static int produceSysRegArray(const char *pszNameC, const char *pszCpuDesc)
+{
+    printSysRegArray(pszNameC, g_cCmnSysRegVals, g_aCmnSysRegVals, pszCpuDesc);
+    for (uint32_t iVar = 0; iVar < g_cVariations; iVar++)
+        printSysRegArray(pszNameC, g_aVariations[iVar].cSysRegVals, g_aVariations[iVar].aSysRegVals, pszCpuDesc, iVar);
     return VINF_SUCCESS;
 }
 
@@ -324,6 +541,7 @@ int produceCpuReport(void)
     /*
      * Figure out the processor name via the host OS and command line first...
      */
+    /** @todo HKLM/Hardware/...   */
     char szDetectedCpuName[256] = {0};
     int rc = RTMpGetDescription(NIL_RTCPUID, szDetectedCpuName, sizeof(szDetectedCpuName));
     if (RT_SUCCESS(rc))
@@ -343,21 +561,26 @@ int produceCpuReport(void)
     if (RT_FAILURE(rc))
         return rc;
 
+    /** @todo update the remainder of the file to the variation scheme...   */
+
     /*
      * Now that we've got the ID register values, figure out the vendor,
      * microarch, cpu name and description..
      */
     uint64_t const uMIdReg      = getSysRegVal(ARMV8_AARCH64_SYSREG_MIDR_EL1);
 
-    uint8_t const  bImplementer = (uint8_t)(uMIdReg >> 24);
-    uint8_t const  bRevision    = (uint8_t)(uMIdReg & 0x7);
-    uint16_t const uPartNum     = (uint16_t)((uMIdReg >> 4) & 0xfff);
+    uint8_t const  bImplementer = (uint8_t )((uMIdReg >> 24) & 0xff);
+    uint8_t  const bVariant     = (uint8_t )((uMIdReg >> 20) & 0xf);
+    uint16_t const uPartNum     = (uint16_t)((uMIdReg >>  4) & 0xfff);
+    uint8_t const  bRevision    = (uint8_t )( uMIdReg        & 0x7);
+    uint16_t const uPartNumEx   = uPartNum | ((uint16_t)bVariant << 12);
 
     /** @todo move this to CPUM or IPRT...   */
-    CPUMCPUVENDOR       enmVendor;
-    const char         *pszVendor;
-    PARTNUMINFO const  *paPartNums;
-    size_t              cPartNums;
+    CPUMCPUVENDOR      enmVendor;
+    const char        *pszVendor;
+    PARTNUMINFO const *paPartNums;
+    size_t             cPartNums;
+    uint32_t           uPartNumSearch = uPartNum;
     switch (bImplementer)
     {
         case 0x41:
@@ -379,6 +602,7 @@ int produceCpuReport(void)
             pszVendor  = "Qualcomm";
             paPartNums = g_aPartNumDbQualcomm;
             cPartNums  = RT_ELEMENTS(g_aPartNumDbQualcomm);
+            uPartNumSearch = uPartNumEx; /* include the variant in the search */
             break;
 
         case 0x61:
@@ -400,10 +624,10 @@ int produceCpuReport(void)
     }
 
     /* Look up the part number in the vendor table: */
-    const char   *pszCpuDesc   = NULL;
-    CPUMMICROARCH enmMicroarch = kCpumMicroarch_Invalid;
+    const char    *pszCpuDesc   = NULL;
+    CPUMMICROARCH  enmMicroarch = kCpumMicroarch_Invalid;
     for (size_t i = 0; i < cPartNums; i++)
-        if (paPartNums[i].uPartNum == uPartNum)
+        if (paPartNums[i].uPartNum == uPartNumSearch)
         {
             enmMicroarch = paPartNums[i].enmMicroarch;
             pszCpuDesc   = paPartNums[i].pszFullName;
@@ -412,7 +636,8 @@ int produceCpuReport(void)
             break;
         }
     if (enmMicroarch == kCpumMicroarch_Invalid)
-        return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "%s part number not found: %#x (%s)", pszVendor, uPartNum, pszCpuName);
+        return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "%s part number not found: %#x (MIDR_EL1=%#x%s%s)",
+                            pszVendor, uPartNum, uMIdReg, *pszCpuName ? " " : "", pszCpuName);
 
     /*
      * Sanitize the name.

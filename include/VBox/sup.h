@@ -2037,6 +2037,8 @@ SUPR3DECL(int) SUPR3MsrProberModifyEx(uint32_t uMsr, RTCPUID idCpu, uint64_t fAn
  * CPU capatbilites.
  *
  * @returns VBox status code.
+ * @param   idCpu               The CPU to query the registers on, NIL_RTCPUID
+ *                              if any will do.
  * @param   fFlags              Query flags, SUP_ARM_SYS_REG_F_XXX.
  * @param   cMaxRegs            Maximum number of registers @a paSysRegValues
  *                              may hold.
@@ -2047,7 +2049,7 @@ SUPR3DECL(int) SUPR3MsrProberModifyEx(uint32_t uMsr, RTCPUID idCpu, uint64_t fAn
  * @param   paSysRegValues      Array where to store the register values and
  *                              associated info.
  */
-SUPR3DECL(int) SUPR3ArmQuerySysRegs(uint32_t fFlags, uint32_t cMaxRegs,
+SUPR3DECL(int) SUPR3ArmQuerySysRegs(RTCPUID idCpu, uint32_t fFlags, uint32_t cMaxRegs,
                                     uint32_t *pcRegsReturned, uint32_t *pcRegsAvailable, PSUPARMSYSREGVAL paSysRegValues);
 #endif /* defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING) */
 

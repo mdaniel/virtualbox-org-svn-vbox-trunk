@@ -67,6 +67,7 @@ extern void vbCpuRepDebug(const char *pszMsg, ...);
 extern void vbCpuRepFileHdr(const char *pszName, const char *pszNameC);
 extern void vbCpuRepPrintf(const char *pszMsg, ...);
 extern const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor);
+extern const char *vbGetCoreTypeToString(CPUMCORETYPE enmCoreType);
 
 extern int  produceCpuReport(void); /* arch specific */
 

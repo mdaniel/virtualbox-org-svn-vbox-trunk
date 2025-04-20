@@ -1711,9 +1711,9 @@ typedef CPUMDBENTRY const *PCCPUMDBENTRY;
 typedef enum CPUMCORETYPE
 {
     kCpumCoreType_Invalid = 0,
-    kCpumCoreType_Unknown,
-    kCpumCoreType_Performance,
     kCpumCoreType_Efficiency,
+    kCpumCoreType_Performance,
+    kCpumCoreType_Unknown,
     kCpumCoreType_End,
     kCpumCoreType_32BitHack = 0x7fffffff,
 } CPUMCORETYPE;

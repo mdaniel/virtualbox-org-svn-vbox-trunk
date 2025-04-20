@@ -58,12 +58,25 @@ typedef struct PARTNUMINFO
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-static struct
+static struct CPUCOREVARIATION
 {
+    /** @name Set by populateSystemRegisters().
+     * @{ */
     RTCPUSET            bmMembers;
     uint32_t            cCores;
     uint32_t            cSysRegVals;
     SUPARMSYSREGVAL     aSysRegVals[256];
+    /** @} */
+
+    /** @name Set later by produceCpuReport().
+     * @{ */
+    uint64_t            uMIdReg;
+    CPUMCPUVENDOR       enmVendor;
+    CPUMCORETYPE        enmCoreType;
+    CPUMMICROARCH       enmMicroarch;
+    const char         *pszName;
+    const char         *pszFullName;
+    /** @} */
 }                       g_aVariations[RTCPUSET_MAX_CPUS];
 static uint32_t         g_cVariations    = 0;
 static uint32_t         g_cCores         = 0;
@@ -117,6 +130,21 @@ static PARTNUMINFO const g_aPartNumDbAmpere[] =
 };
 
 
+/** @callback_impl{FNRTSORTCMP} */
+static DECLCALLBACK(int) variationSortCmp(void const *pvElement1, void const *pvElement2, void *pvUser)
+{
+    RT_NOREF(pvUser);
+    struct CPUCOREVARIATION const * const pElm1 = (struct CPUCOREVARIATION const *)pvElement1;
+    struct CPUCOREVARIATION const * const pElm2 = (struct CPUCOREVARIATION const *)pvElement2;
+
+    /* Sort by core type, putting the efficiency cores before performance and performance before unknown ones. */
+    AssertCompile(kCpumCoreType_Efficiency < kCpumCoreType_Performance && kCpumCoreType_Performance < kCpumCoreType_Unknown);
+    return (int)pElm1->enmCoreType < (int)pElm2->enmCoreType ? -1
+         : (int)pElm1->enmCoreType > (int)pElm2->enmCoreType ? 1
+         : 0;
+}
+
+
 /** Looks up a register entry in an array. */
 static SUPARMSYSREGVAL *lookupSysReg(SUPARMSYSREGVAL *paSysRegVals, uint32_t const cSysRegVals, uint32_t const idReg)
 {
@@ -128,18 +156,12 @@ static SUPARMSYSREGVAL *lookupSysReg(SUPARMSYSREGVAL *paSysRegVals, uint32_t con
 
 
 /** Looks up a register value in g_aSysRegVals. */
-static uint64_t getSysRegVal(uint32_t idReg, uint64_t uNotFoundValue = 0, uint32_t iVar = 0)
+static uint64_t getSysRegVal(uint32_t idReg, uint32_t iVar, uint64_t uNotFoundValue = 0)
 {
-    for (uint32_t i = 0; i < g_cCmnSysRegVals; i++)
-        if (g_aCmnSysRegVals[i].idReg == idReg)
-            return g_aCmnSysRegVals[i].uValue;
-
-    if (iVar < g_cVariations)
-        for (uint32_t i = 0; i < g_aVariations[iVar].cSysRegVals; i++)
-            if (g_aVariations[iVar].aSysRegVals[i].idReg == idReg)
-                return g_aVariations[iVar].aSysRegVals[i].uValue;
-
-    return uNotFoundValue;
+    SUPARMSYSREGVAL const *pVal = lookupSysReg(g_aCmnSysRegVals, g_cCmnSysRegVals, idReg);
+    if (!pVal && iVar < g_cVariations)
+        pVal = lookupSysReg(g_aVariations[iVar].aSysRegVals, g_aVariations[iVar].cSysRegVals, idReg);
+    return pVal ? pVal->uValue : uNotFoundValue;
 }
 
 
@@ -508,16 +530,16 @@ static void printSysRegArray(const char *pszNameC, uint32_t cSysRegVals, SUPARMS
     for (uint32_t i = 0; i < cSysRegVals; i++)
     {
         uint32_t const     idReg = paSysRegVals[i].idReg;
-        uint32_t const     uOp0  = ARMV8_AARCH64_SYSREG_OP0_GET(idReg);
-        uint32_t const     uOp1  = ARMV8_AARCH64_SYSREG_OP1_GET(idReg);
-        uint32_t const     uCRn  = ARMV8_AARCH64_SYSREG_CRN_GET(idReg);
-        uint32_t const     uCRm  = ARMV8_AARCH64_SYSREG_CRM_GET(idReg);
-        uint32_t const     uOp2  = ARMV8_AARCH64_SYSREG_OP2_GET(idReg);
+        uint32_t const     uOp0  = ARMV8_AARCH64_SYSREG_ID_GET_OP0(idReg);
+        uint32_t const     uOp1  = ARMV8_AARCH64_SYSREG_ID_GET_OP1(idReg);
+        uint32_t const     uCRn  = ARMV8_AARCH64_SYSREG_ID_GET_CRN(idReg);
+        uint32_t const     uCRm  = ARMV8_AARCH64_SYSREG_ID_GET_CRM(idReg);
+        uint32_t const     uOp2  = ARMV8_AARCH64_SYSREG_ID_GET_OP2(idReg);
         const char * const pszNm = sysRegNoToName(idReg);
 
         vbCpuRepPrintf("    { UINT64_C(%#018RX64), ARMV8_AARCH64_SYSREG_ID_CREATE(%u, %u,%2u,%2u, %u), %#x },%s%s%s\n",
                 paSysRegVals[i].uValue, uOp0, uOp1, uCRn, uCRm, uOp2, paSysRegVals[i].fFlags,
-                pszNm ? " /* " : "", pszNm, pszNm ? " */" : "");
+                pszNm ? " /* " : "", pszNm ? pszNm : "", pszNm ? " */" : "");
     }
     vbCpuRepPrintf("};\n"
                    "\n");
@@ -531,7 +553,8 @@ static int produceSysRegArray(const char *pszNameC, const char *pszCpuDesc)
 {
     printSysRegArray(pszNameC, g_cCmnSysRegVals, g_aCmnSysRegVals, pszCpuDesc);
     for (uint32_t iVar = 0; iVar < g_cVariations; iVar++)
-        printSysRegArray(pszNameC, g_aVariations[iVar].cSysRegVals, g_aVariations[iVar].aSysRegVals, pszCpuDesc, iVar);
+        printSysRegArray(pszNameC, g_aVariations[iVar].cSysRegVals, g_aVariations[iVar].aSysRegVals,
+                         g_aVariations[iVar].pszFullName, iVar);
     return VINF_SUCCESS;
 }
 
@@ -561,83 +584,100 @@ int produceCpuReport(void)
     if (RT_FAILURE(rc))
         return rc;
 
-    /** @todo update the remainder of the file to the variation scheme...   */
-
     /*
-     * Now that we've got the ID register values, figure out the vendor,
-     * microarch, cpu name and description..
+     * Identify each of the CPU variations we've detected.
      */
-    uint64_t const uMIdReg      = getSysRegVal(ARMV8_AARCH64_SYSREG_MIDR_EL1);
-
-    uint8_t const  bImplementer = (uint8_t )((uMIdReg >> 24) & 0xff);
-    uint8_t  const bVariant     = (uint8_t )((uMIdReg >> 20) & 0xf);
-    uint16_t const uPartNum     = (uint16_t)((uMIdReg >>  4) & 0xfff);
-    uint8_t const  bRevision    = (uint8_t )( uMIdReg        & 0x7);
-    uint16_t const uPartNumEx   = uPartNum | ((uint16_t)bVariant << 12);
-
-    /** @todo move this to CPUM or IPRT...   */
-    CPUMCPUVENDOR      enmVendor;
-    const char        *pszVendor;
-    PARTNUMINFO const *paPartNums;
-    size_t             cPartNums;
-    uint32_t           uPartNumSearch = uPartNum;
-    switch (bImplementer)
+    for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
     {
-        case 0x41:
-            enmVendor  = CPUMCPUVENDOR_ARM;
-            pszVendor  = "ARM";
-            paPartNums = g_aPartNumDbArm;
-            cPartNums  = RT_ELEMENTS(g_aPartNumDbArm);
-            break;
+        /*
+         * Now that we've got the ID register values, figure out the vendor,
+         * microarch, cpu name and description..
+         */
+        uint64_t const uMIdReg      = getSysRegVal(ARMV8_AARCH64_SYSREG_MIDR_EL1, iVar);
+        g_aVariations[iVar].uMIdReg = uMIdReg;
 
-        case 0x42:
-            enmVendor  = CPUMCPUVENDOR_BROADCOM;
-            pszVendor  = "Broadcom";
-            paPartNums = g_aPartNumDbBroadcom;
-            cPartNums  = RT_ELEMENTS(g_aPartNumDbBroadcom);
-            break;
+        uint8_t const  bImplementer = (uint8_t )((uMIdReg >> 24) & 0xff);
+        uint8_t  const bVariant     = (uint8_t )((uMIdReg >> 20) & 0xf);
+        uint16_t const uPartNum     = (uint16_t)((uMIdReg >>  4) & 0xfff);
+        //uint8_t const  bRevision    = (uint8_t )( uMIdReg        & 0x7);
+        uint16_t const uPartNumEx   = uPartNum | ((uint16_t)bVariant << 12);
 
-        case 0x51:
-            enmVendor  = CPUMCPUVENDOR_QUALCOMM;
-            pszVendor  = "Qualcomm";
-            paPartNums = g_aPartNumDbQualcomm;
-            cPartNums  = RT_ELEMENTS(g_aPartNumDbQualcomm);
-            uPartNumSearch = uPartNumEx; /* include the variant in the search */
-            break;
+        /** @todo move this to CPUM or IPRT...   */
+        PARTNUMINFO const *paPartNums;
+        size_t             cPartNums;
+        uint32_t           uPartNumSearch = uPartNum;
+        switch (bImplementer)
+        {
+            case 0x41:
+                g_aVariations[iVar].enmVendor = CPUMCPUVENDOR_ARM;
+                paPartNums = g_aPartNumDbArm;
+                cPartNums  = RT_ELEMENTS(g_aPartNumDbArm);
+                break;
 
-        case 0x61:
-            enmVendor  = CPUMCPUVENDOR_APPLE;
-            pszVendor  = "Apple";
-            paPartNums = g_aPartNumDbApple;
-            cPartNums  = RT_ELEMENTS(g_aPartNumDbApple);
-            break;
+            case 0x42:
+                g_aVariations[iVar].enmVendor = CPUMCPUVENDOR_BROADCOM;
+                paPartNums = g_aPartNumDbBroadcom;
+                cPartNums  = RT_ELEMENTS(g_aPartNumDbBroadcom);
+                break;
 
-        case 0xc0:
-            enmVendor  = CPUMCPUVENDOR_AMPERE;
-            pszVendor  = "Ampere";
-            paPartNums = g_aPartNumDbAmpere;
-            cPartNums  = RT_ELEMENTS(g_aPartNumDbAmpere);
-            break;
+            case 0x51:
+                g_aVariations[iVar].enmVendor = CPUMCPUVENDOR_QUALCOMM;
+                paPartNums = g_aPartNumDbQualcomm;
+                cPartNums  = RT_ELEMENTS(g_aPartNumDbQualcomm);
+                uPartNumSearch = uPartNumEx; /* include the variant in the search */
+                break;
 
-        default:
-            return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "Unknown ARM implementer: %#x (%s)", bImplementer, pszCpuName);
+            case 0x61:
+                g_aVariations[iVar].enmVendor = CPUMCPUVENDOR_APPLE;
+                paPartNums = g_aPartNumDbApple;
+                cPartNums  = RT_ELEMENTS(g_aPartNumDbApple);
+                break;
+
+            case 0xc0:
+                g_aVariations[iVar].enmVendor = CPUMCPUVENDOR_AMPERE;
+                paPartNums = g_aPartNumDbAmpere;
+                cPartNums  = RT_ELEMENTS(g_aPartNumDbAmpere);
+                break;
+
+            default:
+                return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "Unknown ARM implementer: %#x (%s)", bImplementer, pszCpuName);
+        }
+
+        /* Look up the part number in the vendor table: */
+        g_aVariations[iVar].enmCoreType  = kCpumCoreType_Invalid;
+        g_aVariations[iVar].enmMicroarch = kCpumMicroarch_Invalid;
+        g_aVariations[iVar].pszName      = NULL;
+        g_aVariations[iVar].pszFullName  = NULL;
+        for (size_t i = 0; i < cPartNums; i++)
+            if (paPartNums[i].uPartNum == uPartNumSearch)
+            {
+                g_aVariations[iVar].enmCoreType  = paPartNums[i].enmCoreType;
+                g_aVariations[iVar].enmMicroarch = paPartNums[i].enmMicroarch;
+                g_aVariations[iVar].pszName      = paPartNums[i].pszName;
+                g_aVariations[iVar].pszFullName  = paPartNums[i].pszFullName;
+                break;
+            }
+        if (g_aVariations[iVar].enmMicroarch == kCpumMicroarch_Invalid)
+            return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "%s part number not found: %#x (MIDR_EL1=%#x%s%s)",
+                                CPUMCpuVendorName(g_aVariations[iVar].enmVendor), uPartNum, uMIdReg,
+                                *pszCpuName ? " " : "", pszCpuName);
     }
 
-    /* Look up the part number in the vendor table: */
-    const char    *pszCpuDesc   = NULL;
-    CPUMMICROARCH  enmMicroarch = kCpumMicroarch_Invalid;
-    for (size_t i = 0; i < cPartNums; i++)
-        if (paPartNums[i].uPartNum == uPartNumSearch)
-        {
-            enmMicroarch = paPartNums[i].enmMicroarch;
-            pszCpuDesc   = paPartNums[i].pszFullName;
-            if (!g_pszCpuNameOverride)
-                pszCpuName = paPartNums[i].pszName;
-            break;
-        }
-    if (enmMicroarch == kCpumMicroarch_Invalid)
-        return RTMsgErrorRc(VERR_UNSUPPORTED_CPU, "%s part number not found: %#x (MIDR_EL1=%#x%s%s)",
-                            pszVendor, uPartNum, uMIdReg, *pszCpuName ? " " : "", pszCpuName);
+    /*
+     * Sort the variations by core type.
+     */
+    AssertCompile(sizeof(g_aVariations[0]) < _32K); /* Stack allocation in RTSortShell. */
+    if (g_cVariations > 1)
+        RTSortShell(g_aVariations, g_cVariations, sizeof(g_aVariations[0]), variationSortCmp, NULL);
+
+    /*
+     * Take the CPU name and description from the first variation,
+     * unless something better is provided on the command line.
+     */
+    if (!g_pszCpuNameOverride)
+        pszCpuName = g_aVariations[0].pszName;
+    const char * const pszCpuDesc = strlen(szDetectedCpuName) > strlen(pszCpuName) ? RTStrStrip(szDetectedCpuName)
+                                  : g_cVariations == 1 ? g_aVariations[0].pszFullName : pszCpuName;
 
     /*
      * Sanitize the name.
@@ -720,26 +760,61 @@ int produceCpuReport(void)
                    "        /*.enmMicroarch = */ kCpumMicroarch_%s,\n"
                    "        /*.fFlags       = */ 0,\n"
                    "    },\n"
-                   "    /*.bImplementer     = */ %#04x,\n"
-                   "    /*.bRevision        = */ %#04x,\n"
-                   "    /*.uPartNum         = */ %#04x,\n"
-                   "    /*.cSysRegVals      = */ ZERO_ALONE(RT_ELEMENTS(g_aSysRegVals_%s)),\n"
-                   "    /*.paSysRegVals     = */ NULL_ALONE(g_aSysRegVals_%s),\n"
-                   "};\n"
-                   "\n"
-                   "#endif /* !VBOX_CPUDB_%s_h */\n"
-                   "\n",
+                   "    /*.paSysRegCmnVals  = */ NULL_ALONE(g_aCmnSysRegVals_%s),\n"
+                   "    /*.cSysRegCmnVals   = */ ZERO_ALONE(RT_ELEMENTS(g_aCmnSysRegVals_%s)),\n"
+                   "    /*.cVariants        = */ %u,\n"
+                   "    /*.aVariants        = */\n"
+                   "    {\n"
+                   ,
                    pszCpuDesc,
                    szNameC,
                    pszCpuName,
                    pszCpuDesc,
-                   CPUMCpuVendorName(enmVendor),
-                   CPUMMicroarchName(enmMicroarch),
-                   bImplementer,
-                   bRevision,
-                   uPartNum,
+                   vbCpuVendorToString(g_aVariations[0].enmVendor),
+                   CPUMMicroarchName(g_aVariations[0].enmMicroarch),
                    szNameC,
                    szNameC,
+                   g_cVariations);
+    for (unsigned iVar = 0; iVar < g_cVariations; iVar++)
+    {
+        vbCpuRepPrintf("        /*.Variants[%u] = */\n"
+                       "        {\n"
+                       "            /*.pszName      = */ \"%s\",\n"
+                       "            /*.Midr         = */\n"
+                       "            {\n"
+                       "                /*Midr.s = */\n"
+                       "                {\n"
+                       "                    /*.u4Revision    = */ %#03x,\n"
+                       "                    /*.u12PartNum    = */ %#05x,\n"
+                       "                    /*.u4Arch        = */ %#03x,\n"
+                       "                    /*.u4Variant     = */ %#03x,\n"
+                       "                    /*.u4Implementer = */ %#04x,\n"
+                       "                }\n"
+                       "            },\n"
+                       "            /*.enmCoreType  = */ kCpumCoreType_%s,\n"
+                       ,
+                       iVar,
+                       g_aVariations[iVar].pszFullName,
+                       (unsigned)( g_aVariations[iVar].uMIdReg        & 0xf),
+                       (unsigned)((g_aVariations[iVar].uMIdReg >>  4) & 0xfff),
+                       (unsigned)((g_aVariations[iVar].uMIdReg >> 16) & 0xf),
+                       (unsigned)((g_aVariations[iVar].uMIdReg >> 20) & 0xf),
+                       (unsigned)((g_aVariations[iVar].uMIdReg >> 24) & 0xff),
+                       vbGetCoreTypeToString(g_aVariations[iVar].enmCoreType));
+        if (g_aVariations[iVar].cSysRegVals == 0)
+            vbCpuRepPrintf("            /*.cSysRegVals  = */ 0,\n"
+                           "            /*.paSysRegVals = */ NULL\n");
+        else
+            vbCpuRepPrintf("            /*.cSysRegVals  = */ ZERO_ALONE(RT_ELEMENTS(g_aVar%uSysRegVals_%s)),\n"
+                           "            /*.paSysRegVals = */ NULL_ALONE(g_aVar%uSysRegVals_%s)\n",
+                           iVar, szNameC, iVar, szNameC);
+        vbCpuRepPrintf("        },\n");
+    }
+    vbCpuRepPrintf("    }\n"
+                   "};\n"
+                   "\n"
+                   "#endif /* !VBOX_CPUDB_%s_h */\n"
+                   "\n",
                    szNameC);
 
     return VINF_SUCCESS;

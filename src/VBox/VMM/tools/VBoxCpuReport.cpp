@@ -165,23 +165,25 @@ void vbCpuRepFileHdr(const char *pszName, const char *pszNameC)
 }
 
 
-
+/**
+ * Converts @a enmCpuVendor to the enum value name sans the typename prefix.
+ */
 const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor)
 {
     switch (enmCpuVendor)
     {
-        case CPUMCPUVENDOR_INTEL:       return "Intel";
+        case CPUMCPUVENDOR_INTEL:       return "INTEL";
         case CPUMCPUVENDOR_AMD:         return "AMD";
         case CPUMCPUVENDOR_VIA:         return "VIA";
-        case CPUMCPUVENDOR_CYRIX:       return "Cyrix";
-        case CPUMCPUVENDOR_SHANGHAI:    return "Shanghai";
-        case CPUMCPUVENDOR_HYGON:       return "Hygon";
+        case CPUMCPUVENDOR_CYRIX:       return "CYRIX";
+        case CPUMCPUVENDOR_SHANGHAI:    return "SHANGHAI";
+        case CPUMCPUVENDOR_HYGON:       return "HYGON";
 
         case CPUMCPUVENDOR_ARM:         return "ARM";
-        case CPUMCPUVENDOR_BROADCOM:    return "Broadcom";
-        case CPUMCPUVENDOR_QUALCOMM:    return "Qualecomm";
-        case CPUMCPUVENDOR_APPLE:       return "Apple";
-        case CPUMCPUVENDOR_AMPERE:      return "Ampere";
+        case CPUMCPUVENDOR_BROADCOM:    return "BROADCOM";
+        case CPUMCPUVENDOR_QUALCOMM:    return "QUALCOMM";
+        case CPUMCPUVENDOR_APPLE:       return "APPLE";
+        case CPUMCPUVENDOR_AMPERE:      return "AMPERE";
 
         case CPUMCPUVENDOR_INVALID:
         case CPUMCPUVENDOR_UNKNOWN:
@@ -189,6 +191,26 @@ const char *vbCpuVendorToString(CPUMCPUVENDOR enmCpuVendor)
             break;
     }
     return "invalid-cpu-vendor";
+}
+
+
+/**
+ * Converts @a enmCoreType to the enum value name sans the typename prefix.
+ */
+const char *vbGetCoreTypeToString(CPUMCORETYPE enmCoreType)
+{
+    switch (enmCoreType)
+    {
+        case kCpumCoreType_Efficiency:      return "Efficiency";
+        case kCpumCoreType_Performance:     return "Performance";
+        case kCpumCoreType_Unknown:         return "Unknown";
+
+        case kCpumCoreType_Invalid:
+        case kCpumCoreType_End:
+        case kCpumCoreType_32BitHack:
+            break;
+    }
+    return NULL;
 }
 
 

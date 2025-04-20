@@ -272,6 +272,18 @@
                | (((a_CRn) & 0xf) <<  7) \
                | (((a_CRm) & 0xf) <<  3) \
                |  ((a_Op2) & 0x7))
+
+/** Extract op0 from an IPRT system register ID value. */
+#define ARMV8_AARCH64_SYSREG_ID_GET_OP0(a_idSysReg) (((a_idSysReg) >> 14) & 0x3)
+/** Extract op1 from an IPRT system register ID value. */
+#define ARMV8_AARCH64_SYSREG_ID_GET_OP1(a_idSysReg) (((a_idSysReg) >> 11) & 0x7)
+/** Extract CRn from an IPRT system register ID value. */
+#define ARMV8_AARCH64_SYSREG_ID_GET_CRN(a_idSysReg) (((a_idSysReg) >>  7) & 0xf)
+/** Extract CRm from an IPRT system register ID value. */
+#define ARMV8_AARCH64_SYSREG_ID_GET_CRM(a_idSysReg) (((a_idSysReg) >>  3) & 0xf)
+/** Extract op2 from an IPRT system register ID value. */
+#define ARMV8_AARCH64_SYSREG_ID_GET_OP2(a_idSysReg) ( (a_idSysReg)        & 0x7)
+
 /** Returns the internal system register ID from the given MRS/MSR instruction. */
 #define ARMV8_AARCH64_SYSREG_ID_FROM_MRS_MSR(a_MsrMrsInsn) \
     ARMV8_AARCH64_SYSREG_ID_CREATE(ARMV8_AARCH64_SYSREG_OP0_GET(a_MsrMrsInsn), \

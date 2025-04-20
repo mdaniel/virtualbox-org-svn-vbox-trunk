@@ -253,6 +253,7 @@ static const char *g_apszSupNtVpAllowedVmExes[] =
     "VBoxNetDHCP.exe",
     "VBoxNetNAT.exe",
     "VBoxVMMPreload.exe",
+    "VBoxCpuReport.exe",
 
     "tstMicro.exe",
     "tstPDMAsyncCompletion.exe",
@@ -578,8 +579,8 @@ static int supHardNtVpCheckSectionProtection(PSUPHNTVPSTATE pThis, PSUPHNTVPIMAG
         {
             uint32_t cbLeft = pImage->aRegions[i].cb - offRegion;
             if (   pImage->aRegions[i].fProt != fProt
-                && (   fProt != PAGE_READWRITE
-                    || pImage->aRegions[i].fProt != PAGE_WRITECOPY))
+                && !(fProt == PAGE_READWRITE && pImage->aRegions[i].fProt == PAGE_WRITECOPY)
+                && !(fProt == PAGE_READWRITE && pImage->aRegions[i].fProt == PAGE_READONLY) /* .fptable on arm */ )
                 return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_SECTION_PROTECTION_MISMATCH,
                                            IMAGE_LOG_NAME_FMT ": RVA range %#x-%#x protection is %#x, expected %#x. (cb=%#x)",
                                            IMAGE_LOG_NAME(pImage), uRva, uRva + cbLeft - 1, pImage->aRegions[i].fProt, fProt, cb);

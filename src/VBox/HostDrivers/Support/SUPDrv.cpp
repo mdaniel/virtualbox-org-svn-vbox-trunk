@@ -7268,7 +7268,9 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
     /*
      * Reader macro.
      */
-    uint32_t idxReg = 0;
+    uint32_t const fSavedFlags = fFlags;
+    uint32_t       idxReg      = 0;
+    uint64_t       uRegVal;
 #  ifdef _MSC_VER
 #   define COMPILER_READ_SYS_REG(a_u64Dst, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) \
         (a_u64Dst) = (uint64_t)_ReadStatusReg(ARMV8_AARCH64_SYSREG_ID_CREATE(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) & 0x7fff)
@@ -7281,13 +7283,13 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
         __asm__ __volatile__ ("mrs %0, " #a_SysRegName  : "=r" (a_u64Dst))
 #  endif
 # define READ_SYS_REG_UNDEF(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2) do { \
-            uint64_t uTmp = 0; \
-            COMPILER_READ_SYS_REG(uTmp, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
-            if (uTmp != 0 || (fFlags & SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL)) \
+            uRegVal = 0; \
+            COMPILER_READ_SYS_REG(uRegVal, a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
+            if (uRegVal != 0 || (fFlags & SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL)) \
             { \
                 if (idxReg < cMaxRegs) \
                 { \
-                    pReq->u.Out.aRegs[idxReg].uValue = uTmp; \
+                    pReq->u.Out.aRegs[idxReg].uValue = uRegVal; \
                     pReq->u.Out.aRegs[idxReg].idReg  = ARMV8_AARCH64_SYSREG_ID_CREATE(a_Op0, a_Op1, a_CRn, a_CRm, a_Op2); \
                     pReq->u.Out.aRegs[idxReg].fFlags = 0; \
                 } \
@@ -7316,7 +7318,13 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
 
 
     READ_SYS_REG_NAMED(3, 0, 0, 4, 0, ID_AA64PFR0_EL1);
+    uint64_t const fPfr0 = uRegVal;
+    bool const fA32 = ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_EL0_MASK) >> ARMV8_ID_AA64PFR0_EL1_EL0_SHIFT) == ARMV8_ID_AA64PFR0_EL1_EL0_AARCH64_AARCH32
+                   || ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_EL1_MASK) >> ARMV8_ID_AA64PFR0_EL1_EL1_SHIFT) == ARMV8_ID_AA64PFR0_EL1_EL1_AARCH64_AARCH32
+                   || ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_EL2_MASK) >> ARMV8_ID_AA64PFR0_EL1_EL2_SHIFT) == ARMV8_ID_AA64PFR0_EL1_EL2_AARCH64_AARCH32
+                   || ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_EL3_MASK) >> ARMV8_ID_AA64PFR0_EL1_EL3_SHIFT) == ARMV8_ID_AA64PFR0_EL1_EL3_AARCH64_AARCH32;
     READ_SYS_REG_NAMED(3, 0, 0, 4, 1, ID_AA64PFR1_EL1);
+    uint64_t const fPfr1 = uRegVal;
     READ_SYS_REG_UNDEF(3, 0, 0, 4, 2);
     READ_SYS_REG_UNDEF(3, 0, 0, 4, 3);
     READ_SYS_REG_NAMED(3, 0, 0, 4, 4, ID_AA64ZFR0_EL1);
@@ -7325,6 +7333,7 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
     READ_SYS_REG_UNDEF(3, 0, 0, 4, 7);
 
     READ_SYS_REG_NAMED(3, 0, 0, 5, 0, ID_AA64DFR0_EL1);
+    uint64_t const fDfr0 = uRegVal;
     READ_SYS_REG_NAMED(3, 0, 0, 5, 1, ID_AA64DFR1_EL1);
     READ_SYS_REG_UNDEF(3, 0, 0, 5, 2);
     READ_SYS_REG_UNDEF(3, 0, 0, 5, 3);
@@ -7345,14 +7354,20 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
     READ_SYS_REG_NAMED(3, 0, 0, 7, 0, ID_AA64MMFR0_EL1);
     READ_SYS_REG_NAMED(3, 0, 0, 7, 1, ID_AA64MMFR1_EL1);
     READ_SYS_REG_NAMED(3, 0, 0, 7, 2, ID_AA64MMFR2_EL1);
+    uint64_t const fMmfr2 = uRegVal;
     READ_SYS_REG__TODO(3, 0, 0, 7, 3, ID_AA64MMFR3_EL1);
     READ_SYS_REG__TODO(3, 0, 0, 7, 4, ID_AA64MMFR4_EL1);
     READ_SYS_REG_UNDEF(3, 0, 0, 7, 5);
     READ_SYS_REG_UNDEF(3, 0, 0, 7, 6);
     READ_SYS_REG_UNDEF(3, 0, 0, 7, 7);
 
-    /* AArch32 feature registers: */
-    /** @todo do these need to be if-aarch32-supported-guarded? */
+    /*
+     * AArch32 feature registers.
+     * If AA64PFR0 doesn't indicate any AARCH32 support, switch to only report
+     * these registers if they are non-zero.
+     */
+    if (!fA32)
+        fFlags &= ~SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL;
     READ_SYS_REG_NAMED(3, 0, 0, 1, 0, ID_PFR0_EL1);
     READ_SYS_REG_NAMED(3, 0, 0, 1, 1, ID_PFR1_EL1);
 
@@ -7385,20 +7400,17 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
     READ_SYS_REG_NAMED(3, 0, 0, 3, 5, ID_DFR1_EL1);
 
     READ_SYS_REG_NAMED(3, 0, 0, 3, 6, ID_MMFR5_EL1);
+    fFlags = fSavedFlags; /* restore SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL */
 
-    /* Feature dependent registers: */
-    uint64_t fMmfr2;
-    COMPILER_READ_SYS_REG_NAMED(fMmfr2, ID_AA64MMFR2_EL1);
+    /*
+     * Feature dependent registers:
+     */
     if ((fMmfr2 & (UINT32_C(15) << 20) /*CCIDX*/) == RT_BIT_32(20))
         READ_SYS_REG__TODO(3, 1, 0, 0, 2, CCSIDR2_EL1); /*?*/
 
-    uint64_t fPfr0;
-    COMPILER_READ_SYS_REG_NAMED(fPfr0, ID_AA64PFR0_EL1);
     if (fPfr0 & ARMV8_ID_AA64PFR0_EL1_RAS_MASK)
         READ_SYS_REG_NAMED(3, 0, 5, 3, 0, ERRIDR_EL1);
 
-    uint64_t fPfr1;
-    COMPILER_READ_SYS_REG_NAMED(fPfr1, ID_AA64PFR1_EL1);
     if ((fPfr1 & ARMV8_ID_AA64PFR1_EL1_MTE_MASK) >= (ARMV8_ID_AA64PFR1_EL1_MTE_FULL << ARMV8_ID_AA64PFR1_EL1_MTE_SHIFT))
         READ_SYS_REG__TODO(3, 1, 0, 0, 4, GMID_EL1);
     if ((fPfr0 & ARMV8_ID_AA64PFR0_EL1_MPAM_MASK) || (fPfr1 & ARMV8_ID_AA64PFR1_EL1_MPAMFRAC_MASK))
@@ -7410,8 +7422,6 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
             READ_SYS_REG__TODO(3, 0, 10, 4, 5, MPAMBWIDR_EL1);
     }
 
-    uint64_t fDfr0;
-    COMPILER_READ_SYS_REG_NAMED(fDfr0, ID_AA64DFR0_EL1);
     if (fDfr0 & (UINT64_C(15) << 32) /*PMSVer*/)
     {
         READ_SYS_REG__TODO(3, 0, 9, 10, 7, PMBIDR_EL1);

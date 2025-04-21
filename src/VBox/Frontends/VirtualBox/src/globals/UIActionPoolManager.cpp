@@ -199,7 +199,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Home Screen"));
+        setName(QApplication::translate("UIActionPool", "&Home"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Home Screen"));
     }
 };
@@ -231,7 +231,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Machine Manager"));
+        setName(QApplication::translate("UIActionPool", "&Machines"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Machine Manager"));
     }
 };
@@ -270,7 +270,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Extension Pack Manager"));
+        setName(QApplication::translate("UIActionPool", "&Extensions"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Extension Pack Manager"));
     }
 };
@@ -309,7 +309,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Virtual Media Manager"));
+        setName(QApplication::translate("UIActionPool", "&Media"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Virtual Media Manager"));
     }
 };
@@ -348,7 +348,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Network Manager"));
+        setName(QApplication::translate("UIActionPool", "&Network"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Network Manager"));
     }
 };
@@ -387,7 +387,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Cloud Profile Manager"));
+        setName(QApplication::translate("UIActionPool", "&Cloud"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the Cloud Profile Manager"));
     }
 };
@@ -420,7 +420,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&VM Activity Overview"));
+        setName(QApplication::translate("UIActionPool", "&Resource Usage"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the VM Activity Overview"));
     }
 };

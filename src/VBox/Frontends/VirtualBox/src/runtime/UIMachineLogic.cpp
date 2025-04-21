@@ -1724,7 +1724,7 @@ void UIMachineLogic::sltShutdown()
         return;
     }
 
-    LogRel(("GUI: User requested to shutdown VM.\n"));
+    LogRel(("GUI: User requested to shut down VM.\n"));
     uimachine()->shutdown();
 }
 

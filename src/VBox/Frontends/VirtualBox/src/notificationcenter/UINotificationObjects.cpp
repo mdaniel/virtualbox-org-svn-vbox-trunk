@@ -495,10 +495,10 @@ void UINotificationMessage::cannotMountImage(const QString &strMachineName, cons
 void UINotificationMessage::cannotSendACPIToMachine()
 {
     createMessage(
-        QApplication::translate("UIMessageCenter", "Can't send ACPI shutdown ..."),
+        QApplication::translate("UIMessageCenter", "Can't send shutdown signal ..."),
         QApplication::translate("UIMessageCenter", "You are trying to shut down the guest with the ACPI power button. "
                                                    "This is currently not possible because the guest does not support "
-                                                   "software shutdown."));
+                                                   "software shut down."));
 }
 
 /* static */
@@ -1202,8 +1202,8 @@ void UINotificationMessage::cannotResumeMachine(const CConsole &comConsole)
 void UINotificationMessage::cannotACPIShutdownMachine(const CConsole &comConsole)
 {
     createMessage(
-        QApplication::translate("UIMessageCenter", "Can't shutdown machine ..."),
-        QApplication::translate("UIMessageCenter", "Failed to send the ACPI Power Button press event to the virtual machine "
+        QApplication::translate("UIMessageCenter", "Can't shut down machine ..."),
+        QApplication::translate("UIMessageCenter", "Failed to send the ACPI power button press event to the virtual machine "
                                                    "<b>%1</b>.").arg(CConsole(comConsole).GetMachine().GetName()) +
         UIErrorString::formatErrorInfo(comConsole));
 }

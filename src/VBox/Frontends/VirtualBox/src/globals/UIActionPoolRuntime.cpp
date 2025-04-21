@@ -522,8 +522,8 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "ACPI Sh&utdown"));
-        setStatusTip(QApplication::translate("UIActionPool", "Send the ACPI Shutdown signal to the virtual machine"));
+        setName(QApplication::translate("UIActionPool", "Sh&ut Down"));
+        setStatusTip(QApplication::translate("UIActionPool", "Send the ACPI shutdown signal to the virtual machine"));
     }
 };
 

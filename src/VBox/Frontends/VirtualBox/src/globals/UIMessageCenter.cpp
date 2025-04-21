@@ -932,7 +932,7 @@ bool UIMessageCenter::confirmDiscardSavedState(const QString &strNames) const
                           tr("<p>Are you sure you want to discard the saved state of "
                              "the following virtual machines?</p><p><b>%1</b></p>"
                              "<p>This operation is equivalent to resetting or powering off "
-                             "the machine without doing a proper shutdown of the guest OS.</p>")
+                             "the machine without doing a proper shut down of the guest OS.</p>")
                              .arg(strNames),
                           0 /* auto-confirm id */,
                           tr("Discard", "saved state"));
@@ -951,19 +951,19 @@ bool UIMessageCenter::confirmTerminateCloudInstance(const QString &strNames) con
 bool UIMessageCenter::confirmACPIShutdownMachine(const QString &strNames) const
 {
     return questionBinary(0, MessageType_Question,
-                          tr("<p>Do you really want to send an ACPI shutdown signal "
-                             "to the following virtual machines?</p><p><b>%1</b></p>")
+                          tr("<p>Shut down these VMs by sending the "
+                             "ACPI shutdown signal?</p><p><b>%1</b></p>")
                              .arg(strNames),
                           "confirmACPIShutdownMachine" /* auto-confirm id */,
-                          tr("ACPI Shutdown", "machine"));
+                          tr("Shut Down", "machine"));
 }
 
 bool UIMessageCenter::confirmPowerOffMachine(const QString &strNames) const
 {
     return questionBinary(0, MessageType_Question,
-                          tr("<p>Do you really want to power off the following virtual machines?</p>"
-                             "<p><b>%1</b></p><p>This will cause any unsaved data in applications "
-                             "running inside it to be lost.</p>")
+                          tr("<p>Close these VMs with no shutdown procedure?</p>"
+                             "<p><b>%1</b></p><p>Unsaved data in applications "
+                             "running on the VM will be lost.</p>")
                              .arg(strNames),
                           "confirmPowerOffMachine" /* auto-confirm id */,
                           tr("Power Off", "machine"));

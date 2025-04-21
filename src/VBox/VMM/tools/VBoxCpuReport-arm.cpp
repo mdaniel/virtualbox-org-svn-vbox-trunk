@@ -100,10 +100,10 @@ static PARTNUMINFO const g_aPartNumDbBroadcom[] =
 /** Qualcomm CPU info by part number. */
 static PARTNUMINFO const g_aPartNumDbQualcomm[] =
 {
-    { 0x0d4b,   kCpumMicroarch_Qualcomm_Kyro,       "Snapdragon 8cx Gen 3", "Snapdragon 8cx Gen 3 (Kryo Prime)",   kCpumCoreType_Efficiency  }, /* Guessing which part */    /*MIDR_EL1=0x410FD4B0*/
-    { 0x0d4c,   kCpumMicroarch_Qualcomm_Kyro,       "Snapdragon 8cx Gen 3", "Snapdragon 8cx Gen 3 (Kryo Gold)",    kCpumCoreType_Performance }, /* is for which core... */   /*MIDR_EL1=0x410FD4C0*/
-    { 0x1001,   kCpumMicroarch_Qualcomm_Oryon,      "Snapdragon X",         "Snapdragon X (Oryon var 1)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x511f0011 (perf?)*/
-    { 0x2001,   kCpumMicroarch_Qualcomm_Oryon,      "Snapdragon X",         "Snapdragon X (Oryon var 2)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x512f0011 (eff?)*/
+    { 0x0d4b,   kCpumMicroarch_Qualcomm_Kyro,       "Qualcomm Snapdragon 8cx Gen 3",    "Qualcomm Snapdragon 8cx Gen 3 (Kryo Prime)",   kCpumCoreType_Efficiency  }, /* Guessing which part */    /*MIDR_EL1=0x410FD4B0*/
+    { 0x0d4c,   kCpumMicroarch_Qualcomm_Kyro,       "Qualcomm Snapdragon 8cx Gen 3",    "Qualcomm Snapdragon 8cx Gen 3 (Kryo Gold)",    kCpumCoreType_Performance }, /* is for which core... */   /*MIDR_EL1=0x410FD4C0*/
+    { 0x1001,   kCpumMicroarch_Qualcomm_Oryon,      "Qualcomm Snapdragon X",            "Qualcomm Snapdragon X (Oryon var 1)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x511f0011 (perf?)*/
+    { 0x2001,   kCpumMicroarch_Qualcomm_Oryon,      "Qualcomm Snapdragon X",            "Qualcomm Snapdragon X (Oryon var 2)",          kCpumCoreType_Unknown     }, /*MIDR_EL1=0x512f0011 (eff?)*/
 };
 
 /** Apple CPU info by part number. */
@@ -504,7 +504,7 @@ static void printSysRegArray(const char *pszNameC, uint32_t cSysRegVals, SUPARMS
         return;
 
     vbCpuRepPrintf("\n"
-                   "/*\n");
+                   "/**\n");
     if (iVariation == UINT32_MAX)
         vbCpuRepPrintf(" * Common system register values for %s.\n"
                        " */\n"

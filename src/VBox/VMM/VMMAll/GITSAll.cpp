@@ -47,70 +47,10 @@
 /** The current GITS saved state version. */
 #define GITS_SAVED_STATE_VERSION                        1
 
-/** Gets whether the given register offset is within the specified range. */
-#define GITS_IS_REG_IN_RANGE(a_offReg, a_offFirst, a_cbRegion)    ((uint32_t)(a_offReg) - (a_offFirst) < (a_cbRegion))
-
 /** GITS diagnostic enum description expansion.
  * The below construct ensures typos in the input to this macro are caught
  * during compile time. */
 #define GITSDIAG_DESC(a_Name)                       RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
-
-/** @def GITS_SET_REG_U64_FULL
- * Sets a 64-bit GITS register.
- * @param   a_uReg      The 64-bit register to set.
- * @param   a_uValue    The 64-bit value being written.
- * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
- */
-#define GITS_SET_REG_U64_FULL(a_uReg, a_uValue, a_fRwMask) \
-    do \
-    { \
-        AssertCompile(sizeof(a_uReg) == sizeof(uint64_t)); \
-        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
-        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((a_uValue) & (a_fRwMask)); \
-    } while (0)
-
-/** @def GITS_SET_REG_U64_LO
- * Sets the lower half of a 64-bit GITS register.
- * @param   a_uReg      The lower half of a 64-bit register to set.
- * @param   a_uValue    The value being written (only lower 32-bits are used).
- * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
- */
-#define GITS_SET_REG_U64_LO(a_uReg, a_uValue, a_fRwMask) \
-    do \
-    { \
-        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
-        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
-        (a_uReg) = ((a_uReg) & ~(RT_LO_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_LO_U32(a_fRwMask))); \
-    } while (0)
-
-/** @def GITS_SET_REG_U64_HI
- * Sets the upper half of a 64-bit GITS register.
- * @param   a_uReg      The upper half of the 64-bit register to set.
- * @param   a_uValue    The value being written (only lower 32-bits are used).
- * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
- */
-#define GITS_SET_REG_U64_HI(a_uReg, a_uValue, a_fRwMask) \
-    do \
-    { \
-        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
-        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
-        (a_uReg) = ((a_uReg) & ~(RT_HI_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_HI_U32(a_fRwMask))); \
-    } while (0)
-
-/** @def GITS_SET_REG_U32
- * Sets a 32-bit GITS register.
- * @param   a_uReg      The 32-bit register to set.
- * @param   a_uValue    The 32-bit value being written (only lower 32-bits are
- *                      used).
- * @param   a_fRwMask   The mask of valid read-write bits (only lower 32-bits are
- *                      used).
- */
-#define GITS_SET_REG_U32(a_uReg, a_uValue, a_fRwMask) \
-    do \
-    { \
-        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
-        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((uint32_t)(a_uValue) & (uint32_t)(a_fRwMask)); \
-    } while (0)
 
 
 /*********************************************************************************************************************************
@@ -134,7 +74,7 @@ AssertCompile(RT_ELEMENTS(g_apszGitsDiagDesc) == kGitsDiag_End);
 
 DECL_HIDDEN_CALLBACK(const char *) gitsGetCtrlRegDescription(uint16_t offReg)
 {
-    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
+    if (GIC_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
         return "GITS_BASER<n>";
     switch (offReg)
     {
@@ -303,7 +243,7 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
      * GITS_BASER<n>.
      */
     uint64_t uReg;
-    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
+    if (GIC_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
     {
         uint16_t const cbReg  = sizeof(uint64_t);
         uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
@@ -386,7 +326,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
     /*
      * GITS_BASER<n>.
      */
-    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
+    if (GIC_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
     {
         uint16_t const cbReg   = sizeof(uint64_t);
         uint16_t const idxReg  = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
@@ -394,14 +334,14 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
         if (!(offReg & 7))
         {
             if (cb == 8)
-                GITS_SET_REG_U64_FULL(pGitsDev->aItsTableRegs[idxReg].u, uValue, fRwMask);
+                GIC_SET_REG_U64_FULL(pGitsDev->aItsTableRegs[idxReg].u, uValue, fRwMask);
             else
-                GITS_SET_REG_U64_LO(pGitsDev->aItsTableRegs[idxReg].s.Lo, uValue, fRwMask);
+                GIC_SET_REG_U64_LO(pGitsDev->aItsTableRegs[idxReg].s.Lo, uValue, fRwMask);
         }
         else
         {
             Assert(cb == 4);
-            GITS_SET_REG_U64_HI(pGitsDev->aItsTableRegs[idxReg].s.Hi, uValue, fRwMask);
+            GIC_SET_REG_U64_HI(pGitsDev->aItsTableRegs[idxReg].s.Hi, uValue, fRwMask);
         }
         return;
     }
@@ -411,7 +351,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
         case GITS_CTRL_REG_CTLR_OFF:
             Assert(cb == 4);
             Assert(!(pGitsDev->uTypeReg.u & GITS_BF_CTRL_REG_TYPER_UMSI_IRQ_MASK));
-            GITS_SET_REG_U32(pGitsDev->uCtrlReg, uValue, GITS_BF_CTRL_REG_CTLR_RW_MASK);
+            GIC_SET_REG_U32(pGitsDev->uCtrlReg, uValue, GITS_BF_CTRL_REG_CTLR_RW_MASK);
             if (RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED))
                 pGitsDev->uCtrlReg &= GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
@@ -419,20 +359,20 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
 
         case GITS_CTRL_REG_CBASER_OFF:
             if (cb == 8)
-                GITS_SET_REG_U64_FULL(pGitsDev->uCmdBaseReg.u, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
+                GIC_SET_REG_U64_FULL(pGitsDev->uCmdBaseReg.u, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             else
-                GITS_SET_REG_U64_LO(pGitsDev->uCmdBaseReg.s.Lo, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
+                GIC_SET_REG_U64_LO(pGitsDev->uCmdBaseReg.s.Lo, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF + 4:
             Assert(cb == 4);
-            GITS_SET_REG_U64_HI(pGitsDev->uCmdBaseReg.s.Hi, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
+            GIC_SET_REG_U64_HI(pGitsDev->uCmdBaseReg.s.Hi, uValue, GITS_CTRL_REG_CBASER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CWRITER_OFF:
-            GITS_SET_REG_U32(pGitsDev->uCmdWriteReg, uValue, GITS_CTRL_REG_CWRITER_RW_MASK);
+            GIC_SET_REG_U32(pGitsDev->uCmdWriteReg, uValue, GITS_CTRL_REG_CWRITER_RW_MASK);
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 

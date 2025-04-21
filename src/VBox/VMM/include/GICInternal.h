@@ -73,8 +73,8 @@ extern const PDMGICBACKEND g_GicKvmBackend;
 #define GIC_CRIT_SECT_ENTER(a_pDevIns) \
     do \
     { \
-        int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS); \
-        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock); \
+        int const rcLock_ = PDMDevHlpCritSectEnter((a_pDevIns), (a_pDevIns)->pCritSectRoR3, VINF_SUCCESS); \
+        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV((a_pDevIns), (a_pDevIns)->pCritSectRoR3, rcLock_); \
     } while(0)
 
 /** Release the device critical section. */
@@ -82,6 +82,67 @@ extern const PDMGICBACKEND g_GicKvmBackend;
 
 /** Returns whether the critical section is held. */
 #define GIC_CRIT_SECT_IS_OWNER(a_pDevIns)       PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
+
+/** Returns whether the given register offset is within the specified range. */
+#define GIC_IS_REG_IN_RANGE(a_offReg, a_offFirst, a_cbRegion)    ((uint32_t)(a_offReg) - (a_offFirst) < (a_cbRegion))
+
+/** @def GIC_SET_REG_U64_FULL
+ * Sets a 64-bit GIC register.
+ * @param   a_uReg      The 64-bit register to set.
+ * @param   a_uValue    The 64-bit value being written.
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GIC_SET_REG_U64_FULL(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint64_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((a_uValue) & (a_fRwMask)); \
+    } while (0)
+
+/** @def GIC_SET_REG_U64_LO
+ * Sets the lower half of a 64-bit GIC register.
+ * @param   a_uReg      The lower half of a 64-bit register to set.
+ * @param   a_uValue    The value being written (only lower 32-bits are used).
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GIC_SET_REG_U64_LO(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(RT_LO_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_LO_U32(a_fRwMask))); \
+    } while (0)
+
+/** @def GIC_SET_REG_U64_HI
+ * Sets the upper half of a 64-bit GIC register.
+ * @param   a_uReg      The upper half of the 64-bit register to set.
+ * @param   a_uValue    The value being written (only lower 32-bits are used).
+ * @param   a_fRwMask   The 64-bit mask of valid read-write bits.
+ */
+#define GIC_SET_REG_U64_HI(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        AssertCompile(sizeof(a_fRwMask) == sizeof(uint64_t)); \
+        (a_uReg) = ((a_uReg) & ~(RT_HI_U32(a_fRwMask))) | ((uint32_t)(a_uValue) & (RT_HI_U32(a_fRwMask))); \
+    } while (0)
+
+/** @def GIC_SET_REG_U32
+ * Sets a 32-bit GIC register.
+ * @param   a_uReg      The 32-bit register to set.
+ * @param   a_uValue    The 32-bit value being written (only lower 32-bits are
+ *                      used).
+ * @param   a_fRwMask   The mask of valid read-write bits (only lower 32-bits are
+ *                      used).
+ */
+#define GIC_SET_REG_U32(a_uReg, a_uValue, a_fRwMask) \
+    do \
+    { \
+        AssertCompile(sizeof(a_uReg) == sizeof(uint32_t)); \
+        (a_uReg) = ((a_uReg) & ~(a_fRwMask)) | ((uint32_t)(a_uValue) & (uint32_t)(a_fRwMask)); \
+    } while (0)
+
 
 /**
  * GIC PDM instance data (per-VM).
@@ -113,8 +174,6 @@ typedef struct GICDEV
     bool                        fIntrGroup1Enabled;
     /** Flag whether affinity routing is enabled. */
     bool                        fAffRoutingEnabled;
-    /** Alignment. */
-    bool                        fPadding0;
     /** @} */
 
     /** @name Configurables.
@@ -146,12 +205,14 @@ typedef struct GICDEV
     bool                        fLpi;
     /** The maximum LPI supported (GICD_TYPER.num_LPI). */
     uint8_t                     uMaxLpi;
-    /** Padding. */
-    bool                        afPadding0[3];
     /** @} */
 
     /** @name GITS device data and LPIs.
      * @{ */
+    /** Whether LPIs are enabled (GICR_CTLR.EnableLpis of all redistributors). */
+    bool                        fEnableLpis;
+    /** Padding. */
+    bool                        afPadding1[3];
     /** ITS device state. */
     GITSDEV                     Gits;
     /** LPI config table. */
@@ -160,10 +221,6 @@ typedef struct GICDEV
     RTUINT64U                   uLpiConfigBaseReg;
     /** The LPI pending table base register (GICR_PENDBASER). */
     RTUINT64U                   uLpiPendingBaseReg;
-    /** Whether LPIs are enabled (GICR_CTLR.EnableLpis of all redistributors). */
-    bool                        fEnableLpis;
-    /** Padding. */
-    bool                        afPadding1[7];
     /** @} */
 
     /** @name MMIO data.

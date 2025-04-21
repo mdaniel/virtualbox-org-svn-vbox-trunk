@@ -81,7 +81,6 @@
 #define GIC_IS_INTR_SPECIAL(a_uIntId)       (a_uIntId - GIC_INTID_RANGE_SPECIAL_START < GIC_INTID_EXT_PPI_RANGE_SIZE)
 #define GIC_IS_INTR_EXT_PPI(a_uIntId)       (a_uIntId - GIC_INTID_RANGE_EXT_PPI_START < GIC_INTID_EXT_PPI_RANGE_SIZE)
 #define GIC_IS_INTR_EXT_SPI(a_uIntId)       (a_uIntId - GIC_INTID_RANGE_EXT_SPI_START < GIC_INTID_EXT_SPI_RANGE_SIZE)
-#define GIC_IS_REG_IN_RANGE(a_offReg, a_offFirst, a_cbRegion)    ((uint32_t)(a_offReg) - (a_offFirst) < (a_cbRegion))
 
 
 #ifdef LOG_ENABLED

@@ -3238,7 +3238,7 @@ void UIVirtualBoxManager::updateMenuGroupMoveToGroup(QMenu *pMenu)
         if (strVisibleGroupName.startsWith('/'))
             strVisibleGroupName.remove(0, 1);
         if (strVisibleGroupName.isEmpty())
-            strVisibleGroupName = QApplication::translate("UIActionPool", "[Root]", "group");
+            strVisibleGroupName = QApplication::translate("UIActionPool", "Root group");
         QAction *pAction = pMenu->addAction(strVisibleGroupName, this, &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
         pAction->setProperty("actual_group_name", strGroupName);
     }
@@ -3295,7 +3295,7 @@ void UIVirtualBoxManager::updateMenuMachineMoveToGroup(QMenu *pMenu)
         if (strVisibleGroupName.startsWith('/'))
             strVisibleGroupName.remove(0, 1);
         if (strVisibleGroupName.isEmpty())
-            strVisibleGroupName = QApplication::translate("UIActionPool", "[Root]", "group");
+            strVisibleGroupName = QApplication::translate("UIActionPool", "Root group");
         QAction *pAction = pMenu->addAction(strVisibleGroupName, this, &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
         pAction->setProperty("actual_group_name", strGroupName);
     }

@@ -800,7 +800,7 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "[New]", "group"));
+        setName(QApplication::translate("UIActionPool", "New group"));
         setStatusTip(QApplication::translate("UIActionPool", "Add new group based on selected virtual machines"));
     }
 };

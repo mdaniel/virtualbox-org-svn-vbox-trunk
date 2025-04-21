@@ -1147,7 +1147,7 @@ RuntimeBaseR3_SOURCES.win.x86   := \
 	common/string/memrchr.asm \
 	common/string/mempcpy.asm
 RuntimeBaseR3_SOURCES.win.arm64 := \
-	generic/RTMpGetDescription-generic-stub.cpp \
+	r3/win/RTMpGetDescription-win.cpp \
 	common/string/memrchr.cpp \
 	common/string/mempcpy.cpp \
 	common/string/RTStrMemFind32.cpp \

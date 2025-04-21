@@ -826,12 +826,12 @@ typedef const ACPIMADTGICR *PCACPIMADTGICR;
 #pragma pack(1)
 typedef struct ACPIMADTGICITS
 {
-    uint8_t             bType;                          /**< 0x000: The GICR structure type, ACPI_MADT_INTR_CTRL_TYPE_GICR. */
+    uint8_t             bType;                          /**< 0x000: The GITS structure type, ACPI_MADT_INTR_CTRL_TYPE_GIC_ITS. */
     uint8_t             cbThis;                         /**< 0x001: Length of this structure, 16. */
     uint16_t            u16Rsvd0;                       /**< 0x002: Reserved, MBZ. */
     uint32_t            u32GicItsId;                    /**< 0x004: This GIC ITS ID. */
     uint64_t            u64PhysAddrBase;                /**< 0x008: The 64-bit physical address for the Interrupt Translation Service. */
-    uint32_t            u32Rsvd1;                       /**< 0x010: Rserved, MBZ. */
+    uint32_t            u32Rsvd1;                       /**< 0x010: Reserved, MBZ. */
 } ACPIMADTGICITS;
 #pragma pack()
 AssertCompileSize(ACPIMADTGICITS, 20);

@@ -140,10 +140,17 @@ VBOXMOD_OBJS += \
 	generic/errvars-generic.o \
 	generic/mppresent-generic.o \
 	generic/uuid-generic.o \
-	VBox/log-vbox.o \
-	VBox/RTLogWriteVmm-amd64-x86.o
+	VBox/log-vbox.o
  ifeq ($(VBOX_KBUILD_TARGET_ARCH),amd64)
-VBOXMOD_OBJS += common/alloc/heapsimple.o
+VBOXMOD_OBJS += \
+	VBox/RTLogWriteVmm-amd64-x86.o \
+	common/alloc/heapsimple.o
+ else
+VBOXMOD_OBJS += \
+	generic/RTLogWriteVmm-stub-generic.o \
+	common/asm/ASMMultU64ByU32DivByU32-generic.o
+ endif
+ ifeq ($(VBOX_KBUILD_TARGET_ARCH),amd64)
  endif
 endif # VBOX_WITHOUT_COMBINED_SOURCES
 ifeq ($(VBOX_KBUILD_TARGET_ARCH),x86)

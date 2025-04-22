@@ -214,6 +214,9 @@ DECLINLINE(uint32_t) supdrvGipGetApicId(PSUPGLOBALINFOPAGE pGip)
     RT_NOREF(pGip);
     return (uint32_t)ASMGetThreadIdRoEL0();
 
+#elif defined(RT_ARCH_ARM64) && defined(RT_OS_LINUX)
+    return (uint32_t)RTMpCurSetIndex();
+
 #else
 # error "port me"
 #endif
@@ -264,6 +267,9 @@ static uint32_t supdrvGipGetApicIdSlow(void)
 
 #elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
     return (uint32_t)ASMGetThreadIdRoEL0();
+
+#elif defined(RT_ARCH_ARM64) && defined(RT_OS_LINUX)
+    return (uint32_t)RTMpCurSetIndex();
 
 #else
 # error "port me"
@@ -1704,6 +1710,7 @@ static DECLCALLBACK(void) supdrvGipInitOnCpu(RTCPUID idCpu, void *pvUser1, void 
     NOREF(pvUser2);
 }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 
 /**
  * Callback used by supdrvDetermineAsyncTSC to read the TSC on a CPU.
@@ -1795,11 +1802,13 @@ static bool supdrvGipInitDetermineAsyncTsc(uint64_t *poffMin)
         *poffMin = offMin; /* Almost RTMpOnSpecific profiling. */
     Log(("supdrvGipInitDetermineAsyncTsc: returns %d; iEndCpu=%d rc=%d offMin=%llx offMax=%llx\n",
          fAsync, iEndCpu, rc, offMin, offMax));
-#if !defined(RT_OS_SOLARIS) && !defined(RT_OS_OS2) && !defined(RT_OS_WINDOWS)
+# if !defined(RT_OS_SOLARIS) && !defined(RT_OS_OS2) && !defined(RT_OS_WINDOWS)
     OSDBGPRINT(("vboxdrv: fAsync=%d offMin=%#lx offMax=%#lx\n", fAsync, (long)offMin, (long)offMax));
-#endif
+# endif
     return fAsync;
 }
+
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 
 /**

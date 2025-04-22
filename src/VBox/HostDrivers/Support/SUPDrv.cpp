@@ -288,9 +288,9 @@ static SUPFUNC g_aFunctions[] =
     SUPEXP_STK_BACK(    2,  SUPR0ContFree),
     SUPEXP_STK_OKAY(    0,  SUPR0GetKernelFeatures),
     SUPEXP_STK_BACK(    0,  SUPR0GetPagingMode),
-    SUPEXP_STK_OKAY(    1,  SUPR0FpuBegin),
-    SUPEXP_STK_OKAY(    1,  SUPR0FpuEnd),
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    SUPEXP_STK_OKAY(    1,  SUPR0FpuBegin),             /* not-arch-arm64 */
+    SUPEXP_STK_OKAY(    1,  SUPR0FpuEnd),               /* not-arch-arm64 */
     SUPEXP_STK_BACK(    2,  SUPR0ChangeCR4),            /* not-arch-arm64 */
     SUPEXP_STK_BACK(    1,  SUPR0EnableVTx),            /* not-arch-arm64 */
     SUPEXP_STK_BACK(    0,  SUPR0SuspendVTxOnCpu),      /* not-arch-arm64 */
@@ -467,8 +467,10 @@ static SUPFUNC g_aFunctions[] =
 #endif
     SUPEXP_STK_BACK(    0,  RTR0MemAreKrnlAndUsrDifferent),
     SUPEXP_STK_BACK(    1,  RTR0MemKernelIsValidAddr),
+#if !defined(RT_OS_LINUX) || defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)    
     SUPEXP_STK_BACK(    3,  RTR0MemKernelCopyFrom),
     SUPEXP_STK_BACK(    3,  RTR0MemKernelCopyTo),
+#endif    
     SUPEXP_STK_OKAY(    1,  RTR0MemObjAddress),
     SUPEXP_STK_OKAY(    1,  RTR0MemObjAddressR3),
     SUPEXP_STK_BACK(    5,  RTR0MemObjAllocContTag),
@@ -7465,7 +7467,7 @@ typedef struct SUPARMGETSYSREGSONCPUARGS
 
 
 /** @callback_method_impl{FNRTMPWORKER}   */
-DECLCALLBACK(void) supdrvIOCtl_ArmGetSysRegsOnCpuCallback(RTCPUID idCpu, void *pvUser1, void *pvUser2)
+static DECLCALLBACK(void) supdrvIOCtl_ArmGetSysRegsOnCpuCallback(RTCPUID idCpu, void *pvUser1, void *pvUser2)
 {
     const SUPARMGETSYSREGSONCPUARGS *pArgs = (const SUPARMGETSYSREGSONCPUARGS *)pvUser2;
     supdrvIOCtl_ArmGetSysRegsOnCpu((PSUPARMGETSYSREGS)pvUser1, pArgs->cMaxRegs, pArgs->fFlags);

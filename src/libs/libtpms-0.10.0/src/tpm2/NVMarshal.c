@@ -2512,7 +2512,15 @@ OBJECT_Marshal(OBJECT *data, BYTE **buffer, INT32 *size,
     case 0:
         pAssert(FALSE);
         break;
+#ifndef VBOX
     case 1 ... 5:
+#else
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+#endif
         blob_version = 3;
         break;
     default:  // since StateFormatLevel 6
@@ -4282,7 +4290,12 @@ PERSISTENT_DATA_Marshal(PERSISTENT_DATA *data, BYTE **buffer, INT32 *size,
     case 0:
         pAssert(FALSE);
         break;
+#ifndef VBOX
     case 1 ... 2:
+#else
+    case 1:
+    case 2:
+#endif
         blob_version = 4;
         break;
     default:

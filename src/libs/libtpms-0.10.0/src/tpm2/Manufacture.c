@@ -162,10 +162,12 @@ TPM_Manufacture(
     gp.firmwareV1 = _plat__GetTpmFirmwareVersionHigh();
     gp.firmwareV2 = _plat__GetTpmFirmwareVersionLow();
 
+#ifndef VBOX /* PERSISTENT_DATA_PLATFORM_SPACE is 0, msvc chokes on it. */
     _plat__GetPlatformManufactureData(gp.platformReserved,
 				      sizeof(gp.platformReserved));
 
     NV_SYNC_PERSISTENT(platformReserved);
+#endif
 
     NV_SYNC_PERSISTENT(firmwareV1);
     NV_SYNC_PERSISTENT(firmwareV2);

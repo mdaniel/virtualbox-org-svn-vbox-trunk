@@ -1545,7 +1545,7 @@ __asm__("\
         .global supdrvTracerProbeFireStub                               \n\
 supdrvTracerProbeFireStub:                                              \n\
         "
-# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)         
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 #  if defined(RT_OS_LINUX)
 #   if RTLNX_VER_MIN(5,17,0)
         ASM_RET "\n\

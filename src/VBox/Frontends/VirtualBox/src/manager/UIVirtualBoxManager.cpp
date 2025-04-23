@@ -3229,17 +3229,32 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
 
 void UIVirtualBoxManager::updateMenuGroupMoveToGroup(QMenu *pMenu)
 {
-    const QStringList groups = m_pWidget->possibleGroupsForGroupToMove(m_pWidget->fullGroupName());
+    /* Acquire groups: */
+    QStringList groups = m_pWidget->possibleGroupsForGroupToMove(m_pWidget->fullGroupName());
+
+    /* Pre-process root group: */
+    const int iRootGroupIndex = groups.indexOf("/");
+    if (iRootGroupIndex >= 0)
+    {
+        groups.removeAt(iRootGroupIndex);
+        const QString strVisibleGroupName = QApplication::translate("UIActionPool", "No Group");
+        QAction *pAction = pMenu->addAction(strVisibleGroupName, this,
+                                            &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
+        pAction->setProperty("actual_group_name", "/");
+    }
+
+    /* Add separator there will be other actions: */
     if (!groups.isEmpty())
         pMenu->addSeparator();
+
+    /* Enumerate remaining groups: */
     foreach (const QString &strGroupName, groups)
     {
         QString strVisibleGroupName = strGroupName;
         if (strVisibleGroupName.startsWith('/'))
             strVisibleGroupName.remove(0, 1);
-        if (strVisibleGroupName.isEmpty())
-            strVisibleGroupName = QApplication::translate("UIActionPool", "Root group");
-        QAction *pAction = pMenu->addAction(strVisibleGroupName, this, &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
+        QAction *pAction = pMenu->addAction(strVisibleGroupName, this,
+                                            &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
         pAction->setProperty("actual_group_name", strGroupName);
     }
 }
@@ -3286,17 +3301,32 @@ void UIVirtualBoxManager::updateMenuMachineMoveToGroup(QMenu *pMenu)
     UIVirtualMachineItem *pItem = currentItem();
     AssertMsgReturnVoid(pItem, ("Current item should be selected!\n"));
 
-    const QStringList groups = m_pWidget->possibleGroupsForMachineToMove(pItem->id());
+    /* Acquire groups: */
+    QStringList groups = m_pWidget->possibleGroupsForMachineToMove(pItem->id());
+
+    /* Pre-process root group: */
+    const int iRootGroupIndex = groups.indexOf("/");
+    if (iRootGroupIndex >= 0)
+    {
+        groups.removeAt(iRootGroupIndex);
+        const QString strVisibleGroupName = QApplication::translate("UIActionPool", "No Group");
+        QAction *pAction = pMenu->addAction(strVisibleGroupName, this,
+                                            &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
+        pAction->setProperty("actual_group_name", "/");
+    }
+
+    /* Add separator there will be other actions: */
     if (!groups.isEmpty())
         pMenu->addSeparator();
+
+    /* Enumerate remaining groups: */
     foreach (const QString &strGroupName, groups)
     {
         QString strVisibleGroupName = strGroupName;
         if (strVisibleGroupName.startsWith('/'))
             strVisibleGroupName.remove(0, 1);
-        if (strVisibleGroupName.isEmpty())
-            strVisibleGroupName = QApplication::translate("UIActionPool", "Root group");
-        QAction *pAction = pMenu->addAction(strVisibleGroupName, this, &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
+        QAction *pAction = pMenu->addAction(strVisibleGroupName, this,
+                                            &UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup);
         pAction->setProperty("actual_group_name", strGroupName);
     }
 }

@@ -455,28 +455,27 @@ QString UIChooserAbstractModel::uniqueGroupName(UIChooserNode *pRoot)
         groupNames << pNode->name();
 
     /* Prepare reg-exp: */
-    const QString strMinimumName = tr("New group");
+    const QString strMinimumName = tr("New Group");
     const QString strShortTemplate = strMinimumName;
     const QString strFullTemplate = strShortTemplate + QString(" (\\d+)");
-    const QRegularExpression shortRegExp(strShortTemplate);
-    const QRegularExpression fullRegExp(strFullTemplate);
+    const QRegularExpression shortRegExp(strShortTemplate, QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpression fullRegExp(strFullTemplate, QRegularExpression::CaseInsensitiveOption);
 
     /* Search for the maximum index: */
-    int iMinimumPossibleNumber = 0;
+    int iMinimumPossibleNumber = 1;
     foreach (const QString &strName, groupNames)
     {
-        const QRegularExpressionMatch mtShort = shortRegExp.match(strName);
         const QRegularExpressionMatch mtFull = fullRegExp.match(strName);
-        if (mtShort.hasMatch())
-            iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, 2);
-        else if (mtFull.hasMatch())
+        const QRegularExpressionMatch mtShort = shortRegExp.match(strName);
+        if (mtFull.hasMatch())
             iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, mtFull.captured(1).toInt() + 1);
+        else if (mtShort.hasMatch())
+            iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, 1);
     }
 
     /* Prepare/return result: */
     QString strResult = strMinimumName;
-    if (iMinimumPossibleNumber)
-        strResult += " " + QString::number(iMinimumPossibleNumber);
+    strResult += " " + QString::number(iMinimumPossibleNumber);
     return strResult;
 }
 

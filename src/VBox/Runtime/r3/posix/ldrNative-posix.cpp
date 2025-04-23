@@ -97,7 +97,7 @@ DECLHIDDEN(int) rtldrNativeLoad(const char *pszFilename, uintptr_t *phHandle, ui
     }
 
     const char *pszDlError = dlerror();
-    RTErrInfoSet(pErrInfo, VERR_FILE_NOT_FOUND, pszDlError);
+    RTErrInfoSet(pErrInfo, VERR_FILE_NOT_FOUND, RT_VALID_PTR(pszDlError) ? pszDlError : "unknown dlopen error");
     LogRel(("rtldrNativeLoad: dlopen('%s', RTLD_NOW | RTLD_LOCAL) failed: %s\n", pszFilename, pszDlError));
     return VERR_FILE_NOT_FOUND;
 }

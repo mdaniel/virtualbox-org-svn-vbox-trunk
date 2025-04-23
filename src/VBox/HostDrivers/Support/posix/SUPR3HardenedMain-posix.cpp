@@ -181,6 +181,13 @@ static SUPHARDENEDPOSIXHOOK const g_aHooks[] =
  *                              or just the filename of the library when the default paths should
  *                              be searched. NULL is allowed too to indicate opening the main
  *                              binary.
+ *
+ * @todo    When this is used by dlopen and dlmopen intercepts, it doesn't set
+ *          dlerror which can be confusing to the caller and lead to crashes.
+ *          However, since we don't have access to the libdl internals, there is
+ *          little we can do about it here without intercepting dlerror calls as
+ *          well, allocating a TLS variable, and all that ...  For now IPRT just
+ *          has to be careful.  See @bugref{10892}.
  */
 DECLASM(bool) supR3HardenedPosixMonitor_VerifyLibrary(const char *pszFilename)
 {

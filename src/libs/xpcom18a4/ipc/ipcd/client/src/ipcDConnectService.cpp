@@ -2996,11 +2996,11 @@ ipcDConnectService::Shutdown()
           " => requests processed:        %llu\n"
           " => avg requests process time: %llu ns\n"
           " => avg requests waiting time: %llu ns\n",
-          RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_THREADS),
-          RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_THREADS_CREATED),
-          RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_REQUESTS_PROCESSED),
-          RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_NS_AVERAGE_REQ_PROCESSING),
-          RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_NS_AVERAGE_REQ_QUEUED)
+          (unsigned long long)RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_THREADS),
+          (unsigned long long)RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_THREADS_CREATED),
+          (unsigned long long)RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_REQUESTS_PROCESSED),
+          (unsigned long long)RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_NS_AVERAGE_REQ_PROCESSING),
+          (unsigned long long)RTReqPoolGetStat(mhReqPool, RTREQPOOLSTAT_NS_AVERAGE_REQ_QUEUED)
           );
 #endif
 

@@ -96,6 +96,8 @@ DECLHIDDEN(int) rtldrNativeLoad(const char *pszFilename, uintptr_t *phHandle, ui
         return VINF_SUCCESS;
     }
 
+    /* Note! In a hardened binary, dlerror may return NULL or obsolete information
+             because we intercept dlopen and dlmopen calls. See @bugref{109892}. */
     const char *pszDlError = dlerror();
     RTErrInfoSet(pErrInfo, VERR_FILE_NOT_FOUND, RT_VALID_PTR(pszDlError) ? pszDlError : "unknown dlopen error");
     LogRel(("rtldrNativeLoad: dlopen('%s', RTLD_NOW | RTLD_LOCAL) failed: %s\n", pszFilename, pszDlError));

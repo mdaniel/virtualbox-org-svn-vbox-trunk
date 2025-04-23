@@ -105,7 +105,7 @@ static SUPARMSYSREGVAL const g_aVar1SysRegVals_ARM_Apple_M2_Max[] =
 /**
  * Database entry for Apple M2 Max.
  */
-static CPUMDBENTRYARM const g_Entry_ARM_Apple_M2_Max = 
+static CPUMDBENTRYARM const g_Entry_ARM_Apple_M2_Max =
 {
     {
         /*.pszName      = */ "Apple M2 Max",

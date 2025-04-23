@@ -751,7 +751,7 @@ int produceCpuReport(void)
                    "/**\n"
                    " * Database entry for %s.\n"
                    " */\n"
-                   "static CPUMDBENTRYARM const g_Entry_%s = \n"
+                   "static CPUMDBENTRYARM const g_Entry_%s =\n"
                    "{\n"
                    "    {\n"
                    "        /*.pszName      = */ \"%s\",\n"

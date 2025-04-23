@@ -105,7 +105,7 @@ static SUPARMSYSREGVAL const g_aVar1SysRegVals_ARM_Qualcomm_Snapdragon_X[] =
 /**
  * Database entry for Snapdragon(R) X Elite - X1E80100 - Qualcomm(R) Oryon(TM) CPU.
  */
-static CPUMDBENTRYARM const g_Entry_ARM_Qualcomm_Snapdragon_X = 
+static CPUMDBENTRYARM const g_Entry_ARM_Qualcomm_Snapdragon_X =
 {
     {
         /*.pszName      = */ "Qualcomm Snapdragon X",

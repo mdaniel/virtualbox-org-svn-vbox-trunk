@@ -944,7 +944,7 @@ install_python_bindings()
     else
         errorprint "Failed to install bindings for Python $PYTHON_VER"
     fi
-    rm "$CONFIG_DIR/python-$CONFIG_FILES"
+    rm -f "$CONFIG_DIR/python-$CONFIG_FILES"
 
     # Remove files created by Python API setup.
     rm -rf "$MY_PYTHON_INSTALLER_PATH/build"

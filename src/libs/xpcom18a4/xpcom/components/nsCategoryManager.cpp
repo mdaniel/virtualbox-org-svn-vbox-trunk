@@ -56,6 +56,7 @@
 
 #include <iprt/assert.h>
 #include <iprt/errcore.h>
+#include <VBox/log.h>
 
 class nsIComponentLoaderManager;
 
@@ -535,6 +536,8 @@ nsCategoryManager::AddCategoryEntry( const char *aCategoryName,
   NS_ENSURE_ARG_POINTER(aCategoryName);
   NS_ENSURE_ARG_POINTER(aEntryName);
   NS_ENSURE_ARG_POINTER(aValue);
+  LogFlowFunc(("aCategoryName=%s aEntryName=%s aValue=%s aPresists=%d aReplace=%d\n",
+               aCategoryName, aEntryName, aValue, aPersist, aReplace));
 
   // Before we can insert a new entry, we'll need to
   //  find the |CategoryNode| to put it in...
@@ -568,6 +571,7 @@ nsCategoryManager::DeleteCategoryEntry( const char *aCategoryName,
 {
   NS_ENSURE_ARG_POINTER(aCategoryName);
   NS_ENSURE_ARG_POINTER(aEntryName);
+  LogFlowFunc(("aCategoryName=%s aEntryName=%s aDontPresists=%d\n", aCategoryName, aEntryName, aDontPersist));
 
   /*
     Note: no errors are reported since failure to delete
@@ -590,6 +594,7 @@ NS_IMETHODIMP
 nsCategoryManager::DeleteCategory( const char *aCategoryName )
 {
   NS_ENSURE_ARG_POINTER(aCategoryName);
+  LogFlowFunc(("aCategoryName=%s\n", aCategoryName));
 
   // the categories are arena-allocated, so we don't
   // actually delete them. We just remove all of the
@@ -757,6 +762,7 @@ NS_CreateServicesFromCategory(const char *category,
                               nsISupports *origin,
                               const char *observerTopic)
 {
+    LogFlowFunc(("category=%s origin=%p observerTopic=%s\n", category, origin, observerTopic));
     nsresult rv = NS_OK;
     
     int nFailed = 0; 
@@ -789,6 +795,7 @@ NS_CreateServicesFromCategory(const char *category,
             nFailed++;
             continue;
         }
+        LogFlowFunc(("Entry: entryString=%s contractID=%s\n", entryString.get(), contractID.get()));
         
         nsCOMPtr<nsISupports> instance = do_GetService(contractID, &rv);
         if (NS_FAILED(rv)) {

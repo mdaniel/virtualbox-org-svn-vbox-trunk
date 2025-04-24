@@ -1907,7 +1907,6 @@ nsComponentManagerImpl::CreateInstanceByContractID(const char *aContractID,
 
     if (NS_SUCCEEDED(rv))
     {
-
         rv = factory->CreateInstance(aDelegate, aIID, aResult);
         NS_RELEASE(factory);
     }
@@ -3002,6 +3001,7 @@ nsComponentManagerImpl::UnloadLibraries(nsIServiceManager *serviceMgr, PRInt32 a
 nsresult
 nsComponentManagerImpl::AutoRegister(PRInt32 when, nsIFile *inDirSpec)
 {
+    LogFlowFunc(("when=%#x inDirSpec=%p\n", when, inDirSpec));
     return AutoRegisterImpl(when, inDirSpec);
 }
 
@@ -3259,6 +3259,7 @@ nsComponentManagerImpl::EnumerateContractIDs(nsIEnumerator** aEnumerator)
 NS_IMETHODIMP
 nsComponentManagerImpl::AutoRegister(nsIFile *aSpec)
 {
+    LogFlowFunc(("aSpec=%p\n", aSpec));
     if (aSpec == nsnull)
         return AutoRegisterImpl(0, aSpec);
 

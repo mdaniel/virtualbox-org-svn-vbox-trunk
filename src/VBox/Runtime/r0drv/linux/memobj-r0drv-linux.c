@@ -999,13 +999,13 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, 
     /* Try to avoid GFP_DMA. GFM_DMA32 was introduced with Linux 2.6.15. */
 #if (defined(RT_ARCH_AMD64) || defined(CONFIG_X86_PAE)) && defined(GFP_DMA32)
     /* ZONE_DMA32: 0-4GB */
-    rc = rtR0MemObjLinuxAllocPages(&pMemLnx, RTR0MEMOBJTYPE_LOW, cb, PAGE_SIZE, GFP_DMA32,
+    rc = rtR0MemObjLinuxAllocPages(&pMemLnx, RTR0MEMOBJTYPE_LOW, cb, PAGE_SIZE, GFP_KERNEL | GFP_DMA32,
                                    false /* non-contiguous */, fExecutable, VERR_NO_LOW_MEMORY, pszTag);
     if (RT_FAILURE(rc))
 #endif
 #ifdef RT_ARCH_AMD64
         /* ZONE_DMA: 0-16MB */
-        rc = rtR0MemObjLinuxAllocPages(&pMemLnx, RTR0MEMOBJTYPE_LOW, cb, PAGE_SIZE, GFP_DMA,
+        rc = rtR0MemObjLinuxAllocPages(&pMemLnx, RTR0MEMOBJTYPE_LOW, cb, PAGE_SIZE, GFP_KERNEL | GFP_DMA,
                                        false /* non-contiguous */, fExecutable, VERR_NO_LOW_MEMORY, pszTag);
 #else
 # ifdef CONFIG_X86_PAE

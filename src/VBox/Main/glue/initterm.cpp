@@ -167,14 +167,10 @@ DirectoryServiceProvider::GetFile(const char *aProp,
                                   PRBool *aPersistent,
                                   nsIFile **aRetval)
 {
-    nsCOMPtr <nsILocalFile> localFile;
-    nsresult rv = NS_ERROR_FAILURE;
-
     *aRetval = nsnull;
     *aPersistent = PR_TRUE;
 
-    const char *fileLocation = NULL;
-
+    const char *fileLocation;
     if (strcmp(aProp, NS_XPCOM_COMPONENT_REGISTRY_FILE) == 0)
         fileLocation = mCompRegLocation;
     else if (strcmp(aProp, NS_XPCOM_XPTI_REGISTRY_FILE) == 0)
@@ -186,8 +182,9 @@ DirectoryServiceProvider::GetFile(const char *aProp,
     else
         return NS_ERROR_FAILURE;
 
-    rv = NS_NewNativeLocalFile(nsEmbedCString(fileLocation),
-                               PR_TRUE, getter_AddRefs(localFile));
+    nsCOMPtr<nsILocalFile> localFile;
+    nsresult rv = NS_NewNativeLocalFile(nsEmbedCString(fileLocation),
+                                        PR_TRUE, getter_AddRefs(localFile));
     if (NS_FAILED(rv))
         return rv;
 
@@ -704,10 +701,10 @@ HRESULT Initialize(uint32_t fInitFlags /*=VBOX_COM_INIT_F_DEFAULT*/)
         if (NS_FAILED(hrc))
             break;
 
-        /* Setup the application path for NS_InitXPCOM2. Note that we properly
+        /* Setup the application path for NS_InitXPCOM2Ex. Note that we properly
          * answer the NS_XPCOM_CURRENT_PROCESS_DIR query in our directory
          * service provider but it seems to be activated after the directory
-         * service is used for the first time (see the source NS_InitXPCOM2). So
+         * service is used for the first time (see the source NS_InitXPCOM2Ex). So
          * use the same value here to be on the safe side. */
         nsCOMPtr <nsIFile> appDir;
         {
@@ -736,20 +733,13 @@ HRESULT Initialize(uint32_t fInitFlags /*=VBOX_COM_INIT_F_DEFAULT*/)
         /* Finally, initialize XPCOM */
         {
             nsCOMPtr<nsIServiceManager> serviceManager;
-            hrc = NS_InitXPCOM2(getter_AddRefs(serviceManager), appDir, dsProv);
+            hrc = NS_InitXPCOM2Ex(getter_AddRefs(serviceManager), appDir, dsProv,
+                                  NS_INIT_XPCOM_F_AUTO_REGISTER_COMPONENTS_WITH_STATUS);
             if (NS_SUCCEEDED(hrc))
             {
-                nsCOMPtr<nsIComponentRegistrar> registrar = do_QueryInterface(serviceManager, &hrc);
-                if (NS_SUCCEEDED(hrc))
-                {
-                    hrc = registrar->AutoRegister(nsnull);
-                    if (NS_SUCCEEDED(hrc))
-                    {
-                        /* We succeeded, stop probing paths */
-                        LogFlowFunc(("Succeeded.\n"));
-                        break;
-                    }
-                }
+                /* We succeeded, stop probing paths */
+                LogFlowFunc(("Succeeded.\n"));
+                break;
             }
         }
 

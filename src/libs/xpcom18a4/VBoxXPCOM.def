@@ -92,7 +92,7 @@ EXPORTS
     NS_GetServiceManager
     NS_GetTraceRefcnt
     NS_IsXPCOMInitialized
-    NS_InitXPCOM2
+    NS_InitXPCOM2Ex
     NS_MeanAndStdDev
     NS_NewByteInputStream
     NS_NewCStringInputStream

@@ -3577,7 +3577,7 @@ NS_GetGlobalComponentManager(nsIComponentManager* *result)
     if (nsComponentManagerImpl::gComponentManager == nsnull)
     {
         // XPCOM needs initialization.
-        rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+        rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
     }
 
     if (NS_SUCCEEDED(rv))
@@ -3597,7 +3597,7 @@ NS_GetComponentManager(nsIComponentManager* *result)
     if (nsComponentManagerImpl::gComponentManager == nsnull)
     {
         // XPCOM needs initialization.
-        nsresult rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+        nsresult rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
         if (NS_FAILED(rv))
             return rv;
     }
@@ -3628,7 +3628,7 @@ NS_GetServiceManager(nsIServiceManager* *result)
         rv = NS_ERROR_SERVICE_NOT_AVAILABLE;
 #else /* !VBOX */
         // XPCOM needs initialization.
-        rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+        rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
 #endif /* !VBOX */
     }
 
@@ -3650,7 +3650,7 @@ NS_GetComponentRegistrar(nsIComponentRegistrar* *result)
     if (nsComponentManagerImpl::gComponentManager == nsnull)
     {
         // XPCOM needs initialization.
-        rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+        rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
     }
 
     if (NS_FAILED(rv))
@@ -3673,7 +3673,7 @@ NS_GetComponentLoaderManager(nsIComponentLoaderManager* *result)
     if (nsComponentManagerImpl::gComponentManager == NULL)
     {
         // XPCOM needs initialization.
-        rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+        rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
     }
 
     if (NS_FAILED(rv))

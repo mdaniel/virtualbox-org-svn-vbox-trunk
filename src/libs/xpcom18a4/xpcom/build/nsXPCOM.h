@@ -47,7 +47,7 @@
 
 #ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
 #define NS_IsXPCOMInitialized VBoxNsxpNS_IsXPCOMInitialized
-#define NS_InitXPCOM2 VBoxNsxpNS_InitXPCOM2
+#define NS_InitXPCOM2Ex VBoxNsxpNS_InitXPCOM2Ex
 #define NS_ShutdownXPCOM VBoxNsxpNS_ShutdownXPCOM
 #define NS_NewNativeLocalFile VBoxNsxpNS_NewNativeLocalFile
 #define NS_GetServiceManager VBoxNsxpNS_GetServiceManager
@@ -75,7 +75,7 @@ class nsITraceRefcnt;
 typedef RTTHREADINT *RTTHREAD;
 
 /**
- * Checks whether XPCOM was initialized by a call to NS_InitXPCOM2().
+ * Checks whether XPCOM was initialized by a call to NS_InitXPCOM2Ex().
  */
 extern "C" NS_COM PRBool
 NS_IsXPCOMInitialized(void);
@@ -108,6 +108,17 @@ NS_GetMainThread(RTTHREAD *phThreadMain);
  *                         registry preferences and so on; or use
  *                         <CODE>nsnull</CODE> for the default behaviour.
  *
+ * @param fInitFlags       NS_INIT_XPCOM_F_XXX values ORed together or zero.
+ *                         This was added during @bugref{10896} to workaround
+ *                         the problem that the IPC client component was already
+ *                         in use by the time NS_InitXPCOM2Ex returns and thus
+ *                         cannot be auto-re-registered by the client.
+ *                         (The actual need to trigger auto-reregistration of
+ *                         components is questionable, though, as it ought only
+ *                         to be needed after installing a new version,
+ *                         but we've always done it as part of our COM init glue
+ *                         code (see Main/glue/initterm.cpp).)
+ *
  * @see NS_NewLocalFile
  * @see nsILocalFile
  * @see nsIDirectoryServiceProvider
@@ -119,17 +130,30 @@ NS_GetMainThread(RTTHREAD *phThreadMain);
  *
  */
 extern "C" NS_COM nsresult
-NS_InitXPCOM2(nsIServiceManager* *result, 
-              nsIFile* binDirectory,
-              nsIDirectoryServiceProvider* appFileLocationProvider);
+NS_InitXPCOM2Ex(nsIServiceManager* *result,
+                nsIFile* binDirectory,
+                nsIDirectoryServiceProvider* appFileLocationProvider,
+                PRUint32 fFlags);
+
+/** @name NS_INIT_XPCOM_F_XXX - Flags for NS_InitXPCOM2Ex.
+ * @{ */
+/** Auto-register components. */
+#define NS_INIT_XPCOM_F_AUTO_REGISTER_COMPONENTS                1
+/** Auto-register components and return any failure status.
+ * @note When using this, always call NS_ShutdownXPCOM(nsnull) on failure
+ *       (generally a good idea). */
+#define NS_INIT_XPCOM_F_AUTO_REGISTER_COMPONENTS_WITH_STATUS    2
+/** @} */
+
 /**
  * Shutdown XPCOM. You must call this method after you are finished
  * using xpcom. 
  *
  * @status FROZEN
  *
- * @param servMgr           The service manager which was returned by NS_InitXPCOM2.  
- *                          This will release servMgr.  You may pass null.
+ * @param servMgr           The service manager which was returned by
+ *                          NS_InitXPCOM2Ex. This will release servMgr.
+ *                          You may pass null.
  *
  * @return NS_OK for success;
  *         other error codes indicate a failure during initialisation.
@@ -180,7 +204,7 @@ NS_GetComponentRegistrar(nsIComponentRegistrar* *result);
 
 /**
  * Public Method to create an instance of a nsILocalFile.  This function
- * may be called prior to NS_InitXPCOM2.  
+ * may be called prior to NS_InitXPCOM2Ex.
  * 
  * @status FROZEN
  * 

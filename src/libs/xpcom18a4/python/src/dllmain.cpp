@@ -180,7 +180,7 @@ PRBool PyXPCOM_Globals_Ensure()
 		if (!NS_IsXPCOMInitialized()) {
 			// not already initialized.
 			// Elsewhere, Mozilla can find it itself (we hope!)
-			nsresult rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+			nsresult rv = NS_InitXPCOM2Ex(nsnull, nsnull, nsnull, 0);
 			if (NS_FAILED(rv)) {
 				PyErr_SetString(PyExc_RuntimeError, "The XPCOM subsystem could not be initialized");
 				return PR_FALSE;

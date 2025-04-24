@@ -211,10 +211,10 @@ InitXPCOM_Impl(JNIEnv* env, jobject aMozBinDirectory,
 
   // init XPCOM
   nsCOMPtr<nsIServiceManager> servMan;
-  rv = NS_InitXPCOM2(getter_AddRefs(servMan), directory, provider);
+  rv = NS_InitXPCOM2Ex(getter_AddRefs(servMan), directory, provider, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // create Java proxy for service manager returned by NS_InitXPCOM2
+  // create Java proxy for service manager returned by NS_InitXPCOM2Ex
   return NativeInterfaceToJavaObject(env, servMan, NS_GET_IID(nsIServiceManager),
                                      nsnull, aResult);
 }

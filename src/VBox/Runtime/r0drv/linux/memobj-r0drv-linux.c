@@ -414,6 +414,10 @@ static int rtR0MemObjLinuxAllocPages(PRTR0MEMOBJLNX *ppMemLnx, RTR0MEMOBJTYPE en
 # ifdef __GFP_REPEAT
         /* Try hard to allocate the memory, but the allocation attempt might fail. */
         fFlagsLnx |= __GFP_REPEAT;
+# elif defined (__GFP_RETRY_MAYFAIL) /* Renamed in commit dcda9b04713c3f6ff0875652924844fae28286ea . */
+        fFlagsLnx |= __GFP_RETRY_MAYFAIL;
+# else /* This is to notice when the flags are renamed/moved around again. */
+#  error "Was this flag renamed again?"
 # endif
 # ifdef __GFP_NOMEMALLOC
         /* Introduced with Linux 2.6.12: Don't use emergency reserves */

@@ -863,7 +863,9 @@ typedef enum VBOXLOGGROUP
     /** VSCSI group */
     LOG_GROUP_VSCSI,
     /** Webservice group. */
-    LOG_GROUP_WEBSERVICE
+    LOG_GROUP_WEBSERVICE,
+    /** Generic XPCOM group.   */
+    LOG_GROUP_XPCOM
     /* !!!ALPHABETICALLY!!! */
 } VBOXLOGGROUP;
 
@@ -1281,6 +1283,7 @@ typedef enum VBOXLOGGROUP
     "VRDP", \
     "VSCSI", \
     "WEBSERVICE", \
+    "XPCOM", \
 }
 
 /** @} */

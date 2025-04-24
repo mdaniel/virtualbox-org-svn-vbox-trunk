@@ -142,7 +142,7 @@ nsDebugImpl::Warning(const char* aMessage,
                      const char* aFile, PRIntn aLine)
 {
     /* Debug log. */
-    Log(("WARNING: %s, file %s, line %d", aMessage, aFile, aLine));
+    Log(("WARNING: %s, file %s, line %d\n", aMessage, aFile, aLine));
 
     // And write it out to the stdout
     fprintf(stderr, "WARNING: %s, file %s, line %d", aMessage, aFile, aLine);

@@ -54,7 +54,7 @@ static volatile uint32_t cInterfaces=0;
 static PyObject *g_obFuncMakeInterfaceCount = NULL; // XXX - never released!!!
 
 #ifdef VBOX_DEBUG_LIFETIMES
-# include <iprt/log.h>
+# include <VBox/log.h>
 # include <iprt/stream.h>
 
 /*static*/ RTLISTNODE        Py_nsISupports::g_List;

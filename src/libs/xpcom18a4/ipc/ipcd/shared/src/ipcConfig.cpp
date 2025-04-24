@@ -34,6 +34,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#undef  LOG_GROUP
 #define LOG_GROUP LOG_GROUP_IPC
 
 #include <unistd.h>

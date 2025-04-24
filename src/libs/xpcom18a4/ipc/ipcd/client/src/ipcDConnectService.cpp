@@ -35,6 +35,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#undef  LOG_GROUP
 #define LOG_GROUP LOG_GROUP_IPC
 #include "ipcDConnectService.h"
 
@@ -933,8 +934,7 @@ GetArrayParamInfo(nsIInterfaceInfo *iinfo, uint16 methodIndex,
       (elemType.IsPointer() || elemType.IsUniquePointer() ||
        elemType.IsReference()))
   {
-    Log(("arrays of pointers and references to arithmetic types are "
-         "not yet supported\n"));
+    Log(("arrays of pointers and references to arithmetic types are not yet supported\n"));
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1422,11 +1422,8 @@ public:
                                 const PRUint8 *aData, PRUint32 aDataLen)
   {
     const DConnectOp *op = (const DConnectOp *) aData;
-    Log((
-      "DConnectCompletion::OnMessageAvailable: "
-      "senderID=%d, opcode_major=%d, index=%d (waiting for %d)\n",
-      aSenderID, op->opcode_major, op->request_index, mSelector.mRequestIndex
-    ));
+    Log(("DConnectCompletion::OnMessageAvailable: senderID=%d, opcode_major=%d, index=%d (waiting for %d)\n",
+         aSenderID, op->opcode_major, op->request_index, mSelector.mRequestIndex));
     if (aSenderID == mSelector.mPeer &&
         op->opcode_major == mSelector.mOpCodeMajor &&
         op->request_index == mSelector.mRequestIndex)
@@ -2434,8 +2431,7 @@ DConnectStub::QueryInterface(const nsID &aIID, void **aInstancePtr)
     dConnect->GetInterfaceInfo(aIID, getter_AddRefs(iinfoQ));
     if (iinfoQ) {
         iinfoQ->GetNameShared(&nameQ);
-        Log(("calling QueryInterface {%s} on peer object "
-             "(stub=%p, instance=0x%Lx {%s})\n",
+        Log(("calling QueryInterface {%s} on peer object (stub=%p, instance=0x%Lx {%s})\n",
              nameQ, this, mInstance, name));
     }
   }
@@ -2897,8 +2893,7 @@ EnumerateInstanceMapAndDelete (const DConnectInstanceKey::Key &aKey,
 #ifdef LOG_ENABLED
   const char *name;
   aData->InterfaceInfo()->GetNameShared(&name);
-  Log(("ipcDConnectService: WARNING: deleting unreleased "
-       "instance=%p iface=%p {%s}\n", aData, aData->RealInstance(), name));
+  Log(("ipcDConnectService: WARNING: deleting unreleased instance=%p iface=%p {%s}\n", aData, aData->RealInstance(), name));
 #endif
 
   delete aData;
@@ -3272,9 +3267,8 @@ ipcDConnectService::OnMessageAvailable(PRUint32 aSenderID,
 
 #ifdef LOG_ENABLED
   const DConnectOp *op = (const DConnectOp *) aData;
-  Log (("ipcDConnectService::OnMessageAvailable: "
-        "senderID=%d, opcode_major=%d, index=%d\n",
-        aSenderID, op->opcode_major, op->request_index));
+  Log(("ipcDConnectService::OnMessageAvailable: senderID=%d, opcode_major=%d, index=%d\n",
+       aSenderID, op->opcode_major, op->request_index));
 #endif
 
   void *pvDataDup = RTMemDup(aData, aDataLen);
@@ -3307,9 +3301,7 @@ PruneInstanceMapForPeer (const DConnectInstanceKey::Key &aKey,
   {
     nsrefcnt countIPC = aData->ReleaseIPC(PR_TRUE /* locked */);
 
-    Log(("ipcDConnectService::PruneInstanceMapForPeer: "
-         "instance=%p: %d IPC refs to release\n",
-         aData, countIPC + 1));
+    Log(("ipcDConnectService::PruneInstanceMapForPeer: instance=%p: %d IPC refs to release\n", aData, countIPC + 1));
 
     // release all IPC instances of the "officially dead" client (see
     // #OnRelease() to understand why it must be done under the lock). Note
@@ -3352,8 +3344,7 @@ ipcDConnectService::OnClientStateChange(PRUint32 aClientID,
     }
     else
     {
-      Log(("ipcDConnectService::OnClientStateChange: "
-           "pruning all instances created for peer %d...\n", aClientID));
+      Log(("ipcDConnectService::OnClientStateChange: pruning all instances created for peer %d...\n", aClientID));
 
       nsVoidArray wrappers;
 
@@ -3365,8 +3356,7 @@ ipcDConnectService::OnClientStateChange(PRUint32 aClientID,
         mInstances.EnumerateRead(PruneInstanceMapForPeer, (void *)&args);
       }
 
-      Log(("ipcDConnectService::OnClientStateChange: "
-           "%d lost instances\n", wrappers.Count()));
+      Log(("ipcDConnectService::OnClientStateChange: %d lost instances\n", wrappers.Count()));
 
       // release all pending references left after PruneInstanceMapForPeer().
       // this may call wrapper destructors so it's important to do that
@@ -3654,8 +3644,7 @@ ipcDConnectService::OnRelease(PRUint32 peer, const DConnectRelease *release)
     // all client instances before the DCON_OP_RELEASE message sent by the
     // client gets processed here (because of true multithreading). Just log
     // a debug warning
-    Log(("ipcDConnectService::OnRelease: WARNING: "
-         "instance wrapper %p for peer %d not found", wrapper, peer));
+    Log(("ipcDConnectService::OnRelease: WARNING: instance wrapper %p for peer %d not found\n", wrapper, peer));
   }
 }
 

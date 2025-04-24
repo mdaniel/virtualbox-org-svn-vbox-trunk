@@ -378,7 +378,7 @@ _pl_DestroyEventForOwner(PLEvent* event, void* owner, PLEventQueue* queue)
 {
     Assert(PR_GetMonitorEntryCount(queue->monitor) > 0);
     if (event->owner == owner) {
-        Log(("$$$ \tdestroying event %0x for owner %0x", event, owner));
+        Log(("$$$ \tdestroying event %0x for owner %0x\n", event, owner));
         PL_DequeueEvent(event, queue);
 
         if (event->synchronousResult == (void*)PR_TRUE) {
@@ -393,7 +393,7 @@ _pl_DestroyEventForOwner(PLEvent* event, void* owner, PLEventQueue* queue)
         }
     }
     else {
-        Log(("$$$ \tskipping event %0x for owner %0x", event, owner));
+        Log(("$$$ \tskipping event %0x for owner %0x\n", event, owner));
     }
 }
 
@@ -403,14 +403,14 @@ PL_RevokeEvents(PLEventQueue* self, void* owner)
     if (self == NULL)
         return;
 
-    Log(("$$$ revoking events for owner %0x", owner));
+    Log(("$$$ revoking events for owner %0x\n", owner));
 
     /*
     ** First we enter the monitor so that no one else can post any events
     ** to the queue:
     */
     PR_EnterMonitor(self->monitor);
-    Log(("$$$ owner %0x, entered monitor", owner));
+    Log(("$$$ owner %0x, entered monitor\n", owner));
 
     /*
     ** Discard any pending events for this owner:
@@ -429,7 +429,7 @@ PL_RevokeEvents(PLEventQueue* self, void* owner)
 
     PR_ExitMonitor(self->monitor);
 
-    Log(("$$$ revoking events for owner %0x", owner));
+    Log(("$$$ revoking events for owner %0x\n", owner));
 }
 
 static PRInt32
@@ -479,9 +479,9 @@ PL_ProcessPendingEvents(PLEventQueue* self)
         if (event == NULL)
             break;
 
-        Log(("$$$ processing event"));
+        Log(("$$$ processing event\n"));
         PL_HandleEvent(event);
-        Log(("$$$ done processing event"));
+        Log(("$$$ done processing event\n"));
     }
 
     PR_EnterMonitor(self->monitor);
@@ -631,7 +631,7 @@ PL_WaitForEvent(PLEventQueue* self)
     PR_EnterMonitor(mon);
 
     while ((event = PL_GetEvent(self)) == NULL) {
-        Log(("$$$ waiting for event"));
+        Log(("$$$ waiting for event\n"));
         PR_Wait(mon, RT_INDEFINITE_WAIT);
     }
 
@@ -652,9 +652,9 @@ PL_EventLoop(PLEventQueue* self)
             return;
         }
 
-        Log(("$$$ processing event"));
+        Log(("$$$ processing event\n"));
         PL_HandleEvent(event);
-        Log(("$$$ done processing event"));
+        Log(("$$$ done processing event\n"));
     }
 }
 
@@ -744,7 +744,7 @@ _pl_NativeNotify(PLEventQueue* self)
         return PR_SUCCESS;
 # endif
 
-    Log(("_pl_NativeNotify: self=%p", self));
+    Log(("_pl_NativeNotify: self=%p\n", self));
     count = write(self->eventPipe[1], buf, 1);
     if (count == 1)
         return PR_SUCCESS;
@@ -771,7 +771,7 @@ _pl_AcknowledgeNativeNotify(PLEventQueue* self)
 
     PRInt32 count;
     unsigned char c;
-    Log(("_pl_AcknowledgeNativeNotify: self=%p", self));
+    Log(("_pl_AcknowledgeNativeNotify: self=%p\n", self));
     /* consume the byte NativeNotify put in our pipe: */
     count = read(self->eventPipe[0], &c, 1);
     if ((count == 1) && (c == NOTIFY_TOKEN))
@@ -909,13 +909,13 @@ PL_ProcessEventsBeforeID(PLEventQueue *aSelf, unsigned long aID)
             break;
         Log(("$$$ processing event %ld\n", event->id));
         if (event->id >= aID) {
-            Log(("$$$ skipping event and breaking"));
+            Log(("$$$ skipping event and breaking\n"));
             break;
         }
 
         event = PL_GetEvent(aSelf);
         PL_HandleEvent(event);
-        Log(("$$$ done processing event"));
+        Log(("$$$ done processing event\n"));
         count++;
     }
 

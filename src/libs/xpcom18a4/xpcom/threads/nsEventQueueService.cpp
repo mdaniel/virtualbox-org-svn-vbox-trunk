@@ -298,7 +298,7 @@ nsEventQueueServiceImpl::PushThreadEventQueue(nsIEventQueue **aNewQueue)
 #ifdef LOG_ENABLED
     PLEventQueue *equeue;
     (*aNewQueue)->GetPLEventQueue(&equeue);
-    Log(("EventQueue: Service push queue [queue=%lx]",(long)equeue));
+    Log(("EventQueue: Service push queue [queue=%lx]\n",(long)equeue));
 #endif
 
     // Release the EventQ lock...
@@ -332,7 +332,7 @@ nsEventQueueServiceImpl::PopThreadEventQueue(nsIEventQueue *aQueue)
 #ifdef LOG_ENABLED
     PLEventQueue *equeue;
     aQueue->GetPLEventQueue(&equeue);
-    Log(("EventQueue: Service pop queue [queue=%lx]",(long)equeue));
+    Log(("EventQueue: Service pop queue [queue=%lx]\n",(long)equeue));
 #endif
     aQueue->StopAcceptingEvents();
     aQueue->ProcessPendingEvents(); // make sure we don't orphan any events

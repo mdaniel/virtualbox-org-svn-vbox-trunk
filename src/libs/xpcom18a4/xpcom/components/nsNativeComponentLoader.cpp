@@ -130,7 +130,7 @@ nsNativeComponentLoader::GetFactory(const nsIID & aCID,
 
     rv = GetFactoryFromModule(dll, aCID, _retval);
 
-    Log(("nsNativeComponentLoader: Factory creation %s for %s",
+    Log(("nsNativeComponentLoader: Factory creation %s for %s\n",
          (NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"),
          aLocation));
 
@@ -427,7 +427,7 @@ nsNativeComponentLoader::DumpLoadError(nsDll *dll,
             errorMsg.get());
 #endif
 
-    Log(("nsNativeComponentLoader: %s(%s) Load FAILED with error: %s",
+    Log(("nsNativeComponentLoader: %s(%s) Load FAILED with error: %s\n",
          aCallerName, displayPath.get(), errorMsg.get()));
     return NS_OK;
 }
@@ -575,18 +575,18 @@ nsNativeComponentLoader::AutoRegisterComponent(PRInt32 when,
     if (   cchLeafName <= sizeof(s_szSuff)
         || RTStrICmp(strLeafName.get() + cchLeafName - sizeof(s_szSuff) + 1, s_szSuff))
     {
-        Log(("Skipping '%s'...", strLeafName.get()));
+        Log(("Skipping '%s'...\n", strLeafName.get()));
         return NS_OK; /* skip */
     }
 #ifndef VBOX_IN_32_ON_64_MAIN_API
     if (   cchLeafName >= sizeof(s_szSuffInvalid)
         && !RTStrICmp(strLeafName.get() + cchLeafName - sizeof(s_szSuffInvalid) + 1, s_szSuffInvalid))
     {
-        Log(("Skipping '%s' (#2)...", strLeafName.get()));
+        Log(("Skipping '%s' (#2)...\n", strLeafName.get()));
         return NS_OK; /* skip */
     }
 #endif
-    Log(("... '%s'", strLeafName.get()));
+    Log(("... '%s'\n", strLeafName.get()));
 
     nsXPIDLCString persistentDescriptor;
     // what I want to do here is QI for a Component Registration Manager.  Since this
@@ -772,7 +772,7 @@ nsNativeComponentLoader::OnRegister(const nsIID &aCID, const char *aType,
 nsresult
 nsNativeComponentLoader::UnloadAll(PRInt32 aWhen)
 {
-    Log(("nsNativeComponentLoader: Unloading...."));
+    Log(("nsNativeComponentLoader: Unloading....\n"));
 
     struct freeLibrariesClosure callData;
     callData.serviceMgr = NULL; // XXX need to get this as a parameter

@@ -37,6 +37,7 @@
 
 #include <iprt/initterm.h>
 #include <iprt/time.h>
+#include <VBox/log.h>
 
 #include "nsXPCOM.h"
 #include "nsXPCOMPrivate.h"
@@ -386,6 +387,7 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
 
     /* Make sure IPRT is initialized. */
     RTR3InitDll(RTR3INIT_FLAGS_UNOBTRUSIVE);
+    LogFlow(("NS_InitXPCOM2: done RTR3InitDll\n"));
 
      // We are not shutting down
     gXPCOMShuttingDown = PR_FALSE;
@@ -522,6 +524,8 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
 #endif
 
     if ( NS_FAILED(rv) || CheckUpdateFile()) {
+        LogFlow(("NS_InitXPCOM2: rv=%#x or CheckUpdateFile()=>true\n", rv));
+
         // if we find no persistent registry, we will try to autoregister
         // the default components directory.
         nsComponentManagerImpl::gComponentManager->AutoRegister(nsnull);
@@ -609,6 +613,7 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
     // Pay the cost at startup time of starting this singleton.
     nsIInterfaceInfoManager* iim = XPTI_GetInterfaceInfoManager();
     NS_IF_RELEASE(iim);
+
 #ifdef VBOX
     // Must initialize the EventQueueService singleton before anyone is
     // using it. The notification below creates a thread which races creating
@@ -625,6 +630,7 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
 #endif /* VBOX */
 
     // Notify observers of xpcom autoregistration start
+    LogFlow(("NS_InitXPCOM2: Notifying startup observers (autoreg)\n"));
     NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_OBSERVER_ID,
                                   nsnull,
                                   NS_XPCOM_STARTUP_OBSERVER_ID);
@@ -632,6 +638,7 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
 #ifdef VBOX
     gXPCOMInitialized = PR_TRUE;
 #endif
+    LogFlow(("NS_InitXPCOM2: return NS_OK\n"));
     return NS_OK;
 }
 

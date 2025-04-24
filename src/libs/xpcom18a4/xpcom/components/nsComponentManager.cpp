@@ -962,6 +962,7 @@ AutoRegEntry::~AutoRegEntry()
 PRBool
 AutoRegEntry::Modified(PRInt64 *date)
 {
+    Log(("AutoRegEntry::Modified: mModDate=%RI64 vs %RI64 - %d\n", mModDate, *date, !LL_EQ(*date, mModDate)));
     return !LL_EQ(*date, mModDate);
 }
 
@@ -1669,25 +1670,15 @@ nsresult
 nsComponentManagerImpl::GetClassObject(const nsCID &aClass, const nsIID &aIID,
                                        void **aResult)
 {
-    nsresult rv;
-
-    nsCOMPtr<nsIFactory> factory;
-
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    LogFlow(("nsComponentManager: GetClassObject(%s)", buf));
-    if (buf)
-        PR_Free(buf);
-#endif
-
+    LogFlow(("nsComponentManager: GetClassObject(%RTuuid)\n", &aClass));
     Assert(aResult != nsnull);
 
-    rv = FindFactory(aClass, getter_AddRefs(factory));
-    if (NS_FAILED(rv)) return rv;
+    nsCOMPtr<nsIFactory> factory;
+    nsresult rv = FindFactory(aClass, getter_AddRefs(factory));
+    if (NS_SUCCEEDED(rv))
+        rv = factory->QueryInterface(aIID, aResult);
 
-    rv = factory->QueryInterface(aIID, aResult);
-
-    Log(("\t\tGetClassObject() %s", NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"));
+    Log(("nsComponentManager: GetClassObject(%RTuuid) returns %Rrv and %p\n", &aClass, rv, *aResult));
     return rv;
 }
 
@@ -1697,19 +1688,15 @@ nsComponentManagerImpl::GetClassObjectByContractID(const char *contractID,
                                                    const nsIID &aIID,
                                                    void **aResult)
 {
-    nsresult rv;
-
-    nsCOMPtr<nsIFactory> factory;
-
-    Log(("nsComponentManager: GetClassObject(%s)", contractID));
+    LogFlow(("nsComponentManager: GetClassObjectByContractID(%s, %RTuuid)\n", contractID, &aIID));
     Assert(aResult != nsnull);
 
-    rv = FindFactory(contractID, strlen(contractID), getter_AddRefs(factory));
-    if (NS_FAILED(rv)) return rv;
+    nsCOMPtr<nsIFactory> factory;
+    nsresult rv = FindFactory(contractID, strlen(contractID), getter_AddRefs(factory));
+    if (NS_SUCCEEDED(rv))
+        rv = factory->QueryInterface(aIID, aResult);
 
-    rv = factory->QueryInterface(aIID, aResult);
-
-    Log(("\t\tGetClassObject() %s", NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"));
+    Log(("nsComponentManager: GetClassObjectByContractID(%s, %RTuuid) returns %Rrv and %p\n", contractID, &aIID, rv, *aResult));
     return rv;
 }
 
@@ -1736,16 +1723,10 @@ nsComponentManagerImpl::ContractIDToClassID(const char *aContractID, nsCID *aCla
     if (fe) {
         *aClass = fe->mCid;
         rv = NS_OK;
+        Log(("nsComponentManager: ContractIDToClassID(%s)->%RTuuid\n", aContractID, aClass));
     }
-#ifdef LOG_ENABLED
-    char *buf = 0;
-    if (NS_SUCCEEDED(rv))
-        buf = aClass->ToString();
-    Log(("nsComponentManager: ContractIDToClassID(%s)->%s", aContractID,
-         NS_SUCCEEDED(rv) ? buf : "[FAILED]"));
-    if (buf)
-        PR_Free(buf);
-#endif
+    else
+        Log(("nsComponentManager: ContractIDToClassID(%s)->NS_ERROR_FACTORY_NOT_REGISTERED\n", aContractID));
     return rv;
 }
 
@@ -1763,17 +1744,9 @@ nsComponentManagerImpl::CLSIDToContractID(const nsCID &aClass,
                                           char* *aContractID)
 {
     NS_WARNING("Need to implement CLSIDToContractID");
-
-    nsresult rv = NS_ERROR_FACTORY_NOT_REGISTERED;
-
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: CLSIDToContractID(%s)->%s", buf,
-         NS_SUCCEEDED(rv) ? *aContractID : "[FAILED]"));
-    if (buf)
-        PR_Free(buf);
-#endif
-    return rv;
+    Log(("nsComponentManager: CLSIDToContractID(%RTuuid)->NS_ERROR_FACTORY_NOT_REGISTERED\n", aClass));
+    RT_NOREF(aClass, aClassName, aContractID);
+    return NS_ERROR_FACTORY_NOT_REGISTERED;
 }
 
 #ifdef XPCOM_CHECK_PENDING_CIDS
@@ -1809,7 +1782,9 @@ nsComponentManagerImpl::RemovePendingCID(const nsCID &aClass)
 {
     mPendingCIDs.RemoveElement((void*)&aClass);
 }
+
 #endif
+
 /**
  * CreateInstance()
  *
@@ -1839,13 +1814,11 @@ nsComponentManagerImpl::CreateInstance(const nsCID &aClass,
     }
 
     if (aResult == nsnull)
-    {
         return NS_ERROR_NULL_POINTER;
-    }
+
     *aResult = nsnull;
 
     nsFactoryEntry *entry = GetFactoryEntry(aClass);
-
     if (!entry)
         return NS_ERROR_FACTORY_NOT_REGISTERED;
 
@@ -1862,7 +1835,6 @@ nsComponentManagerImpl::CreateInstance(const nsCID &aClass,
 
     nsIFactory *factory = nsnull;
     nsresult rv = entry->GetFactory(&factory, this);
-
     if (NS_SUCCEEDED(rv))
     {
         rv = factory->CreateInstance(aDelegate, aIID, aResult);
@@ -1874,14 +1846,7 @@ nsComponentManagerImpl::CreateInstance(const nsCID &aClass,
         rv = NS_ERROR_FACTORY_NOT_REGISTERED;
     }
 
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: CreateInstance(%s) %s", buf,
-         NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"));
-    if (buf)
-        PR_Free(buf);
-#endif
-
+    Log(("nsComponentManager: CreateInstance(%RTuuid,,%RTuuid) %Rhrc & %p\n", &aClass, &aIID, rv, aResult));
     return rv;
 }
 
@@ -1953,8 +1918,7 @@ nsComponentManagerImpl::CreateInstanceByContractID(const char *aContractID,
             rv = NS_ERROR_FACTORY_NOT_REGISTERED;
     }
 
-    Log(("nsComponentManager: CreateInstanceByContractID(%s) %s", aContractID,
-         NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"));
+    Log(("nsComponentManager: CreateInstanceByContractID(%s) %Rhrc and %p\n", aContractID, rv, *aResult));
     return rv;
 }
 
@@ -2585,31 +2549,23 @@ nsComponentManagerImpl::RegisterFactory(const nsCID &aClass,
                                         PRBool aReplace)
 {
     nsAutoMonitor mon(mMon);
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: RegisterFactory(%s, %s)", buf,
-         (aContractID ? aContractID : "(null)")));
-    if (buf)
-        PR_Free(buf);
-#endif
+    Log(("nsComponentManager: RegisterFactory(%RTuuid, %s)\n", &aClass, aContractID));
     nsFactoryEntry *entry = nsnull;
     nsFactoryTableEntry* factoryTableEntry = NS_STATIC_CAST(nsFactoryTableEntry*,
                                                             PL_DHashTableOperate(&mFactories,
                                                                                  &aClass,
                                                                                  PL_DHASH_ADD));
-
     if (!factoryTableEntry)
         return NS_ERROR_OUT_OF_MEMORY;
 
 
-    if (PL_DHASH_ENTRY_IS_BUSY(factoryTableEntry)) {
+    if (PL_DHASH_ENTRY_IS_BUSY(factoryTableEntry))
         entry = factoryTableEntry->mFactoryEntry;
-    }
 
     if (entry && !aReplace)
     {
         // Already registered
-        Log(("\t\tFactory already registered."));
+        LogFunc(("Factory already registered.\n"));
         return NS_ERROR_FACTORY_EXISTS;
     }
 
@@ -2629,14 +2585,12 @@ nsComponentManagerImpl::RegisterFactory(const nsCID &aClass,
     if (aContractID) {
         nsresult rv = HashContractID(aContractID, strlen(aContractID), entry);
         if (NS_FAILED(rv)) {
-            Log(("\t\tFactory register succeeded. "
-                 "Hashing contractid (%s) FAILED.", aContractID));
+            LogFunc(("Factory register succeeded. Hashing contractid (%s) FAILED.\n", aContractID));
             return rv;
         }
     }
 
-    Log(("\t\tFactory register succeeded contractid=%s.",
-          aContractID ? aContractID : "<none>"));
+    LogFunc(("Factory register succeeded contractid=%s.\n", aContractID));
     return NS_OK;
 }
 
@@ -2740,16 +2694,9 @@ nsComponentManagerImpl::RegisterComponentCommon(const nsCID &aClass,
 
     // Normalize proid and classname
     const char *contractID = (aContractID && *aContractID) ? aContractID : nsnull;
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: RegisterComponentCommon(%s, %s, %s, %s)",
-         buf, contractID ? contractID : "(null)",
-         aRegistryName, aType));
-    if (buf)
-        PR_Free(buf);
-#endif
+    Log(("nsComponentManager: RegisterComponentCommon(%RTuuid, %s, %s, %s)\n", &aClass, contractID, aRegistryName, aType));
     if (entry && !aReplace) {
-        Log(("\t\tFactory already registered."));
+        LogFunc(("Factory already registered.\n"));
         return NS_ERROR_FACTORY_EXISTS;
     }
 
@@ -2758,7 +2705,7 @@ nsComponentManagerImpl::RegisterComponentCommon(const nsCID &aClass,
     nsCOMPtr<nsIComponentLoader> loader;
     nsresult rv = GetLoaderForType(typeIndex, getter_AddRefs(loader));
     if (NS_FAILED(rv)) {
-        Log(("\t\tgetting loader for %s FAILED\n", aType));
+        LogFunc(("getting loader for %s FAILED\n", aType));
         return rv;
     }
 
@@ -2796,7 +2743,7 @@ nsComponentManagerImpl::RegisterComponentCommon(const nsCID &aClass,
     if (contractID) {
         rv = HashContractID(contractID, aContractIDLen, entry);
         if (NS_FAILED(rv)) {
-            Log(("\t\tHashContractID(%s) FAILED\n", contractID));
+            LogFunc(("HashContractID(%s) FAILED\n", contractID));
             return rv;
         }
     }
@@ -2947,12 +2894,7 @@ nsresult
 nsComponentManagerImpl::UnregisterFactory(const nsCID &aClass,
                                           nsIFactory *aFactory)
 {
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: UnregisterFactory(%s)", buf));
-    if (buf)
-        PR_Free(buf);
-#endif
+    Log(("nsComponentManager: UnregisterFactory(%RTuuid)\n", &aClass));
     nsFactoryEntry *old;
 
     // first delete all contract id entries that are registered with this cid.
@@ -2969,8 +2911,7 @@ nsComponentManagerImpl::UnregisterFactory(const nsCID &aClass,
         rv = NS_OK;
     }
 
-    Log(("\t\tUnregisterFactory() %s",
-         NS_SUCCEEDED(rv) ? "succeeded" : "FAILED"));
+    LogFunc(("returns %Rhrc\n", rv));
     return rv;
 }
 
@@ -2978,13 +2919,7 @@ nsresult
 nsComponentManagerImpl::UnregisterComponent(const nsCID &aClass,
                                             const char *registryName)
 {
-#ifdef LOG_ENABLED
-    char *buf = aClass.ToString();
-    Log(("nsComponentManager: UnregisterComponent(%s)", buf));
-    if (buf)
-        PR_Free(buf);
-#endif
-
+    Log(("nsComponentManager: UnregisterComponent(%RTuuid)\n", &aClass));
     NS_ENSURE_ARG_POINTER(registryName);
     nsFactoryEntry *old;
 
@@ -2999,7 +2934,7 @@ nsComponentManagerImpl::UnregisterComponent(const nsCID &aClass,
         PL_DHashTableOperate(&mFactories, &aClass, PL_DHASH_REMOVE);
     }
 
-    Log(("nsComponentManager: Factory unregister(%s) succeeded.", registryName));
+    Log(("nsComponentManager: Factory unregister(%s) succeeded.\n", registryName));
     return NS_OK;
 }
 
@@ -3028,7 +2963,7 @@ nsComponentManagerImpl::UnloadLibraries(nsIServiceManager *serviceMgr, PRInt32 a
 
     nsAutoMonitor mon(mMon);
 
-    Log(("nsComponentManager: Unloading Libraries."));
+    Log(("nsComponentManager: Unloading Libraries.\n"));
 
     // UnloadAll the loaders
     /* iterate over all known loaders and ask them to autoregister. */
@@ -3504,7 +3439,10 @@ nsComponentManagerImpl::HasFileChanged(nsIFile *file, const char *loaderString, 
     nsXPIDLCString registryName;
     nsresult rv = RegistryLocationForSpec(file, getter_Copies(registryName));
     if (NS_FAILED(rv))
+    {
+        Log(("nsComponentManagerImpl::HasFileChanged: failed rv=%#x\n", rv));
         return rv;
+    }
 
     nsCStringKey key(registryName);
     AutoRegEntry* entry = (AutoRegEntry*)mAutoRegEntries.Get(&key);
@@ -3683,9 +3621,9 @@ NS_GetServiceManager(nsIServiceManager* *result)
         // and actually the attempt would lead to nested calls to
         // xptiInterfaceInfoManager::BuildFileSearchPath, which it detects
         // as unsafe in debug builds. Just fail, no real problem.
-#ifdef DEBUG
+# ifdef DEBUG
         printf("NS_GetServiceManager: no current instance, suppressed XPCOM initialization!\n");
-#endif
+# endif
         rv = NS_ERROR_SERVICE_NOT_AVAILABLE;
 #else /* !VBOX */
         // XPCOM needs initialization.

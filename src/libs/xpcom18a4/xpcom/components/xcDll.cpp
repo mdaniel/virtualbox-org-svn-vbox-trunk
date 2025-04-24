@@ -65,6 +65,8 @@
 
 #include "nsNativeComponentLoader.h"
 #include "nsMemory.h"
+#include <VBox/log.h>
+
 
 nsDll::nsDll(nsIFile *dllSpec, nsNativeComponentLoader *loader)
     : m_dllSpec(do_QueryInterface(dllSpec)),
@@ -115,6 +117,7 @@ nsDll::HasChanged()
     nsresult rv = m_dllSpec->GetLastModifiedTime(&currentDate);
     if (NS_FAILED(rv))
         return PR_TRUE;
+    Log2(("nsDll::HasChanged: currentDate=%RI64\n", currentDate));
     PRBool changed = PR_TRUE;
     manager->HasFileChanged(m_dllSpec, nsnull, currentDate, &changed);
     return changed;

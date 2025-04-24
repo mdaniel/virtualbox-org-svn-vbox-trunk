@@ -3637,7 +3637,7 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_Extension_S_Install] = new UIActionSimpleManagerExtensionPerformInstall(this);
     m_pool[UIActionIndexMN_M_Extension_S_Uninstall] = new UIActionSimpleManagerExtensionPerformUninstall(this);
 
-    /* Virtual Medium Manager actions: */
+    /* Virtual Media Manager actions: */
     m_pool[UIActionIndexMN_M_MediumWindow] = new UIActionMenuManagerMedium(this);
     m_pool[UIActionIndexMN_M_Medium] = new UIActionMenuManagerMedium(this);
     m_pool[UIActionIndexMN_M_Medium_S_Add] = new UIActionMenuManagerMediumPerformAdd(this);

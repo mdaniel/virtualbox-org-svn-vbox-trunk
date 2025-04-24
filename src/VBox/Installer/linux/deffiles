@@ -35,6 +35,7 @@
 # wrong with an installation...
 
 DEFAULT_FILE_NAMES=" \
+    .autoreg \
     VBoxDD.so \
     VBoxDD2.so \
     VBoxDTrace \

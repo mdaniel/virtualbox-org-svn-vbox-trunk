@@ -309,6 +309,10 @@ if [ "$ACTION" = "install" ]; then
     test -e $INSTALLATION_DIR/VBoxNetAdpCtl && chmod 4511 $INSTALLATION_DIR/VBoxNetAdpCtl
     test -e $INSTALLATION_DIR/VBoxVolInfo && chmod 4511 $INSTALLATION_DIR/VBoxVolInfo
 
+    # Make sure the .autoreg file exists and has the current date so that
+    # the user's compreg.dat files are updated.
+    touch "$INSTALLATION_DIR/.autoreg"
+
     # Write the configuration.  Needs to be done before the vboxdrv service is
     # started.
     echo "# VirtualBox installation directory" > $CONFIG_DIR/$CONFIG

@@ -387,7 +387,7 @@ VBOX_DESKTOP_ICONS = \
 #
 # All the bin files that goes into the archives.
 #
-VBOX_LNX_ARCH_FILES := $(VBOX_LNX_STRIP_BIN) $(VBOX_LNX_STRIP_OBJ) $(VBOX_LNX_NO_STRIP) src
+VBOX_LNX_ARCH_FILES := $(VBOX_LNX_STRIP_BIN) $(VBOX_LNX_STRIP_OBJ) $(VBOX_LNX_NO_STRIP) src .autoreg
 
 # Cleanup of the files we copy/symlink from bin.
 OTHER_CLEAN += $(addprefix $(VBOX_LNX_INST_OUT_DIR)/archive/,$(filter-out src,$(VBOX_LNX_ARCH_FILES)) src/vboxhost) \

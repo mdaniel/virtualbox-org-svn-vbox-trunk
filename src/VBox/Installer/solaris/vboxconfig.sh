@@ -1347,6 +1347,9 @@ postinstall()
 {
     infoprint "Detected Solaris $HOST_OS_MAJORVERSION Version $HOST_OS_MINORVERSION"
 
+    # Ensure XPCOM components are re-registered properly on first use.
+    touch "$VBOX_INSTALL_PATH/.autoreg"
+
     infoprint "Loading VirtualBox kernel modules..."
     install_drivers
 

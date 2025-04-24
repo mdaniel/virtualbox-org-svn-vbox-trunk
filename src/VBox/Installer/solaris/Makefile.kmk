@@ -285,7 +285,8 @@ SOLARIS_COMMON.MODE    := 0644
 SOLARIS_COMMON.SRC     := $(PATH_STAGE_BIN)
 SOLARIS_COMMON.DST     := $(VBOX_PATH_SI_SCRATCH_PKG)/opt/VirtualBox
 SOLARIS_COMMON = \
-	LICENSE
+	LICENSE \
+	.autoreg
 
 ## @def SOLARIS_COMMON_EXES
 # List of executable script (and VBoxISAExec) files that are copied directly from INST_BIN to /opt/VirtualBox/.

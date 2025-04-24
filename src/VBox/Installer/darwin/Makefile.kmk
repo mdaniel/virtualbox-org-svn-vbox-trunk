@@ -782,6 +782,8 @@ endif
 	$(foreach f,$(VBOX_DI_VBAPP_MISC_FILES) \
 		,$(INSTALL) -m 0644 $(VBOX_PATH_DIST)/VirtualBox.app/Contents/$(f)              $(VBOX_PATH_VBOX_APP_TMP)/Contents/$(f)$(NLTAB) )
 	$(INSTALL) -m 644 $(VBOX_BRAND_LICENSE_TXT)                                             $(VBOX_PATH_VBOX_APP_TMP)/Contents/Resources/LICENSE
+	$(INSTALL) -m 644 $(VBOX_PATH_DIST)/VirtualBox.app/Contents/MacOS/.autoreg		$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS
+	$(TOUCH)										$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/.autoreg
 ifdef VBOX_WITH_DOCS_PACKING
 	$(foreach f,$(VBOX_ADD_MANUALS) \
 		,$(INSTALL) -m 0644 $(f) $(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/$(NLTAB))

@@ -1807,40 +1807,35 @@ void UIChooserModel::unregisterLocalMachines(const QList<CMachine> &machines)
 {
     /* Confirm machine removal: */
     const int iResultCode = msgCenter().confirmMachineRemoval(machines);
-    if (iResultCode == AlertButton_Cancel)
+    if (iResultCode & AlertButton_Cancel)
         return;
 
     /* For every selected machine: */
     foreach (CMachine comMachine, machines)
     {
-        if (iResultCode == AlertButton_Choice1)
+        /* Unregister machine first: */
+        CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
+        if (!comMachine.isOk())
         {
-            /* Unregister machine first: */
-            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
-            if (!comMachine.isOk())
-            {
-                UINotificationMessage::cannotRemoveMachine(comMachine);
-                continue;
-            }
-            /* Removing machine: */
-            UINotificationProgressMachineMediaRemove *pNotification = new UINotificationProgressMachineMediaRemove(comMachine, media);
+            UINotificationMessage::cannotRemoveMachine(comMachine);
+            continue;
+        }
+
+        /* Now remove machine fully if requested: */
+        if (iResultCode & AlertOption_CheckBox)
+        {
+            /* Removing machine fully (together with config file and all the media): */
+            UINotificationProgressMachineMediaRemove *pNotification =
+                new UINotificationProgressMachineMediaRemove(comMachine, media);
             gpNotificationCenter->append(pNotification);
         }
-        else if (iResultCode == AlertButton_Choice2 || iResultCode == AlertButton_Ok)
+        /* Or just close the media if exists: */
+        else
         {
-            /* Unregister machine first: */
-            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
-            if (!comMachine.isOk())
-            {
-                UINotificationMessage::cannotRemoveMachine(comMachine);
-                continue;
-            }
-            /* Finally close all media, deliberately ignoring errors: */
+            /* Just close all the media (deliberately ignoring errors): */
             foreach (CMedium comMedium, media)
-            {
                 if (!comMedium.isNull())
                     comMedium.Close();
-            }
         }
     }
 }

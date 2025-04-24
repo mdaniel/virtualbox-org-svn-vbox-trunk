@@ -1005,8 +1005,8 @@ void UIMessageCenter::cannotSetGroups(const CMachine &machine) const
 bool UIMessageCenter::confirmMachineItemRemoval(const QStringList &names) const
 {
     return questionBinary(0, MessageType_Question,
-                          tr("<p>You are about to remove following virtual machine items from the machine list:</p>"
-                             "<p><b>%1</b></p><p>Do you wish to proceed?</p>")
+                          tr("<p>Remove these virtual machine items from the machine list?</p>"
+                             "<p><b>%1</b></p>")
                              .arg(names.join(", ")),
                           0 /* auto-confirm id */,
                           tr("Remove") /* ok button text */,
@@ -1019,7 +1019,7 @@ int UIMessageCenter::confirmMachineRemoval(const QList<CMachine> &machines) cons
     /* Enumerate the machines: */
     int cInacessibleMachineCount = 0;
     bool fMachineWithHardDiskPresent = false;
-    QString strMachineNames;
+    QStringList machineNames;
     foreach (const CMachine &machine, machines)
     {
         /* Prepare machine name: */
@@ -1054,27 +1054,19 @@ int UIMessageCenter::confirmMachineRemoval(const QList<CMachine> &machines) cons
             /* Increment inacessible machine count: */
             ++cInacessibleMachineCount;
         }
-        /* Append machine name to the full name string: */
-        strMachineNames += QString(strMachineNames.isEmpty() ? "<b>%1</b>" : ", <b>%1</b>").arg(strMachineName);
+        /* Append machine name: */
+        machineNames << strMachineName;
     }
 
     /* Prepare message text: */
-    QString strText = cInacessibleMachineCount == machines.size() ?
-                      tr("<p>You are about to remove following inaccessible virtual machines from the machine list:</p>"
-                         "<p>%1</p>"
-                         "<p>Do you wish to proceed?</p>")
-                         .arg(strMachineNames) :
-                      fMachineWithHardDiskPresent ?
-                      tr("<p>You are about to remove following virtual machines from the machine list:</p>"
-                         "<p>%1</p>"
-                         "<p>Would you like to delete the files containing the virtual machine from your hard disk as well? "
-                         "Doing this will also remove the files containing the machine's virtual hard disks "
-                         "if they are not in use by another machine.</p>")
-                         .arg(strMachineNames) :
-                      tr("<p>You are about to remove following virtual machines from the machine list:</p>"
-                         "<p>%1</p>"
-                         "<p>Would you like to delete the files containing the virtual machine from your hard disk as well?</p>")
-                         .arg(strMachineNames);
+    const QString strText = tr("<p>Remove these virtual machines from the machine list?</p>"
+                               "<p><b>%1</b></p>")
+                               .arg(machineNames.join(", "));
+
+    /* Prepare option text: */
+    const QString strOption = fMachineWithHardDiskPresent
+                            ? tr("Delete the virtual machine files and virtual hard disks.")
+                            : tr("Delete the virtual machine files.");
 
     /* Prepare message itself: */
     return cInacessibleMachineCount == machines.size() ?
@@ -1085,14 +1077,13 @@ int UIMessageCenter::confirmMachineRemoval(const QList<CMachine> &machines) cons
                    AlertButton_Cancel | AlertButtonOption_Default | AlertButtonOption_Escape,
                    0,
                    tr("Remove")) :
-           message(0, MessageType_Question,
-                   strText, QString(),
-                   0 /* auto-confirm id */,
-                   AlertButton_Choice1,
-                   AlertButton_Choice2,
-                   AlertButton_Cancel | AlertButtonOption_Default | AlertButtonOption_Escape,
-                   tr("Delete all files"),
-                   tr("Remove only"));
+           messageWithOption(0, MessageType_Question,
+                             strText, strOption,
+                             false /* default option value */,
+                             AlertButton_Ok,
+                             AlertButton_Cancel | AlertButtonOption_Default | AlertButtonOption_Escape,
+                             0,
+                             tr("Remove"));
 }
 
 int UIMessageCenter::confirmCloudMachineRemoval(const QList<CCloudMachine> &machines) const

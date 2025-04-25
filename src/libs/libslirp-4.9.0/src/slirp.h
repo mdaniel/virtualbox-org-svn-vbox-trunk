@@ -4,12 +4,8 @@
 
 #ifdef _WIN32
 
-#ifndef VBOX
-/* as defined in sdkddkver.h */
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0601 /* Windows 7 */
-#endif
-#endif
+#include "winver.h"
+
 /* reduces the number of implicitly included headers */
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -20,6 +16,11 @@
 #include <ws2tcpip.h>
 #include <sys/timeb.h>
 #include <iphlpapi.h>
+
+/* Paranoia includes: */
+#include <errno.h>
+#include <stdbool.h>
+#include <io.h>
 
 #else
 #define O_BINARY 0
@@ -261,9 +262,9 @@ int translate_dnssearch(Slirp *s, const char **names);
 
 /* cksum.c */
 /* Compute the checksum of the mbuf */
-int cksum(struct mbuf *m, int len);
+uint16_t cksum(struct mbuf *m, size_t len);
 /* Compute the checksum of the mbuf which contains an IPv6 packet */
-int ip6_cksum(struct mbuf *m);
+uint16_t ip6_cksum(struct mbuf *m);
 
 /* if.c */
 /* Called from slirp_new */
@@ -389,5 +390,11 @@ void slirp_send_packet_all(Slirp *slirp, const void *buf, size_t len);
 
 /* Create a new timer, i.e. call the application timer_new callback */
 void *slirp_timer_new(Slirp *slirp, SlirpTimerId id, void *cb_opaque);
+
+/* Call slirp->cb->register_poll_socket (or register_poll_fd for compatibility) */
+void slirp_register_poll_socket(struct socket *so);
+
+/* Call slirp->cb->unregister_poll_socket (or unregister_poll_fd for compatibility) */
+void slirp_unregister_poll_socket(struct socket *so);
 
 #endif

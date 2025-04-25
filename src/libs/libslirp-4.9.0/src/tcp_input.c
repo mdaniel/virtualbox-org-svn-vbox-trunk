@@ -640,7 +640,7 @@ findso:
         if ((tcp_fconnect(so, so->so_ffamily) == -1) && (errno != EAGAIN) &&
             (errno != EINPROGRESS) && (errno != EWOULDBLOCK)) {
             uint8_t code;
-            DEBUG_MISC(" tcp fconnect errno = %d-%s", errno, strerror(errno));
+            DEBUG_MISC(" tcp fconnect errno = %d-%s", errno, g_strerror(errno));
             if (errno == ECONNREFUSED) {
                 /* ACK the SYN, send RST to refuse the connection */
                 tcp_respond(tp, ti, m, ti->ti_seq + 1, (tcp_seq)0,
@@ -677,7 +677,7 @@ findso:
                     m->m_len -= sizeof(struct tcpiphdr) - sizeof(struct ip) -
                                 sizeof(struct tcphdr);
                     *ip = save_ip;
-                    icmp_send_error(m, ICMP_UNREACH, code, 0, strerror(errno));
+                    icmp_send_error(m, ICMP_UNREACH, code, 0, g_strerror(errno));
                     break;
                 case AF_INET6:
                     m->m_data += sizeof(struct tcpiphdr) -

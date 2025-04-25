@@ -59,7 +59,6 @@ VBox-libslirp_SOURCES = \
 	src/ip_output.c \
 	src/mbuf.c \
 	src/misc.c \
-	src/nathandletable.c \
 	src/ncsi.c \
 	src/ndp_table.c \
 	src/sbuf.c \
@@ -83,9 +82,9 @@ $$(VBox-libslirp_0_OUTDIR)/libslirp-version.h: $(PATH_SUB_CURRENT)/src/libslirp-
 	$(call MSG_GENERATE,,$@)
 	$(SED) \
 		-e 's/@SLIRP_MAJOR_VERSION@/4/g' \
-		-e 's/@SLIRP_MINOR_VERSION@/7/g' \
+		-e 's/@SLIRP_MINOR_VERSION@/9/g' \
 		-e 's/@SLIRP_MICRO_VERSION@/0/g' \
-		-e 's/@SLIRP_VERSION_STRING@/"4.7.0.51-0dd7"/g' \
+		-e 's/@SLIRP_VERSION_STRING@/"4.9.0.51-0dd7"/g' \
                --output "$@" $<
 
 include $(FILE_KBUILD_SUB_FOOTER)

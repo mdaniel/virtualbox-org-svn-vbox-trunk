@@ -100,8 +100,8 @@ void udp6_input(struct mbuf *m)
     if (so == NULL) {
         /* If there's no socket for this packet, create one. */
         so = socreate(slirp, IPPROTO_UDP);
-        if (udp_attach(so, AF_INET6) == -1) {
-            DEBUG_MISC(" udp6_attach errno = %d-%s", errno, strerror(errno));
+        if (not_valid_socket(udp_attach(so, AF_INET6))) {
+            DEBUG_MISC(" udp6_attach errno = %d-%s", errno, g_strerror(errno));
             sofree(so);
             goto bad;
         }
@@ -132,7 +132,7 @@ void udp6_input(struct mbuf *m)
         icmp6_send_error(m, ICMP6_TIMXCEED, ICMP6_TIMXCEED_INTRANS);
         goto bad;
     }
-    setsockopt(so->s, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &hop_limit, sizeof(hop_limit));
+    setsockopt(so->s, IPPROTO_IPV6, IPV6_UNICAST_HOPS, (const void *) &hop_limit, sizeof(hop_limit));
 
     /*
      * Now we sendto() the packet.
@@ -141,7 +141,7 @@ void udp6_input(struct mbuf *m)
         m->m_len += iphlen;
         m->m_data -= iphlen;
         *ip = save_ip;
-        DEBUG_MISC("udp tx errno = %d-%s", errno, strerror(errno));
+        DEBUG_MISC("udp tx errno = %d-%s", errno, g_strerror(errno));
         icmp6_send_error(m, ICMP6_UNREACH, ICMP6_UNREACH_NO_ROUTE);
         goto bad;
     }
@@ -159,8 +159,8 @@ bad:
     m_free(m);
 }
 
-int udp6_output(struct socket *so, struct mbuf *m, struct sockaddr_in6 *saddr,
-                struct sockaddr_in6 *daddr)
+int udp6_output(struct socket *so, struct mbuf *m, const struct sockaddr_in6 *saddr,
+                const struct sockaddr_in6 *daddr)
 {
     Slirp *slirp = m->slirp;
     M_DUP_DEBUG(slirp, m, 0, sizeof(struct ip6) + sizeof(struct udphdr));

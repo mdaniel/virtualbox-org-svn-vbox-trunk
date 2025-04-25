@@ -12,3 +12,6 @@ option('fuzz-reproduce', type : 'boolean', value : 'false',
 
 option('static', type : 'boolean', value : 'false',
        description : 'build static binary, only for debugging, otherwise rather use --default-library static')
+
+option('target_winver', type : 'string', value: '',
+       description : 'Target Windows version (default is Windows 7/0x0601)')

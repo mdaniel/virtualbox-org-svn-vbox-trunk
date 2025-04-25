@@ -36,6 +36,22 @@ build-usan:
     - ninja -C build
     - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
+fuzz:
+  parallel:
+    matrix:
+      - TARGET: [arp, ip-header, udp, udp-h, tftp, dhcp, icmp, tcp, tcp-h, ndp, ip6-header, udp6, udp6-h, tftp6, icmp6, tcp6, tcp6-h]
+  script:
+    - CC=clang CXX=clang++ meson build -Dllvm-fuzz=true || (cat build/meson-logs/meson-log.txt && exit 1)
+    - ninja -C build
+    - build/fuzzing/fuzz-$TARGET -seed=1234 -runs=1000000 fuzzing/IN_$TARGET
+  artifacts:
+    when: on_failure
+    paths:
+      - crash-*
+      - leak-*
+      - oom-*
+      - timeout-*
+
 build-mingw64:
   script:
     - (mkdir buildw && cd buildw && mingw64-meson --werror) || (cat buildw/meson-logs/meson-log.txt && exit 1)

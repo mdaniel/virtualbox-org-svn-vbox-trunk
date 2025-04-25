@@ -270,7 +270,7 @@ typedef DRVNAT *PDRVNAT;
 static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho);
 static int  drvNATTimersAdjustTimeoutDown(PDRVNAT pThis, int cMsTimeout);
 static void drvNATTimersRunExpired(PDRVNAT pThis);
-static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque);
+static DECLCALLBACK(int) drvNAT_AddPollCb(slirp_os_socket hFd, int iEvents, void *opaque);
 static DECLCALLBACK(int64_t) drvNAT_ClockGetNsCb(void *opaque);
 static DECLCALLBACK(int) drvNAT_GetREventsCb(int idx, void *opaque);
 static DECLCALLBACK(int) drvNATNotifyApplyPortForwardCommand(PDRVNAT pThis, bool fRemove, bool fUdp, const char *pszHostIp,
@@ -770,8 +770,8 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
          */
         pThis->pNATState->nsock = 1;
 
-        int cMsTimeout = DRVNAT_DEFAULT_TIMEOUT;
-        slirp_pollfds_fill(pThis->pNATState->pSlirp, &cMsTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
+        uint32_t cMsTimeout = DRVNAT_DEFAULT_TIMEOUT;
+        slirp_pollfds_fill_socket(pThis->pNATState->pSlirp, &cMsTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
         cMsTimeout = drvNATTimersAdjustTimeoutDown(pThis, cMsTimeout);
 
 #ifdef RT_OS_WINDOWS
@@ -1383,19 +1383,27 @@ static DECLCALLBACK(void) drvNAT_NotifyCb(void *opaque)
 /**
  * Registers poll. Unused function (other than logging).
  */
-static DECLCALLBACK(void) drvNAT_RegisterPoll(int fd, void *opaque)
+static DECLCALLBACK(void) drvNAT_RegisterPoll(slirp_os_socket socket, void *opaque)
 {
-    RT_NOREF(fd, opaque);
-    Log4(("Poll registered: fd=%d\n", fd));
+    RT_NOREF(socket, opaque);
+#ifdef RT_OS_WINDOWS
+    Log4(("Poll registered: fd=%p\n", socket));
+#else
+    Log4(("Poll registered: fd=%d\n", socket));
+#endif
 }
 
 /**
  * Unregisters poll. Unused function (other than logging).
  */
-static DECLCALLBACK(void) drvNAT_UnregisterPoll(int fd, void *opaque)
+static DECLCALLBACK(void) drvNAT_UnregisterPoll(slirp_os_socket socket, void *opaque)
 {
-    RT_NOREF(fd, opaque);
-    Log4(("Poll unregistered: fd=%d\n", fd));
+    RT_NOREF(socket, opaque);
+#ifdef RT_OS_WINDOWS
+    Log4(("Poll unregistered: fd=%p\n", socket));
+#else
+    Log4(("Poll unregistered: fd=%d\n", socket));
+#endif
 }
 
 /**
@@ -1410,7 +1418,7 @@ static DECLCALLBACK(void) drvNAT_UnregisterPoll(int fd, void *opaque)
  *
  * @thread  ?
  */
-static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque)
+static DECLCALLBACK(int) drvNAT_AddPollCb(slirp_os_socket hFd, int iEvents, void *opaque)
 {
     PDRVNAT pThis = (PDRVNAT)opaque;
 
@@ -1429,11 +1437,7 @@ static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque)
 
     unsigned int uIdx = pThis->pNATState->nsock;
     Assert(uIdx < INT_MAX);
-#ifdef RT_OS_WINDOWS
-    pThis->pNATState->polls[uIdx].fd = libslirp_wrap_RTHandleTableLookup(iFd);
-#else
-    pThis->pNATState->polls[uIdx].fd = iFd;
-#endif
+    pThis->pNATState->polls[uIdx].fd = hFd;
     pThis->pNATState->polls[uIdx].events = drvNAT_PollEventSlirpToHost(iEvents);
     pThis->pNATState->polls[uIdx].revents = 0;
     pThis->pNATState->nsock += 1;
@@ -1685,7 +1689,7 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     SlirpConfig slirpCfg = { 0 };
     static SlirpCb slirpCallbacks = { 0 };
 
-    slirpCfg.version = 4;
+    slirpCfg.version = 6;
     slirpCfg.restricted = false;
     slirpCfg.in_enabled = true;
     slirpCfg.vnetwork = vnetwork;
@@ -1730,11 +1734,11 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     slirpCallbacks.timer_new = drvNAT_TimerNewCb;
     slirpCallbacks.timer_free = drvNAT_TimerFreeCb;
     slirpCallbacks.timer_mod = drvNAT_TimerModCb;
-    slirpCallbacks.register_poll_fd = drvNAT_RegisterPoll;
-    slirpCallbacks.unregister_poll_fd = drvNAT_UnregisterPoll;
     slirpCallbacks.notify = drvNAT_NotifyCb;
     slirpCallbacks.init_completed = NULL;
     slirpCallbacks.timer_new_opaque = NULL;
+    slirpCallbacks.register_poll_socket = drvNAT_RegisterPoll;
+    slirpCallbacks.unregister_poll_socket = drvNAT_UnregisterPoll;
 
     /*
      * Initialize Slirp
@@ -1787,25 +1791,6 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     pThis->ahWakeupSockPair[1] = INVALID_SOCKET;
     rc = RTWinSocketPair(AF_INET, SOCK_DGRAM, 0, pThis->ahWakeupSockPair);
     AssertRCReturn(rc, rc);
-
-    uint32_t hReadFd = 0;
-    uint32_t hWriteFd = 0;
-
-    rc = libslirp_wrap_RTHandleTableAlloc(pThis->ahWakeupSockPair[0], &hReadFd);
-    AssertRCReturn(rc, rc);
-
-    rc = libslirp_wrap_RTHandleTableAlloc(pThis->ahWakeupSockPair[1], &hWriteFd);
-    AssertRCReturn(rc, rc);
-
-    Log4Func(("Created wakeup socket pair.\nSocket details - read:%d, write%d\n \
-               Handle details - read:%d, write%d\n", pThis->ahWakeupSockPair[0],
-               pThis->ahWakeupSockPair[1], hReadFd, hWriteFd));
-
-    /**
-     * @todo r=jack: should probably use the internal handles up in the io
-     * thread. Will fix (or just update libslirp and this translation stuff
-     * might go away).
-     */
 #else
     /* Create the control pipe. */
     rc = RTPipeCreate(&pThis->hPipeRead, &pThis->hPipeWrite, 0 /*fFlags*/);

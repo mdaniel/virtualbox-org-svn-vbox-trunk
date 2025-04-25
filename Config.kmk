@@ -4181,9 +4181,11 @@ ifdef VBOX_SIGNING_MODE
  VBOX_CCS_CLIENT_JAR := $(firstword $(rsort \
  			$(wildcard $(KBUILD_DEVTOOLS)/common/ccs/v*/Client.jar)) \
  		$(KBUILD_DEVTOOLS)/common/ccs/notfound/Client.jar )
- VBOX_CCS_USER       ?= virtualbox_grp
- VBOX_CCS_GLOBAL_UID ?= non-of-your-business
- VBOX_CCS_SERVER     ?= UK
+ VBOX_CCS_USER           ?= virtualbox_grp
+ VBOX_CCS_GLOBAL_UID     ?= non-of-your-business
+ VBOX_CCS_SERVER.solaris ?= SCA
+ VBOX_CCS_SERVER.win     ?= PHX
+ VBOX_CCS_SERVER.darwin  ?= SCA
  ##
  # Corp Code Signing command line.
  # @param  $1  Signing method: solaris_elf, solaris_pkg, driver (microsoft), ...
@@ -4192,7 +4194,7 @@ ifdef VBOX_SIGNING_MODE
  # @param  $4  Additional options.
  VBOX_CCS_SIGN_CMD    = $(VBOX_RETRY) $(VBOX_JAVA) -Xmx256m -jar "$(VBOX_CCS_CLIENT_JAR)" \
  	sign -user "$(VBOX_CCS_USER)" -global_uid "$(VBOX_CCS_GLOBAL_UID)" \
- 	-job_timeout 90 -server_timeout 75 -server "$(VBOX_CCS_SERVER)" \
+ 	-job_timeout 90 -server_timeout 75 -server "$(VBOX_CCS_SERVER.$(KBUILD_TARGET))" \
  	-sign_method "$1" -file_to_sign "$2" -signed_location "$(if $3,$3,$(call VBOX_DIRX,$2))" $4
 
  ifeq ($(KBUILD_HOST),win)

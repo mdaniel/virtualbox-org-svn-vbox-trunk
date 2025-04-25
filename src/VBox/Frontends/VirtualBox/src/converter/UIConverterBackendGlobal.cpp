@@ -1628,6 +1628,52 @@ UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDes
     return UIExtraDataMetaDefs::DetailsElementOptionTypeDescription_Invalid;
 }
 
+/* QString <= UIColorThemeType: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIColorThemeType &colorThemeType) const
+{
+    QString strResult;
+    switch (colorThemeType)
+    {
+        case UIColorThemeType_Auto:  strResult = QApplication::translate("UICommon", "Follow System Settings", "color theme"); break;
+        case UIColorThemeType_Light: strResult = QApplication::translate("UICommon", "Light", "color theme"); break;
+        case UIColorThemeType_Dark:  strResult = QApplication::translate("UICommon", "Dark", "color theme"); break;
+        default:
+        {
+            AssertMsgFailed(("No text for color theme type=%d", colorThemeType));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* QString <= UIColorThemeType: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIColorThemeType &colorThemeType) const
+{
+    QString strResult;
+    switch (colorThemeType)
+    {
+        case UIColorThemeType_Auto:  break;
+        case UIColorThemeType_Light: strResult = "Light"; break;
+        case UIColorThemeType_Dark:  strResult = "Dark"; break;
+        default:
+        {
+            AssertMsgFailed(("No text for color theme type=%d", colorThemeType));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* UIColorThemeType <= QString: */
+template<> UIColorThemeType SHARED_LIBRARY_STUFF UIConverter::fromInternalString<UIColorThemeType>(const QString &strColorThemeType) const
+{
+    if (strColorThemeType.compare("Light", Qt::CaseInsensitive) == 0)
+        return UIColorThemeType_Light;
+    if (strColorThemeType.compare("Dark", Qt::CaseInsensitive) == 0)
+        return UIColorThemeType_Dark;
+    return UIColorThemeType_Auto;
+}
+
 /* UILaunchMode <= QString: */
 template<> UILaunchMode SHARED_LIBRARY_STUFF UIConverter::fromInternalString<UILaunchMode>(const QString &strDefaultFrontendType) const
 {
@@ -2067,6 +2113,7 @@ template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const Glob
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
         case GlobalSettingsPageType_Proxy:      strResult = "Proxy"; break;
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
+        case GlobalSettingsPageType_Interface:  strResult = "Interface"; break;
         default:
         {
             AssertMsgFailed(("No text for settings page type=%d", globalSettingsPageType));
@@ -2095,6 +2142,8 @@ template<> SHARED_LIBRARY_STUFF GlobalSettingsPageType UIConverter::fromInternal
     if (strGlobalSettingsPageType.compare("Proxy", Qt::CaseInsensitive) == 0)
         return GlobalSettingsPageType_Proxy;
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
+    if (strGlobalSettingsPageType.compare("Interface", Qt::CaseInsensitive) == 0)
+        return GlobalSettingsPageType_Interface;
     return GlobalSettingsPageType_Invalid;
 }
 
@@ -2113,6 +2162,7 @@ template<> SHARED_LIBRARY_STUFF QPixmap UIConverter::toWarningPixmap(const Globa
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
         case GlobalSettingsPageType_Proxy:      return UIIconPool::pixmap(":/proxy_warning_16px.png");
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
+        case GlobalSettingsPageType_Interface:  return UIIconPool::pixmap(":/interface_warning_16px.png");
         default: AssertMsgFailed(("No pixmap for %d", type)); break;
     }
     return QPixmap();

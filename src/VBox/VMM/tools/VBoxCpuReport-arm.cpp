@@ -321,7 +321,7 @@ static int populateSystemRegisters(void)
          * Get the registers for online each CPU in the system, sorting them.
          */
         RTCPUSET  OnlineSet;
-        int const idxLast = RTCpuLastIndex(RTMpGetOnlineSet(&OnlineSet));
+        int const idxLast = RTCpuSetLastIndex(RTMpGetOnlineSet(&OnlineSet));
         for (int idxCpu = 0, iVar = 0; idxCpu <= idxLast; idxCpu++)
             if (RTCpuSetIsMemberByIndex(&OnlineSet, idxCpu))
             {
@@ -517,7 +517,7 @@ static void printSysRegArray(const char *pszNameC, uint32_t cSysRegVals, SUPARMS
                        " * %u CPUs shares this variant: ",
                        pszCpuDesc, iVariation,
                        g_aVariations[iVariation].cCores);
-        int iLast = RTCpuLastIndex(&g_aVariations[iVariation].bmMembers);
+        int iLast = RTCpuSetLastIndex(&g_aVariations[iVariation].bmMembers);
         for (int i = 0, cPrinted = 0; i <= iLast; i++)
             if (RTCpuSetIsMemberByIndex(&g_aVariations[iVariation].bmMembers, i))
                 vbCpuRepPrintf(cPrinted++ == 0 ? "%u" : ", %u", i);

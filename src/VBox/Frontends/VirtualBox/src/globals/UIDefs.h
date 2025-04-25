@@ -33,6 +33,9 @@
 
 /* Qt includes: */
 #include <QStringList>
+#ifdef VBOX_WS_WIN
+# include <QMetaType>
+#endif
 
 /* GUI includes: */
 #include "UILibraryDefs.h"

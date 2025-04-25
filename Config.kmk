@@ -2622,7 +2622,7 @@ endif
 VBOX_OBJCOPY   ?= $(TOOL_$(VBOX_GCC_TOOL)_OBJCOPY)
 
 # Makeself for the linux installers.
-VBOX_MAKESELF  ?= $(KBUILD_DEVTOOLS)/common/makeself/v2.5.0-949b599/makeself.sh
+VBOX_MAKESELF  ?= $(KBUILD_DEVTOOLS)/common/makeself/v2.5.0-949b599-1/makeself.sh
 
 # Microsoft HTML Help Workshop.
 VBOX_PATH_HTML_HELP_WORKSHOP ?= $(KBUILD_DEVTOOLS)/win.x86/HTML_Help_Workshop/v1.3/

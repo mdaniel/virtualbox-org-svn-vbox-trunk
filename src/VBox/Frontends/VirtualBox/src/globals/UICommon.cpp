@@ -149,6 +149,9 @@ UICommon::UICommon(UIType enmType)
 #ifdef VBOX_WS_MAC
     , m_enmMacOSVersion(MacOSXRelease_Old)
 #endif
+#ifdef VBOX_WS_WIN
+    , m_enmWindowsVersion(WindowsRelease_Unknown)
+#endif
 #ifdef VBOX_WS_NIX
     , m_enmWindowManagerType(X11WMType_Unknown)
     , m_fCompositingManagerRunning(false)
@@ -231,6 +234,11 @@ void UICommon::prepare()
         return;
     connect(gpGlobalSession, &UIGlobalSession::sigVBoxSVCAvailabilityChange,
             this, &UICommon::sltHandleVBoxSVCAvailabilityChange);
+
+#ifdef VBOX_WS_WIN
+    /* As we're using gpConverter & hostOperatingSystem(), we'll need everything to be created first: */
+    m_enmWindowsVersion = gpConverter->fromInternalString<WindowsRelease>(hostOperatingSystem());
+#endif
 
     /* Create extra-data manager right after COM init: */
     UIExtraDataManager::create();
@@ -783,6 +791,12 @@ void UICommon::cleanup()
     LogRel(("GUI: UICommon: aboutToQuit request handled!\n"));
 }
 
+QString UICommon::hostOperatingSystem() const
+{
+    const CHost comHost = gpGlobalSession->host();
+    return comHost.GetOperatingSystem();
+}
+
 #ifdef VBOX_WS_MAC
 /* static */
 MacOSXRelease UICommon::determineOsRelease()
@@ -805,12 +819,6 @@ MacOSXRelease UICommon::determineOsRelease()
     return MacOSXRelease_Old;
 }
 #endif /* VBOX_WS_MAC */
-
-QString UICommon::hostOperatingSystem() const
-{
-    const CHost comHost = gpGlobalSession->host();
-    return comHost.GetOperatingSystem();
-}
 
 #if defined(VBOX_WS_MAC)
 // Provided by UICocoaApplication ..
@@ -925,7 +933,8 @@ void UICommon::loadColorTheme()
 #elif defined(VBOX_WS_WIN)
 
     /* For the Dark mode! */
-    if (isInDarkMode())
+    if (   osRelease() < WindowsRelease_11
+        && isInDarkMode())
     {
         qApp->setStyle(QStyleFactory::create("Fusion"));
         QPalette darkPalette;

@@ -108,11 +108,19 @@ public:
 
     /** @name Host OS stuff.
      * @{ */
+        /** Returns the name of the host OS by using IHost::getOperatingSystem. */
+        QString hostOperatingSystem() const;
+
 #ifdef VBOX_WS_MAC
         /** macOS: Returns #MacOSXRelease determined by <i>uname</i> call. */
         static MacOSXRelease determineOsRelease();
         /** macOS: Returns #MacOSXRelease determined during UICommon prepare routine. */
         MacOSXRelease osRelease() const { return m_enmMacOSVersion; }
+#endif
+
+#ifdef VBOX_WS_WIN
+        /** Windows: Returns #WindowsRelease determined during UICommon prepare routine. */
+        WindowsRelease osRelease() const { return m_enmWindowsVersion; }
 #endif
 
 #ifdef VBOX_WS_NIX
@@ -122,8 +130,6 @@ public:
         bool isCompositingManagerRunning() const { return m_fCompositingManagerRunning; }
         /** Returns true if the detected display server type is either xorg or xwayland. */
 #endif
-        /** Returns the name of the host OS by using IHost::getOperatingSystem. */
-        QString hostOperatingSystem() const;
 
 #if defined(VBOX_WS_MAC)
         // Provided by UICocoaApplication ..
@@ -371,6 +377,11 @@ private:
 #ifdef VBOX_WS_MAC
         /** macOS: Holds the #MacOSXRelease determined using <i>uname</i> call. */
         MacOSXRelease  m_enmMacOSVersion;
+#endif
+
+#ifdef VBOX_WS_WIN
+        /** Windows: Holds the #WindowsRelease determined using <i>hostOperatingSystem</i> call. */
+        WindowsRelease  m_enmWindowsVersion;
 #endif
 
 #ifdef VBOX_WS_NIX

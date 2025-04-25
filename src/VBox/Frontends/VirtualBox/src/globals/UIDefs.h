@@ -82,6 +82,16 @@ enum MacOSXRelease
 #endif /* VBOX_WS_MAC */
 
 
+#ifdef VBOX_WS_WIN
+enum WindowsRelease
+{
+    WindowsRelease_Unknown,
+    WindowsRelease_11,
+};
+Q_DECLARE_METATYPE(WindowsRelease);
+#endif /* VBOX_WS_WIN */
+
+
 /** UI types. */
 enum UIType
 {

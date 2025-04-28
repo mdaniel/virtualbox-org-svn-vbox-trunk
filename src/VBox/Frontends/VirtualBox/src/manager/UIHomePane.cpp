@@ -85,12 +85,11 @@ void UIHomePane::sltRetranslateUI()
 {
     /* Translate greetings text: */
     if (m_pLabelGreetings)
-        m_pLabelGreetings->setText(tr("<h3>Welcome to VirtualBox!</h3>"
-                                      "<p>The left part of application window contains global tools and "
-                                      "lists all virtual machines and virtual machine groups on your computer. "
-                                      "You can import, add and create new VMs using corresponding toolbar buttons. "
-                                      "You can popup a tools of currently selected element using corresponding element "
-                                      "button.</p>"
+        m_pLabelGreetings->setText(tr("<h3>Get started with VirtualBox</h3>"
+                                      "<p><a href=#configure#>Configure VirtualBox Manager to work with your computer</a></p>"
+                                      "<p><a href=#create#>Create a new virtual machine (VM)</a></p>"
+                                      "<p><a href=#open#>Open a saved VirtualBox VM</a></p>"
+                                      "<p><a href=#import#>Import a VM from open virtualization or cloud formats</a></p>"
                                       "<p>You can press the <b>%1</b> key to get instant help, or visit "
                                       "<a href=https://www.virtualbox.org>www.virtualbox.org</a> "
                                       "for more information and latest news.</p>")
@@ -115,7 +114,21 @@ void UIHomePane::sltRetranslateUI()
 
 void UIHomePane::sltHandleLinkActivated(const QUrl &urlLink)
 {
-    uiCommon().openURL(urlLink.toString());
+    /* Compose a list of tasks mentioned in the sltRetranslateUI(): */
+    QMap<QString, HomeTask> tasks;
+    tasks["#configure#"] = HomeTask_Configure;
+    tasks["#create#"]    = HomeTask_Create;
+    tasks["#open#"]      = HomeTask_Open;
+    tasks["#import#"]    = HomeTask_Import;
+    tasks["#export#"]    = HomeTask_Export;
+
+    /* Handle known tasks first of all: */
+    const QString strKey = urlLink.url();
+    if (tasks.contains(strKey))
+        emit sigHomeTask(tasks.value(strKey));
+    /* Otherwise throw it to a browser: */
+    else
+        uiCommon().openURL(urlLink.toString());
 }
 
 void UIHomePane::sltHandleButtonClicked(QAbstractButton *pButton)

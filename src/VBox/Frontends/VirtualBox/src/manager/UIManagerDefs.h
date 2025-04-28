@@ -32,6 +32,18 @@
 #endif
 
 
+/** Home tasks. */
+enum HomeTask
+{
+    HomeTask_Invalid,
+    HomeTask_Configure,
+    HomeTask_Create,
+    HomeTask_Open,
+    HomeTask_Import,
+    HomeTask_Export,
+};
+
+
 /** Virtual machine item types. */
 enum UIVirtualMachineItemType
 {

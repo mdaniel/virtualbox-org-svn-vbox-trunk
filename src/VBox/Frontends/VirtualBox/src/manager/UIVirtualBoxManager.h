@@ -150,6 +150,9 @@ private slots:
         /** Handles signal about Machine Tool type change.  */
         void sltHandleMachineToolTypeChange();
 
+        /** Handles execute home @a enmTask request. */
+        void sltExecuteHomeTask(HomeTask enmTask);
+
         /** Handles create medium request. */
         void sltCreateMedium();
         /** Handles copy medium request. */

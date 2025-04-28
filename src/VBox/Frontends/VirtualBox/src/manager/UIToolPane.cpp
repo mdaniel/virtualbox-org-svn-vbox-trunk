@@ -132,6 +132,7 @@ void UIToolPane::openTool(UIToolType enmType)
                 {
                     /* Configure pane: */
                     m_pPaneHome->setProperty("ToolType", QVariant::fromValue(UIToolType_Home));
+                    connect(m_pPaneHome, &UIHomePane::sigHomeTask, this, &UIToolPane::sigHomeTask);
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneHome);

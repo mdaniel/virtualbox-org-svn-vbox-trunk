@@ -37,6 +37,7 @@
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QIToolBar;
@@ -79,6 +80,12 @@ signals:
         void sigToolTypeChangeGlobal();
         /** Notifies about Machine Tool type change. */
         void sigToolTypeChangeMachine();
+    /** @} */
+
+    /** @name Tools / Home pane stuff.
+      * @{ */
+        /** Notify listeners about home @a enmTask was requested. */
+        void sigHomeTask(HomeTask enmTask);
     /** @} */
 
     /** @name Tools / Media pane stuff.

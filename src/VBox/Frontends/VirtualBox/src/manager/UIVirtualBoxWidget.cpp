@@ -430,6 +430,8 @@ void UIVirtualBoxWidget::prepareConnections()
     connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
+    connect(globalToolPane(), &UIToolPane::sigHomeTask,
+            this, &UIVirtualBoxWidget::sigHomeTask);
     connect(globalToolPane(), &UIToolPane::sigCreateMedium,
             this, &UIVirtualBoxWidget::sigCreateMedium);
     connect(globalToolPane(), &UIToolPane::sigCopyMedium,
@@ -677,6 +679,8 @@ void UIVirtualBoxWidget::cleanupConnections()
     disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
+    disconnect(globalToolPane(), &UIToolPane::sigHomeTask,
+               this, &UIVirtualBoxWidget::sigHomeTask);
     disconnect(globalToolPane(), &UIToolPane::sigCreateMedium,
                this, &UIVirtualBoxWidget::sigCreateMedium);
     disconnect(globalToolPane(), &UIToolPane::sigCopyMedium,

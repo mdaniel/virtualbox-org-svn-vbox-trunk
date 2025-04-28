@@ -129,6 +129,7 @@ QIRichTextLabel::QIRichTextLabel(QWidget *pParent)
         {
             /* Configure text-browser: */
             m_pTextBrowser->setReadOnly(true);
+            m_pTextBrowser->setOpenLinks(false);
             m_pTextBrowser->setFocusPolicy(Qt::ClickFocus);
             m_pTextBrowser->setFrameShape(QFrame::NoFrame);
             m_pTextBrowser->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

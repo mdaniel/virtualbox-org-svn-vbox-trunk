@@ -38,6 +38,7 @@
 
 /* GUI includes: */
 #include "UILibraryDefs.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QAbstractButton;
@@ -48,6 +49,11 @@ class QIRichTextLabel;
 class UIHomePane : public QWidget
 {
     Q_OBJECT;
+
+signals:
+
+    /** Notify listeners about home @a enmTask was requested. */
+    void sigHomeTask(HomeTask enmTask);
 
 public:
 

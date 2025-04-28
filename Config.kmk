@@ -4606,7 +4606,7 @@ ifdef VBOX_SIGNING_MODE
   # @param 3  The directory to put the notarized file in. Defaults to $(dir $1).
   VBOX_CCS_NOTARIZE_CMD = $(VBOX_RETRY) $(VBOX_JAVA) -jar "$(VBOX_CCS_CLIENT_JAR)" \
   	mac_notarize -user "$(VBOX_CCS_USER)" -global_uid "$(VBOX_CCS_GLOBAL_UID)" \
-  	-job_timeout 90 -server_timeout 75 -server "$(VBOX_CCS_SERVER)" \
+  	-job_timeout 90 -server_timeout 75 -server "$(VBOX_CCS_SERVER.$(KBUILD_TARGET))" \
   	-file_to_notarize "$1" -bundle_id "$2" -download_location "$(if $3,$3,$(call VBOX_DIRX,$1))"
 
   ## Sign an application bundle, framework or kernel extension.

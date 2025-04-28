@@ -273,6 +273,8 @@ void UIChooser::prepareConnections()
             this, &UIChooser::sigSelectionChanged);
     connect(model(), &UIChooserModel::sigSelectionInvalidated,
             this, &UIChooser::sigSelectionInvalidated);
+    connect(model(), &UIChooserModel::sigNavigationListChanged,
+            this, &UIChooser::sigNavigationListChanged);
     connect(model(), &UIChooserModel::sigToggleStarted,
             this, &UIChooser::sigToggleStarted);
     connect(model(), &UIChooserModel::sigToggleFinished,
@@ -321,6 +323,8 @@ void UIChooser::cleanupConnections()
                this, &UIChooser::sigSelectionChanged);
     disconnect(model(), &UIChooserModel::sigSelectionInvalidated,
                this, &UIChooser::sigSelectionInvalidated);
+    disconnect(model(), &UIChooserModel::sigNavigationListChanged,
+               this, &UIChooser::sigNavigationListChanged);
     disconnect(model(), &UIChooserModel::sigToggleStarted,
                this, &UIChooser::sigToggleStarted);
     disconnect(model(), &UIChooserModel::sigToggleFinished,

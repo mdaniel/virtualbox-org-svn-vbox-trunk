@@ -70,6 +70,9 @@ signals:
         /** Notifies listeners about selection invalidated. */
         void sigSelectionInvalidated();
 
+        /** Notifies listeners about navigation list change. */
+        void sigNavigationListChanged();
+
         /** Notifies listeners about group toggling started. */
         void sigToggleStarted();
         /** Notifies listeners about group toggling finished. */

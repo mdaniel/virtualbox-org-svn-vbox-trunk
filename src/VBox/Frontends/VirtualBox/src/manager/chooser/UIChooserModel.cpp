@@ -478,6 +478,7 @@ void UIChooserModel::updateNavigationItemList()
 {
     m_navigationItems.clear();
     m_navigationItems = createNavigationItemList(root());
+    emit sigNavigationListChanged();
 }
 
 UIChooserItem *UIChooserModel::searchItemByDefinition(const QString &strDefinition) const

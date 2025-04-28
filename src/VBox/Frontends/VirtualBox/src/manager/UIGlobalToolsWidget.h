@@ -123,8 +123,8 @@ private slots:
 
     /** @name Chooser pane stuff.
       * @{ */
-        /** Handles Chooser-pane selection change. */
-        void sltHandleChooserPaneSelectionChange();
+        /** Handles Chooser-pane navigation list change. */
+        void sltHandleChooserPaneNavigationListChange();
 
         /** Handles state change for cloud profile with certain @a strProviderShortName and @a strProfileName. */
         void sltHandleCloudProfileStateChange(const QString &strProviderShortName,

@@ -46,6 +46,7 @@ class UIDetails;
 class UIErrorPane;
 class UIExtensionPackManagerWidget;
 class UIFileManager;
+class UIHomePane;
 class UIMachineToolsWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
@@ -55,7 +56,6 @@ class UIVMActivityToolWidget;
 class UIVMLogViewerWidget;
 class UIVirtualMachineItem;
 class UIVirtualMachineItemCloud;
-class UIHomePane;
 
 /** QWidget subclass representing container for Global tool panes. */
 class UIToolPane : public QWidget
@@ -68,6 +68,14 @@ signals:
       * @{ */
         /** Notifies listeners about request to detach pane with tool type @enmToolType. */
         void sigDetachToolPane(UIToolType enmToolType);
+
+        /** Notifies listeners about medium creation procedure was requested. */
+        void sigCreateMedium();
+        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+        void sigCopyMedium(const QUuid &uMediumId);
+
+        /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
+        void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
     /** @} */
 
     /** @name Machine tool stuff.
@@ -84,17 +92,6 @@ signals:
 
         /** Notifies listeners about request to switch to Activity Overview pane. */
         void sigSwitchToActivityOverviewPane();
-    /** @} */
-
-    /** @name Manager tool stuff.
-      * @{ */
-        /** Notifies listeners about creation procedure was requested. */
-        void sigCreateMedium();
-        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
-        void sigCopyMedium(const QUuid &uMediumId);
-
-        /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
-        void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
     /** @} */
 
 public:

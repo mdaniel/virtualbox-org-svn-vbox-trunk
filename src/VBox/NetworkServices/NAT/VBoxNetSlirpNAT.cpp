@@ -718,7 +718,7 @@ int VBoxNetSlirpNAT::initIPv4()
 }
 
 
-#if 0 /** @todo */ 
+#if 0 /** @todo */
 /**
  * Create raw IPv4 socket for sending and snooping ICMP.
  */

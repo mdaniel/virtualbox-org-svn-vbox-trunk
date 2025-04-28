@@ -4,27 +4,23 @@
   <title>Clipboard</title>
   
   <body>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to copy clipboard content from the GUI on the host to the GUI on the guest, and vice versa. For this to work the latest version of the Guest Additions must be installed on the guest.</p>
-    <p>For security reasons drag and drop can be configured at runtime on a per-VM basis either using the <b
-        outputclass="bold">Shared Clipboard</b> menu item in the <b outputclass="bold">Devices</b> menu of the virtual
-      machine, or the <userinput>VBoxManage</userinput> command. </p>
-    <p>The following shared clipboard settings are available: </p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to copy text, image and html content from the GUI on the host to the GUI on a VM, and vice versa. You can also copy content between VMs, with other VMs treated as other host applications when configuring the options. For this to work the latest version of the Guest Additions must be installed on the VM.</p>
+    <p>For security reasons, clipboard access can be configured at runtime on a per-VM basis either using the <b outputclass="bold">Shared Clipboard</b> menu item in the <b outputclass="bold">Devices</b> menu of the VM or the <userinput>VBoxManage</userinput> command.</p>
+    <p>The following shared clipboard settings are available:</p>
     <ul id="ul_onq_r24_hcc">
       <li>
-        <p><b outputclass="bold">Disabled</b>. Disables the copy feature entirely. This is the default when creating a
-          new VM. </p>
+        <p><b outputclass="bold">Disabled</b>. Disables the copy feature entirely. This is the default when creating a new VM.</p>
       </li>
       <li>
-        <p><b outputclass="bold">Host To Guest</b>. Enables text copy operations from the host to the guest only. </p>
+        <p><b outputclass="bold">Host To Guest</b>. Enables copying from the host to the guest only.</p>
       </li>
       <li>
-        <p><b outputclass="bold">Guest To Host</b>. Enables text copy operations from the guest to the host only. </p>
+        <p><b outputclass="bold">Guest To Host</b>. Enables copying from the guest to the host only.</p>
       </li>
       <li>
-        <p><b outputclass="bold">Bidirectional</b>. Enables text copy operations in both directions: from the host to
-          the guest, and from the guest to the host. </p>
+        <p><b outputclass="bold">Bidirectional</b>. Enables copying in both directions: from the host to the guest, and from the guest to the host.</p>
       </li>
-      <li><b>Enable Clipboard File Transfers</b>. Allows files, in addition to text, to be copied to or from the VM. <ul>
+      <li><b>Enable Clipboard File Transfers</b>. Allows files (in addition to text, images and html) to be copied to or from the VM. <ul>
           <li>
             <p>On Linux hosts and guests, Shared Clipboard file transfers are limited to files only, one file per transfer. Transferring symbolic links is not supported.</p>
           </li>

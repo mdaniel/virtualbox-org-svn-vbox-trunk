@@ -4,7 +4,7 @@
   <title>Updating the Linux Guest Additions</title>
   
   <body>
-    <p>The Guest Additions can simply be updated by going through the installation procedure again with an updated CD-ROM image. This will replace the drivers with updated versions. You should reboot after updating the Guest Additions.</p>
+    <p>The Guest Additions can simply be updated by going through the installation procedure again with an updated CD-ROM image. This will replace the drivers with updated versions. There is no need to reboot unless the VM is using VBoxVGA or VBoxSVGA graphics.</p>
     <p>Some Linux distributions already come with all or part of the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions. You may choose to keep the distribution's version of the Guest Additions but these are often out of date and limited in functionality, so we recommend replacing them with the Guest Additions that come with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>.</p>
     <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Linux Guest Additions installer tries to detect an existing installation and replace them but depending on how the distribution integrates the Guest Additions, this may require some manual interaction. Take a snapshot of the virtual machine before replacing preinstalled Guest Additions.</p>
   </body>

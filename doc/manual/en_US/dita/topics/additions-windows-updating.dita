@@ -4,7 +4,7 @@
   <title>Updating the Windows Guest Additions</title>
   
   <body>
-    <p>Windows Guest Additions can be updated by running the installation program again. This replaces the previous Additions drivers with updated versions.</p>
+    <p>Windows Guest Additions can be updated by running the installation program again, or by selecting <b>Devices</b>, and then <b>Upgrade Guest Additions...</b> This replaces the previous Additions drivers with updated versions.</p>
     <p>Alternatively, you can also open the Windows Device Manager and select <b outputclass="bold">Update Driver...</b> for the following devices:</p>
     <ul>
       <li>

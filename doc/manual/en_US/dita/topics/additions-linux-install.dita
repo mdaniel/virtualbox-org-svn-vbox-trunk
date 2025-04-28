@@ -18,6 +18,7 @@
       </li>
       <li>
         <p>If you suspect that something has gone wrong, check that your VM is set up correctly and run the following command as root:<pre xml:space="preserve">rcvboxadd setup</pre></p>
+        <p>To check if drivers were loaded, and the versions of the loaded drivers match the installation version of the Guest Additions, run the following command as root: <pre xml:space="preserve">rcvboxadd status-kernel</pre>To check if the VBoxService is running, run the following command as root: <pre xml:space="preserve">rcvboxadd status-user</pre></p>
       </li>
     </ol>
   </body>

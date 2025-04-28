@@ -34,6 +34,9 @@
         <p><b outputclass="bold">Shared clipboard.</b> With the Guest Additions installed, the clipboard of the guest operating system can optionally be shared with your host operating system. See <xref href="generalsettings.dita"/>.</p>
       </li>
       <li>
+        <p><b outputclass="bold">Drag and Drop.</b> Guest Additions enable you to select an object, such as a file, from the host or guest and directly copy or open it on the guest or host. See <xref href="generalsettings.dita"/>.</p>
+      </li>
+      <li>
         <p><b outputclass="bold">Automated logins.</b> Also called credentials passing. See <xref href="autologon.dita">Automated Guest Logins</xref>.</p>
       </li>
     </ul>

@@ -5,7 +5,7 @@
             <title>Shared Folders</title>
             
             <body>
-               <p>With the <i>shared folders</i> feature of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, you can access files of your host system from within the guest system. This is similar to how you would use network shares in Windows networks, except that shared folders do not require networking, only the Guest Additions. Shared folders are supported with Windows 2000 or later, Linux, and Oracle Solaris guests.</p>
+               <p>With the <i>shared folders</i> feature of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, you can access files of your host system from within the guest system. This is similar to how you would use network shares in Windows networks, except that shared folders do not require networking, only the Guest Additions. Shared folders can be used with Windows 2000 or later, Linux, and Oracle Solaris guests. Shared Folders can't be used on Arm VMs running Windows.</p>
                <p>Shared folders physically reside on the <i>host</i> and are then shared with the guest, which uses a
       special file system driver in the Guest Additions to talk to the host. For Windows guests, shared folders are
       implemented as a pseudo-network redirector. For Linux and Oracle Solaris guests, the Guest Additions provide a

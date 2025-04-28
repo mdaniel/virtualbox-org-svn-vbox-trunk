@@ -11,10 +11,7 @@
         package should be verified with the provided SHA256 checksum
         which can be found on the official website.
       </p>
-    <p>
-        General <ph conkeyref="vbox-conkeyref-phrases/product-name"/> installation instructions for the
-        supported hosts can be found in <xref href="installation.dita">Installation Details</xref>.
-      </p>
+    <p> General <ph conkeyref="vbox-conkeyref-phrases/product-name"/> installation instructions for the supported hosts can be found in <xref href="installation.dita"/>. </p>
     <p>
         On Windows hosts, the installer can be used to disable USB
         support, support for bridged networking, support for host-only

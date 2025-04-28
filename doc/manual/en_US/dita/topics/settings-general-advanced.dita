@@ -33,13 +33,8 @@
           of the virtual machine. </p>
       </li>
       <li>
-        <p><b outputclass="bold">Drag and Drop:</b> This setting
-            enables support for drag and drop. Select an object, such as
-            a file, from the host or guest and directly copy or open it
-            on the guest or host. Multiple drag and drop modes for a VM
-            enable restricting of access in either direction.
-          </p>
-        <p>For drag and drop to work, the Guest Additions need to be installed on the guest. </p>
+        <p><b outputclass="bold">Drag and Drop:</b> You can select multiple drag and drop modes for a VM to enable or restrict access in either direction.</p>
+        <p>For drag and drop to work, the Guest Additions need to be installed on the guest.</p>
         <note>
           <p>Drag and drop is disabled by default. This setting can be changed at any time using the <b
               outputclass="bold">Drag and Drop</b> menu item in the <b outputclass="bold">Devices</b> menu of the

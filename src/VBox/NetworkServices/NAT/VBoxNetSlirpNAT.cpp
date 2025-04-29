@@ -1833,7 +1833,7 @@ DECLINLINE(int) pollEventHostToSlirp(int iEvents)
 /**
  * Callback called by libslirp when the guest does something wrong.
  *
- * @param   pMsg    Error message string.
+ * @param   pszMsg  Error message string.
  * @param   pvUser  Pointer to NAT State context.
  *
  * @thread  ?
@@ -1979,8 +1979,7 @@ DECLINLINE(int) pollEventHostToSlirp(int iEvents)
 /**
  * Callback function to add entry to pollfd array.
  *
- * @param   iFd     Integer of system file descriptor of socket.
- *                  (on windows, this is a VBox internal, not system, value).
+ * @param   hFd     Socket handle.
  * @param   iEvents Integer of slirp type poll events.
  * @param   opaque  Pointer to NAT State context.
  *

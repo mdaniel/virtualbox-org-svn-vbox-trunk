@@ -149,7 +149,29 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
  #   VBoxNetNAT_SOURCES += getrawsock.c
  #  endif
  # endif
+else
 
+ VBoxNetNAT_INCS += \
+     $(PATH_ROOT)/src/libs/libslirp-4.9.0/src \
+     $(PATH_OUT)/obj/VBox-libslirp
+
+ VBoxNetNAT_SOURCES = \
+   VBoxNetSlirpNAT.cpp \
+   ../NetLib/IntNetIf.cpp \
+   ../NetLib/VBoxNetPortForwardString.cpp
+
+ VBoxNetNAT_SOURCES.win    += \
+    RTWinPoll.cpp \
+    RTWinSocketPair.cpp
+
+ VBoxNetNAT_LIBS = \
+   $(PATH_STAGE_LIB)/VBox-libslirp$(VBOX_SUFF_LIB) \
+   $(LIB_RUNTIME)
+ VBoxNetNAT_LIBS.solaris += socket nsl
+ VBoxNetNAT_LIBS.darwin += resolv
+
+ VBoxNetNAT_LDFLAGS.win = /SUBSYSTEM:windows
+endif # VBOX_WITH_LWIP_NAT
 
  ifdef VBOX_WITH_HARDENING
   $(call VBOX_SET_VER_INFO_DLL,VBoxNetNAT,VirtualBox NAT Engine (dll),$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
@@ -157,6 +179,5 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
   $(call VBOX_SET_VER_INFO_EXE,VBoxNetNAT,VirtualBox NAT Engine,$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
  endif
 
-endif # VBOX_WITH_LWIP_NAT
 include $(FILE_KBUILD_SUB_FOOTER)
 

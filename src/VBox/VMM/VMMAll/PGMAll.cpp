@@ -3625,7 +3625,7 @@ VMM_INT_DECL(int) PGMChangeMode(PVMCPUCC pVCpu, uint8_t bEl, uint64_t u64RegSctl
             pVCpu->pgm.s.afLookupMaskTtbr1[0] = pVCpu->pgm.s.afLookupMaskTtbr1[1];
         }
 
-        pVCpu->pgm.s.aenmGuestMode[bEl] = (u64RegSctlr & ARMV8_SCTLR_EL1_M) ? PGMMODE_VMSA_V8_64 : PGMMODE_NONE;
+        pVCpu->pgm.s.aenmGuestMode[bEl - 1] = (u64RegSctlr & ARMV8_SCTLR_EL1_M) ? PGMMODE_VMSA_V8_64 : PGMMODE_NONE;
 
         /* Cache values. */
         pVCpu->pgm.s.au64RegSctlrEl[bEl - 1] = u64RegSctlr;

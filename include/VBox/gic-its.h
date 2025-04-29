@@ -81,10 +81,8 @@
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CTLR_, UINT32_C(0), UINT32_MAX,
                             (ENABLED, IM_DE, RSVD_3_2, ITS_NUMBER, UMSI_IRQ, RSVD_30_9, QUIESCENT));
 /** GITS_CTLR: Mask of valid read-write bits. */
-#define GITS_BF_CTRL_REG_CTLR_RW_MASK                           (UINT32_MAX & ~(  GITS_BF_CTRL_REG_CTLR_IM_DE_MASK      \
-                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_3_2_MASK   \
-                                                                                | GITS_BF_CTRL_REG_CTLR_ITS_NUMBER_MASK \
-                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_30_9_MASK))
+#define GITS_BF_CTRL_REG_CTLR_RW_MASK                           (  GITS_BF_CTRL_REG_CTLR_ENABLED_MASK \
+                                                                 | GITS_BF_CTRL_REG_CTLR_IM_DE_MASK)
 
 /** GITS_IIDR: Implementer and revision register - RO. */
 #define GITS_CTRL_REG_IIDR_OFF                                  0x0004

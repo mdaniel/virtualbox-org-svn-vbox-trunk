@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -147,9 +147,24 @@ class VBoxNetSlirpNAT
     INTNETIFCTX m_hIf;
     RTTHREAD m_hThrRecv;
     RTTHREAD m_hThrdPoll;
+    /** Queue for NAT-thread-external events. */
+    RTREQQUEUE              m_hSlirpReqQueue;
 
     /** Home folder location; used as default directory for several paths. */
     com::Utf8Str m_strHome;
+
+#ifdef RT_OS_WINDOWS
+    /** Wakeup socket pair for NAT thread.
+     * Entry #0 is write, entry #1 is read. */
+    SOCKET                  m_ahWakeupSockPair[2];
+#else
+    /** The write end of the control pipe. */
+    RTPIPE                  m_hPipeWrite;
+    /** The read end of the control pipe. */
+    RTPIPE                  m_hPipeRead;
+#endif
+
+    volatile uint64_t       m_cWakeupNotifs;
 
     SlirpConfig m_ProxyOptions;
     struct sockaddr_in m_src4;
@@ -242,11 +257,12 @@ private:
     const char **getHostNameservers();
 
     int slirpTimersAdjustTimeoutDown(int cMsTimeout);
+    void slirpNotifyPollThread(const char *pszWho);
 
     int fetchNatPortForwardRules(VECNATSERVICEPF &vec, bool fIsIPv6);
-    static int natServiceProcessRegisteredPf(VECNATSERVICEPF &vecPf);
-    static int natServicePfRegister(NATSERVICEPORTFORWARDRULE &natServicePf);
+    int natServiceProcessRegisteredPf(VECNATSERVICEPF &vecPf);
 
+    static DECLCALLBACK(void) natServicePfRegister(VBoxNetSlirpNAT *pThis, PPORTFORWARDRULE pNatPf, bool fRemove, bool fRuntime);
     static DECLCALLBACK(int) pollThread(RTTHREAD hThreadSelf, void *pvUser);
     static DECLCALLBACK(int) receiveThread(RTTHREAD hThreadSelf, void *pvUser);
 
@@ -264,6 +280,8 @@ private:
     static void    slirpUnregisterPoll(slirp_os_socket socket, void *opaque);
     static int     slirpAddPollCb(slirp_os_socket hFd, int iEvents, void *opaque);
     static int     slirpGetREventsCb(int idx, void *opaque);
+
+    static DECLCALLBACK(void) slirpSendWorker(VBoxNetSlirpNAT *pThis, void *pvFrame, size_t cbFrame);
 };
 
 
@@ -273,6 +291,8 @@ VBoxNetSlirpNAT::VBoxNetSlirpNAT()
     m_hIf(NULL),
     m_hThrRecv(NIL_RTTHREAD),
     m_hThrdPoll(NIL_RTTHREAD),
+    m_hSlirpReqQueue(NIL_RTREQQUEUE),
+    m_cWakeupNotifs(0),
     m_u16Mtu(1500)
 {
     LogFlowFuncEnter();
@@ -317,6 +337,9 @@ VBoxNetSlirpNAT::VBoxNetSlirpNAT()
 
 VBoxNetSlirpNAT::~VBoxNetSlirpNAT()
 {
+    RTReqQueueDestroy(m_hSlirpReqQueue);
+    m_hSlirpReqQueue = NIL_RTREQQUEUE;
+
 #if 0
     if (m_ProxyOptions.tftp_root)
     {
@@ -530,6 +553,21 @@ int VBoxNetSlirpNAT::init()
 
     initComEvents();
     /* end of COM initialization */
+
+    rc = RTReqQueueCreate(&m_hSlirpReqQueue);
+    AssertLogRelRCReturn(rc, rc);
+
+#ifdef RT_OS_WINDOWS
+    /* Create the wakeup socket pair (idx=0 is write, idx=1 is read). */
+    m_ahWakeupSockPair[0] = INVALID_SOCKET;
+    m_ahWakeupSockPair[1] = INVALID_SOCKET;
+    rc = RTWinSocketPair(AF_INET, SOCK_DGRAM, 0, m_ahWakeupSockPair);
+    AssertRCReturn(rc, rc);
+#else
+    /* Create the control pipe. */
+    rc = RTPipeCreate(&m_hPipeRead, &m_hPipeWrite, 0 /*fFlags*/);
+    AssertRCReturn(rc, rc);
+#endif
 
     /* connect to the intnet */
     rc = IntNetR3IfCreate(&m_hIf, m_strNetworkName.c_str());
@@ -1373,7 +1411,7 @@ HRESULT VBoxNetSlirpNAT::HandleEvent(VBoxEventType_T aEventType, IEvent *pEvent)
 
         case VBoxEventType_OnNATNetworkPortForward:
         {
-#if 0 /** @todo */
+            int rc = VINF_SUCCESS;
             ComPtr<INATNetworkPortForwardEvent> pForwardEvent = pEvent;
 
             com::Bstr networkName;
@@ -1414,21 +1452,22 @@ HRESULT VBoxNetSlirpNAT::HandleEvent(VBoxEventType_T aEventType, IEvent *pEvent)
             hrc = pForwardEvent->COMGETTER(GuestPort)(&lGuestPort);
             AssertComRCReturn(hrc, hrc);
 
-            VECNATSERVICEPF& rules = fIPv6FW ? m_vecPortForwardRule6
-                                             : m_vecPortForwardRule4;
+            PPORTFORWARDRULE pNatPf = (PPORTFORWARDRULE)RTMemAllocZ(sizeof(*pNatPf));
+            if (!pNatPf)
+            {
+                hrc = E_OUTOFMEMORY;
+                goto port_forward_done;
+            }
 
-            NATSERVICEPORTFORWARDRULE r;
-            RT_ZERO(r);
-
-            r.Pfr.fPfrIPv6 = fIPv6FW;
+            pNatPf->fPfrIPv6 = fIPv6FW;
 
             switch (proto)
             {
                 case NATProtocol_TCP:
-                    r.Pfr.iPfrProto = IPPROTO_TCP;
+                    pNatPf->iPfrProto = IPPROTO_TCP;
                     break;
                 case NATProtocol_UDP:
-                    r.Pfr.iPfrProto = IPPROTO_UDP;
+                    pNatPf->iPfrProto = IPPROTO_UDP;
                     break;
 
                 default:
@@ -1456,65 +1495,37 @@ HRESULT VBoxNetSlirpNAT::HandleEvent(VBoxEventType_T aEventType, IEvent *pEvent)
                     fIPv6FW ? "]" : "",
                     lGuestPort));
 
-            if (name.length() > sizeof(r.Pfr.szPfrName))
+            if (name.length() > sizeof(pNatPf->szPfrName))
             {
                 hrc = E_INVALIDARG;
                 goto port_forward_done;
             }
 
-            RTStrPrintf(r.Pfr.szPfrName, sizeof(r.Pfr.szPfrName),
+            RTStrPrintf(pNatPf->szPfrName, sizeof(pNatPf->szPfrName),
                         "%s", com::Utf8Str(name).c_str());
 
-            RTStrPrintf(r.Pfr.szPfrHostAddr, sizeof(r.Pfr.szPfrHostAddr),
+            RTStrPrintf(pNatPf->szPfrHostAddr, sizeof(pNatPf->szPfrHostAddr),
                         "%s", com::Utf8Str(strHostAddr).c_str());
 
             /* XXX: limits should be checked */
-            r.Pfr.u16PfrHostPort = (uint16_t)lHostPort;
+            pNatPf->u16PfrHostPort = (uint16_t)lHostPort;
 
-            RTStrPrintf(r.Pfr.szPfrGuestAddr, sizeof(r.Pfr.szPfrGuestAddr),
+            RTStrPrintf(pNatPf->szPfrGuestAddr, sizeof(pNatPf->szPfrGuestAddr),
                         "%s", com::Utf8Str(strGuestAddr).c_str());
 
             /* XXX: limits should be checked */
-            r.Pfr.u16PfrGuestPort = (uint16_t)lGuestPort;
+            pNatPf->u16PfrGuestPort = (uint16_t)lGuestPort;
 
-            if (fCreateFW) /* Addition */
-            {
-                int rc = natServicePfRegister(r);
-                if (RT_SUCCESS(rc))
-                    rules.push_back(r);
-            }
-            else /* Deletion */
-            {
-                ITERATORNATSERVICEPF it;
-                for (it = rules.begin(); it != rules.end(); ++it)
-                {
-                    /* compare */
-                    NATSERVICEPORTFORWARDRULE &natFw = *it;
-                    if (   natFw.Pfr.iPfrProto == r.Pfr.iPfrProto
-                        && natFw.Pfr.u16PfrHostPort == r.Pfr.u16PfrHostPort
-                        && strncmp(natFw.Pfr.szPfrHostAddr, r.Pfr.szPfrHostAddr, INET6_ADDRSTRLEN) == 0
-                        && natFw.Pfr.u16PfrGuestPort == r.Pfr.u16PfrGuestPort
-                        && strncmp(natFw.Pfr.szPfrGuestAddr, r.Pfr.szPfrGuestAddr, INET6_ADDRSTRLEN) == 0)
-                    {
-                        fwspec *pFwCopy = (fwspec *)RTMemDup(&natFw.FWSpec, sizeof(natFw.FWSpec));
-                        if (pFwCopy)
-                        {
-                            int status = portfwd_rule_del(pFwCopy);
-                            if (status == 0)
-                                rules.erase(it);   /* (pFwCopy is owned by lwip thread now.) */
-                            else
-                                RTMemFree(pFwCopy);
-                        }
-                        break;
-                    }
-                } /* loop over vector elements */
-            } /* condition add or delete */
+            rc = RTReqQueueCallEx(m_hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+                                  (PFNRT)natServicePfRegister, 4, this, pNatPf, !fCreateFW /*fRemove*/, true /*fRuntime*/);
+            if (RT_FAILURE(rc))
+                RTMemFree(pNatPf);
+
         port_forward_done:
             /* clean up strings */
             name.setNull();
             strHostAddr.setNull();
             strGuestAddr.setNull();
-#endif
             break;
         }
 
@@ -1647,11 +1658,7 @@ int VBoxNetSlirpNAT::fetchNatPortForwardRules(VECNATSERVICEPF &vec, bool fIsIPv6
 
 /**
  * Activate the initial set of port-forwarding rules.
- *
- * Happens after lwIP and lwIP proxy is initialized, right before lwIP
- * thread starts processing messages.
  */
-/* static */
 int VBoxNetSlirpNAT::natServiceProcessRegisteredPf(VECNATSERVICEPF& vecRules)
 {
     ITERATORNATSERVICEPF it;
@@ -1674,7 +1681,7 @@ int VBoxNetSlirpNAT::natServiceProcessRegisteredPf(VECNATSERVICEPF& vecRules)
                 natPf.Pfr.fPfrIPv6 ? "]" : "",
                 natPf.Pfr.u16PfrGuestPort));
 
-        natServicePfRegister(natPf);
+        natServicePfRegister(this, &natPf.Pfr, false /*fRemove*/, false /*fRuntime*/);
     }
 
     return VINF_SUCCESS;
@@ -1689,56 +1696,101 @@ int VBoxNetSlirpNAT::natServiceProcessRegisteredPf(VECNATSERVICEPF& vecRules)
  * an API event.
  */
 /* static */
-int VBoxNetSlirpNAT::natServicePfRegister(NATSERVICEPORTFORWARDRULE &natPf)
+DECLCALLBACK(void) VBoxNetSlirpNAT::natServicePfRegister(VBoxNetSlirpNAT *pThis, PPORTFORWARDRULE pNatPf, bool fRemove, bool fRuntime)
 {
-    int sockFamily = (natPf.Pfr.fPfrIPv6 ? PF_INET6 : PF_INET);
-    int socketSpec;
-    switch(natPf.Pfr.iPfrProto)
+    bool fUdp;
+    switch(pNatPf->iPfrProto)
     {
         case IPPROTO_TCP:
-            socketSpec = SOCK_STREAM;
+            fUdp = false;
             break;
         case IPPROTO_UDP:
-            socketSpec = SOCK_DGRAM;
+            fUdp = true;
             break;
         default:
-            return VERR_IGNORED;
+            return;
     }
 
-    const char *pszHostAddr = natPf.Pfr.szPfrHostAddr;
+    const char *pszHostAddr = pNatPf->szPfrHostAddr;
     if (pszHostAddr[0] == '\0')
     {
-        if (sockFamily == PF_INET)
-            pszHostAddr = "0.0.0.0";
-        else
+        if (pNatPf->fPfrIPv6)
             pszHostAddr = "::";
+        else
+            pszHostAddr = "0.0.0.0";
     }
 
-#if 0 /** @todo */
-    lrc = fwspec_set(&natPf.FWSpec,
-                     sockFamily,
-                     socketSpec,
-                     pszHostAddr,
-                     natPf.Pfr.u16PfrHostPort,
-                     natPf.Pfr.szPfrGuestAddr,
-                     natPf.Pfr.u16PfrGuestPort);
-    if (lrc != 0)
-        return VERR_IGNORED;
-
-    fwspec *pFwCopy = (fwspec *)RTMemDup(&natPf.FWSpec, sizeof(natPf.FWSpec));
-    if (pFwCopy)
+    const char *pszGuestAddr = pNatPf->szPfrGuestAddr;
+    if (pszGuestAddr[0] == '\0')
     {
-        lrc = portfwd_rule_add(pFwCopy);
-        if (lrc == 0)
-            return VINF_SUCCESS; /* (pFwCopy is owned by lwip thread now.) */
-        RTMemFree(pFwCopy);
+        if (pNatPf->fPfrIPv6)
+            pszGuestAddr = "::";
+        else
+            pszGuestAddr = "0.0.0.0";
+    }
+
+    struct in_addr guestIp, hostIp;
+    if (inet_aton(pszHostAddr, &hostIp) == 0)
+        hostIp.s_addr = INADDR_ANY;
+
+    if (inet_aton(pszGuestAddr, &guestIp) == 0)
+    {
+        LogRel(("Unable to convert guest address '%s' for %s rule \"%s\"\n",
+                pszGuestAddr, pNatPf->fPfrIPv6 ? "IPv6" : "IPv4",
+                pNatPf->szPfrName));
+        return;
+    }
+
+    int rc;
+    if (fRemove)
+        rc = slirp_remove_hostfwd(pThis->m_pSlirp, fUdp, hostIp, pNatPf->u16PfrHostPort);
+    else
+        rc = slirp_add_hostfwd(pThis->m_pSlirp, fUdp,
+                               hostIp, pNatPf->u16PfrHostPort,
+                               guestIp, pNatPf->u16PfrGuestPort);
+    if (!rc)
+    {
+        if (fRuntime)
+        {
+            VECNATSERVICEPF& rules = pNatPf->fPfrIPv6 ? pThis->m_vecPortForwardRule6
+                                                      : pThis->m_vecPortForwardRule4;
+            if (fRemove)
+            {
+                ITERATORNATSERVICEPF it;
+                for (it = rules.begin(); it != rules.end(); ++it)
+                {
+                    /* compare */
+                    NATSERVICEPORTFORWARDRULE &natFw = *it;
+                    if (   natFw.Pfr.iPfrProto == pNatPf->iPfrProto
+                        && natFw.Pfr.u16PfrHostPort == pNatPf->u16PfrHostPort
+                        && strncmp(natFw.Pfr.szPfrHostAddr, pNatPf->szPfrHostAddr, INET6_ADDRSTRLEN) == 0
+                        && natFw.Pfr.u16PfrGuestPort == pNatPf->u16PfrGuestPort
+                        && strncmp(natFw.Pfr.szPfrGuestAddr, pNatPf->szPfrGuestAddr, INET6_ADDRSTRLEN) == 0)
+                    {
+                        rules.erase(it);
+                        break;
+                    }
+                } /* loop over vector elements */
+            }
+            else /* Addition */
+            {
+                NATSERVICEPORTFORWARDRULE r;
+                RT_ZERO(r);
+                memcpy(&r.Pfr, pNatPf, sizeof(*pNatPf));
+                rules.push_back(r);
+            } /* condition add or delete */
+        }
+        else /* The rules vector is already up to date. */
+            Assert(fRemove == false);
     }
     else
-        LogRel(("Unable to allocate memory for %s rule \"%s\"\n",
-                natPf.Pfr.fPfrIPv6 ? "IPv6" : "IPv4",
-                natPf.Pfr.szPfrName));
-#endif
-    return VERR_IGNORED;
+        LogRel(("Unable to %s %s rule \"%s\"\n",
+                fRemove ? "remove" : "add",
+                pNatPf->fPfrIPv6 ? "IPv6" : "IPv4",
+                pNatPf->szPfrName));
+
+    /* Free the rule in any case. */
+    RTMemFree(pNatPf);
 }
 
 
@@ -1800,6 +1852,28 @@ DECLINLINE(int) pollEventHostToSlirp(int iEvents)
 /*
  * Libslirp Callbacks
  */
+/**
+ * Get the NAT thread out of poll/WSAWaitForMultipleEvents
+ */
+void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
+{
+    RT_NOREF(pszWho);
+#ifdef RT_OS_WINDOWS
+    int cbWritten = send(m_ahWakeupSockPair[0], "", 1, NULL);
+    if (RT_LIKELY(cbWritten != SOCKET_ERROR))
+        ASMAtomicIncU64(&m_cWakeupNotifs);
+    else
+        Log4(("Notify NAT Thread Error %d\n", WSAGetLastError()));
+#else
+    /* kick poll() */
+    size_t cbIgnored;
+    int rc = RTPipeWrite(m_hPipeWrite, "", 1, &cbIgnored);
+    AssertRC(rc);
+    if (RT_SUCCESS(rc))
+        ASMAtomicIncU64(&m_cWakeupNotifs);
+#endif
+}
+
 
 /**
  * Callback called by libslirp to send packet into the internal network.
@@ -2100,9 +2174,25 @@ VBoxNetSlirpNAT::pollThread(RTTHREAD hThreadSelf, void *pvUser)
 {
     RT_NOREF(hThreadSelf);
 
-    unsigned int cPollNegRet = 0;
     AssertReturn(pvUser != NULL, VERR_INVALID_PARAMETER);
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(pvUser);
+
+    /* Activate the initial port forwarding rules. */
+    pThis->natServiceProcessRegisteredPf(pThis->m_vecPortForwardRule4);
+    pThis->natServiceProcessRegisteredPf(pThis->m_vecPortForwardRule6);
+
+    /* The first polling entry is for the control/wakeup pipe. */
+#ifdef RT_OS_WINDOWS
+    pThis->polls[0].fd = pThis->ahWakeupSockPair[1];
+#else
+    unsigned int cPollNegRet = 0;
+    RTHCINTPTR const i64NativeReadPipe = RTPipeToNative(pThis->m_hPipeRead);
+    int const        fdNativeReadPipe  = (int)i64NativeReadPipe;
+    Assert(fdNativeReadPipe == i64NativeReadPipe); Assert(fdNativeReadPipe >= 0);
+    pThis->polls[0].fd = fdNativeReadPipe;
+    pThis->polls[0].events = POLLRDNORM | POLLPRI | POLLRDBAND;
+    pThis->polls[0].revents = 0;
+#endif /* !RT_OS_WINDOWS */
 
     /*
      * Polling loop.
@@ -2147,10 +2237,29 @@ VBoxNetSlirpNAT::pollThread(RTTHREAD hThreadSelf, void *pvUser)
         Log4(("%s: poll\n", __FUNCTION__));
         slirp_pollfds_poll(pThis->m_pSlirp, cChangedFDs < 0, pThis->slirpGetREventsCb, pThis /* opaque */);
 
-#if 0
-        /* process _all_ outstanding requests but don't wait */
-        RTReqQueueProcess(pThis->hSlirpReqQueue, 0);
+        /*
+         * Drain the control pipe if necessary.
+         */
+        if (pThis->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))   /* POLLPRI won't be seen with WSAPoll. */
+        {
+            char achBuf[1024];
+            size_t cbRead;
+            uint64_t cWakeupNotifs = ASMAtomicReadU64(&pThis->m_cWakeupNotifs);
+#ifdef RT_OS_WINDOWS
+            /** @todo r=bird: This returns -1 (SOCKET_ERROR) on failure, so any kind of
+             *        error return here and we'll bugger up cbWakeupNotifs! */
+            cbRead = recv(pThis->m_ahWakeupSockPair[1], &achBuf[0], RT_MIN(cWakeupNotifs, sizeof(achBuf)), NULL);
+#else
+            /** @todo r=bird: cbRead may in theory be used uninitialized here!  This
+             *        isn't blocking, though, so we won't get stuck here if we mess up
+             *         the count. */
+            RTPipeRead(pThis->m_hPipeRead, &achBuf[0], RT_MIN(cWakeupNotifs, sizeof(achBuf)), &cbRead);
 #endif
+            ASMAtomicSubU64(&pThis->m_cWakeupNotifs, cbRead);
+        }
+
+        /* process _all_ outstanding requests but don't wait */
+        RTReqQueueProcess(pThis->m_hSlirpReqQueue, 0);
         pThis->timersRunExpired();
     }
 
@@ -2191,6 +2300,23 @@ VBoxNetSlirpNAT::receiveThread(RTTHREAD hThreadSelf, void *pvUser)
 
 
 /**
+ * Worker function for drvNATSend().
+ *
+ * @param   pThis               Pointer to the NAT instance.
+ * @thread  NAT
+ */
+/*static*/ DECLCALLBACK(void) VBoxNetSlirpNAT::slirpSendWorker(VBoxNetSlirpNAT *pThis, void *pvFrame, size_t cbFrame)
+{
+    LogFlowFunc(("pThis=%p pvFrame=%p cbFrame=%zu\n", pThis, pvFrame, cbFrame));
+
+    slirp_input(pThis->m_pSlirp, (uint8_t const *)pvFrame, (int)cbFrame);
+
+    LogFlowFunc(("leave\n"));
+    RTMemFree(pvFrame);
+}
+
+
+/**
  * Process an incoming frame received from the intnet.
  */
 /* static */ DECLCALLBACK(void)
@@ -2211,7 +2337,17 @@ VBoxNetSlirpNAT::processFrame(void *pvUser, void *pvFrame, uint32_t cbFrame)
     AssertReturnVoid(pvUser != NULL);
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(pvUser);
 
-    slirp_input(pThis->m_pSlirp, (uint8_t const *)pvFrame, (int)cbFrame);
+    const void *pvBuf = RTMemDup(pvFrame, cbFrame);
+    if (!pvBuf)
+        return;
+
+    int rc = RTReqQueueCallEx(pThis->m_hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+                              (PFNRT)pThis->slirpSendWorker, 3, pThis, pvBuf, cbFrame);
+    if (RT_SUCCESS(rc))
+    {
+        pThis->slirpNotifyPollThread("processFrame");
+        LogFlowFunc(("leave success\n"));
+    }
 }
 
 

@@ -43,6 +43,10 @@
 # include <drm/drm_probe_helper.h>
 #endif
 
+#if RTLNX_VER_MIN(6,13,0) && defined(CONFIG_APERTURE_HELPERS)
+# include <linux/aperture.h>
+#endif
+
 #if RTLNX_VER_RANGE(5,14,0, 6,13,0) || RTLNX_RHEL_RANGE(8,6, 8,99)
 # include <drm/drm_aperture.h>
 #endif
@@ -94,7 +98,9 @@ static int vbox_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	}
 #endif
 
-# if RTLNX_VER_RANGE(5,14,0, 6,13,0) || RTLNX_RHEL_RANGE(8,6, 8,99)
+# if RTLNX_VER_MIN(6,13,0) && defined(CONFIG_APERTURE_HELPERS)
+	ret = aperture_remove_conflicting_pci_devices(pdev, driver.name);
+# elif RTLNX_VER_RANGE(5,14,0, 6,13,0) || RTLNX_RHEL_RANGE(8,6, 8,99)
 #  if RTLNX_VER_MIN(5,15,0) || RTLNX_RHEL_RANGE(8,7, 8,99) || RTLNX_RHEL_MIN(9,1) || RTLNX_SUSE_MAJ_PREREQ(15,4)
 	ret = drm_aperture_remove_conflicting_pci_framebuffers(pdev, &driver);
 #  else
@@ -414,7 +420,9 @@ static struct drm_driver driver = {
 	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
 #endif
 	.gem_prime_import = drm_gem_prime_import,
+#if RTLNX_VER_MAX(6,15,0)
 	.gem_prime_import_sg_table = vbox_gem_prime_import_sg_table,
+#endif
 #if RTLNX_VER_MAX(6,6,0) && !RTLNX_RHEL_RANGE(9,4, 9,99) && !RTLNX_SUSE_MAJ_PREREQ(15, 6)
 	.gem_prime_mmap = vbox_gem_prime_mmap,
 #endif

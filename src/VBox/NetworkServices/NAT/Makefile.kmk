@@ -152,21 +152,21 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
 else
 
  VBoxNetNAT_INCS += \
-     $(PATH_ROOT)/src/libs/libslirp-4.9.0/src \
-     $(PATH_OUT)/obj/VBox-libslirp
+ 	$(PATH_ROOT)/src/libs/libslirp-4.9.0/src \
+ 	$(PATH_OUT)/obj/VBox-libslirp
 
  VBoxNetNAT_SOURCES = \
-   VBoxNetSlirpNAT.cpp \
-   ../NetLib/IntNetIf.cpp \
-   ../NetLib/VBoxNetPortForwardString.cpp
+ 	VBoxNetSlirpNAT.cpp \
+ 	../NetLib/IntNetIf.cpp \
+ 	../NetLib/VBoxNetPortForwardString.cpp
 
  VBoxNetNAT_SOURCES.win    += \
-    RTWinPoll.cpp \
-    RTWinSocketPair.cpp
+ 	RTWinPoll.cpp \
+ 	RTWinSocketPair.cpp
 
  VBoxNetNAT_LIBS = \
-   $(PATH_STAGE_LIB)/VBox-libslirp$(VBOX_SUFF_LIB) \
-   $(LIB_RUNTIME)
+ 	$(PATH_STAGE_LIB)/VBox-libslirp$(VBOX_SUFF_LIB) \
+ 	$(LIB_RUNTIME)
  VBoxNetNAT_LIBS.solaris += socket nsl
  VBoxNetNAT_LIBS.darwin += resolv
 

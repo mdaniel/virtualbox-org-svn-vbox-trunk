@@ -27,17 +27,6 @@
 
 SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
-ifdef VBOX_WITH_LWIP_NAT # entire file
-
- ifndef LWIP_SOURCES
-  include $(PATH_SUB_CURRENT)/../../Devices/Network/lwip-new/Config.kmk
- endif
-
- #
- # Globals
- #
- VBOX_PATH_NAT_SRC := $(PATH_SUB_CURRENT)
-
 
  #
  # Hardened stub exe for VBoxNetNAT.
@@ -69,9 +58,19 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
  VBoxNetNAT_NAME    := VBoxNetNAT
  VBoxNetNAT_DEFS     = \
  	IPv6 \
- 	$(if $(VBOX_WITH_INTNET_SERVICE_IN_R3),VBOX_WITH_INTNET_SERVICE_IN_R3,)
+ 	$(if $(VBOX_WITH_INTNET_SERVICE_IN_R3),VBOX_WITH_INTNET_SERVICE_IN_R3,) \
+ 	$(if $(VBOX_WITH_LWIP_NAT),VBOX_WITH_LWIP_NAT,)
+
  # VBoxNetNAT_DEFS.linux = WITH_VALGRIND # instrument lwip memp.c
+ 
+ifdef VBOX_WITH_LWIP_NAT
+
+ ifndef LWIP_SOURCES
+  include $(PATH_SUB_CURRENT)/../../Devices/Network/lwip-new/Config.kmk
+ endif
+
  VBoxNetNAT_DEFS.win = VBOX_COM_OUTOFPROC_MODULE _WIN32_WINNT=0x501 # Windows XP
+
  # Convince Solaris headers to expose socket stuff we need.
  #
  # Setting _XOPEN_SOURCE to either 500 or 600 would always work, but
@@ -151,6 +150,8 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
  # endif
 else
 
+ VBoxNetNAT_DEFS.win = VBOX_COM_OUTOFPROC_MODULE
+
  VBoxNetNAT_INCS += \
  	$(PATH_ROOT)/src/libs/libslirp-4.9.0/src \
  	$(PATH_OUT)/obj/VBox-libslirp
@@ -173,11 +174,11 @@ else
  VBoxNetNAT_LDFLAGS.win = /SUBSYSTEM:windows
 endif # VBOX_WITH_LWIP_NAT
 
- ifdef VBOX_WITH_HARDENING
-  $(call VBOX_SET_VER_INFO_DLL,VBoxNetNAT,VirtualBox NAT Engine (dll),$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
- else
-  $(call VBOX_SET_VER_INFO_EXE,VBoxNetNAT,VirtualBox NAT Engine,$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
- endif
+ifdef VBOX_WITH_HARDENING
+ $(call VBOX_SET_VER_INFO_DLL,VBoxNetNAT,VirtualBox NAT Engine (dll),$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
+else
+ $(call VBOX_SET_VER_INFO_EXE,VBoxNetNAT,VirtualBox NAT Engine,$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
+endif
 
 include $(FILE_KBUILD_SUB_FOOTER)
 

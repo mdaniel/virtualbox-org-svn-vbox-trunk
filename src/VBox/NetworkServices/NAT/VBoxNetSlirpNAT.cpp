@@ -25,10 +25,15 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/* Must be included before winutils.h (lwip/def.h), otherwise Windows build breaks. */
 #define LOG_GROUP LOG_GROUP_NAT_SERVICE
 
-#include "winutils.h"
+#ifdef RT_OS_WINDOWS
+# include <iprt/win/winsock2.h>
+# include <iprt/win/ws2tcpip.h>
+# include "winutils.h"
+# define inet_aton(x, y) inet_pton(2, x, y)
+# define AF_INET6 23
+#endif
 
 #include <VBox/com/assert.h>
 #include <VBox/com/com.h>
@@ -269,17 +274,17 @@ private:
     /* input from intnet */
     static DECLCALLBACK(void) processFrame(void *pvUser, void *pvFrame, uint32_t cbFrame);
 
-    static ssize_t slirpSendPacketCb(const void *pvBuf, ssize_t cb, void *pvUser) RT_NOTHROW_DEF;
-    static void    slirpGuestErrorCb(const char *pszMsg, void *pvUser);
-    static int64_t slirpClockGetNsCb(void *pvUser);
-    static void   *slirpTimerNewCb(SlirpTimerCb slirpTimeCb, void *cb_opaque, void *opaque);
-    static void    slirpTimerFreeCb(void *pvTimer, void *pvUser);
-    static void    slirpTimerModCb(void *pvTimer, int64_t msNewDeadlineTs, void *pvUser);
-    static void    slirpNotifyCb(void *opaque);
-    static void    slirpRegisterPoll(slirp_os_socket socket, void *opaque);
-    static void    slirpUnregisterPoll(slirp_os_socket socket, void *opaque);
-    static int     slirpAddPollCb(slirp_os_socket hFd, int iEvents, void *opaque);
-    static int     slirpGetREventsCb(int idx, void *opaque);
+    static ssize_t slirpSendPacketCb(const void *pvBuf, ssize_t cb, void *pvUser) RT_NOTHROW_PROTO;
+    static void    slirpGuestErrorCb(const char *pszMsg, void *pvUser) RT_NOTHROW_PROTO;
+    static int64_t slirpClockGetNsCb(void *pvUser) RT_NOTHROW_PROTO;
+    static void   *slirpTimerNewCb(SlirpTimerCb slirpTimeCb, void *cb_opaque, void *opaque) RT_NOTHROW_PROTO;
+    static void    slirpTimerFreeCb(void *pvTimer, void *pvUser) RT_NOTHROW_PROTO;
+    static void    slirpTimerModCb(void *pvTimer, int64_t msNewDeadlineTs, void *pvUser) RT_NOTHROW_PROTO;
+    static void    slirpNotifyCb(void *opaque) RT_NOTHROW_PROTO;
+    static void    slirpRegisterPoll(slirp_os_socket socket, void *opaque) RT_NOTHROW_PROTO;
+    static void    slirpUnregisterPoll(slirp_os_socket socket, void *opaque) RT_NOTHROW_PROTO;
+    static int     slirpAddPollCb(slirp_os_socket hFd, int iEvents, void *opaque) RT_NOTHROW_PROTO;
+    static int     slirpGetREventsCb(int idx, void *opaque) RT_NOTHROW_PROTO;
 
     static DECLCALLBACK(void) slirpSendWorker(VBoxNetSlirpNAT *pThis, void *pvFrame, size_t cbFrame);
 };
@@ -313,7 +318,7 @@ VBoxNetSlirpNAT::VBoxNetSlirpNAT()
     RT_ZERO(m_src6);
     m_src4.sin_family = AF_INET;
     m_src6.sin6_family = AF_INET6;
-#if HAVE_SA_LEN
+#ifdef HAVE_SA_LEN
     m_src4.sin_len = sizeof(m_src4);
     m_src6.sin6_len = sizeof(m_src6);
 #endif
@@ -1912,7 +1917,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @thread  ?
  */
-/*static*/ void VBoxNetSlirpNAT::slirpGuestErrorCb(const char *pszMsg, void *pvUser)
+/*static*/ void VBoxNetSlirpNAT::slirpGuestErrorCb(const char *pszMsg, void *pvUser) RT_NOTHROW_DEF
 {
     /* Note! This is _just_ libslirp complaining about odd guest behaviour. */
     LogRelMax(250, ("NAT Guest Error: %s\n", pszMsg));
@@ -1927,7 +1932,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @returns 64-bit signed integer representing time in nanoseconds.
  */
-/*static*/ int64_t VBoxNetSlirpNAT::slirpClockGetNsCb(void *pvUser)
+/*static*/ int64_t VBoxNetSlirpNAT::slirpClockGetNsCb(void *pvUser) RT_NOTHROW_DEF
 {
     RT_NOREF(pvUser);
     return (int64_t)RTTimeNanoTS();
@@ -1944,7 +1949,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @returns Pointer to new timer.
  */
-/*static*/ void *VBoxNetSlirpNAT::slirpTimerNewCb(SlirpTimerCb slirpTimeCb, void *cb_opaque, void *opaque)
+/*static*/ void *VBoxNetSlirpNAT::slirpTimerNewCb(SlirpTimerCb slirpTimeCb, void *cb_opaque, void *opaque) RT_NOTHROW_DEF
 {
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(opaque);
     Assert(pThis);
@@ -1968,7 +1973,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  * @param   pvTimer Pointer to slirpTimer object to be freed.
  * @param   pvUser  Pointer to NAT State context.
  */
-/*static*/ void VBoxNetSlirpNAT::slirpTimerFreeCb(void *pvTimer, void *pvUser)
+/*static*/ void VBoxNetSlirpNAT::slirpTimerFreeCb(void *pvTimer, void *pvUser) RT_NOTHROW_DEF
 {
     VBoxNetSlirpNAT    *pThis = static_cast<VBoxNetSlirpNAT *>(pvUser);
     SlirpTimer * const pTimer = (SlirpTimer *)pvTimer;
@@ -2005,7 +2010,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *                          Zero stops it.
  * @param   pvUser          Pointer to NAT State context.
  */
-/*static*/ void VBoxNetSlirpNAT::slirpTimerModCb(void *pvTimer, int64_t msNewDeadlineTs, void *pvUser)
+/*static*/ void VBoxNetSlirpNAT::slirpTimerModCb(void *pvTimer, int64_t msNewDeadlineTs, void *pvUser) RT_NOTHROW_DEF
 {
     SlirpTimer * const pTimer = (SlirpTimer *)pvTimer;
     pTimer->msExpire = msNewDeadlineTs;
@@ -2017,7 +2022,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @param   opaque  Pointer to NAT State context.
  */
-/*static*/ void VBoxNetSlirpNAT::slirpNotifyCb(void *opaque)
+/*static*/ void VBoxNetSlirpNAT::slirpNotifyCb(void *opaque) RT_NOTHROW_DEF
 {
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(opaque);
     RT_NOREF(pThis);
@@ -2027,7 +2032,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
 /**
  * Registers poll. Unused function (other than logging).
  */
-/*static*/ void VBoxNetSlirpNAT::slirpRegisterPoll(slirp_os_socket socket, void *opaque)
+/*static*/ void VBoxNetSlirpNAT::slirpRegisterPoll(slirp_os_socket socket, void *opaque) RT_NOTHROW_DEF
 {
     RT_NOREF(socket, opaque);
 #ifdef RT_OS_WINDOWS
@@ -2040,7 +2045,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
 /**
  * Unregisters poll. Unused function (other than logging).
  */
-/*static*/ void VBoxNetSlirpNAT::slirpUnregisterPoll(slirp_os_socket socket, void *opaque)
+/*static*/ void VBoxNetSlirpNAT::slirpUnregisterPoll(slirp_os_socket socket, void *opaque) RT_NOTHROW_DEF
 {
     RT_NOREF(socket, opaque);
 #ifdef RT_OS_WINDOWS
@@ -2061,7 +2066,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @thread  ?
  */
-/*static*/ int VBoxNetSlirpNAT::slirpAddPollCb(slirp_os_socket hFd, int iEvents, void *opaque)
+/*static*/ int VBoxNetSlirpNAT::slirpAddPollCb(slirp_os_socket hFd, int iEvents, void *opaque) RT_NOTHROW_DEF
 {
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(opaque);
 
@@ -2097,7 +2102,7 @@ void VBoxNetSlirpNAT::slirpNotifyPollThread(const char *pszWho)
  *
  * @thread  ?
  */
-/*static*/ int VBoxNetSlirpNAT::slirpGetREventsCb(int idx, void *opaque)
+/*static*/ int VBoxNetSlirpNAT::slirpGetREventsCb(int idx, void *opaque) RT_NOTHROW_DEF
 {
     VBoxNetSlirpNAT *pThis = static_cast<VBoxNetSlirpNAT *>(opaque);
     struct pollfd* polls = pThis->polls;
@@ -2183,7 +2188,7 @@ VBoxNetSlirpNAT::pollThread(RTTHREAD hThreadSelf, void *pvUser)
 
     /* The first polling entry is for the control/wakeup pipe. */
 #ifdef RT_OS_WINDOWS
-    pThis->polls[0].fd = pThis->ahWakeupSockPair[1];
+    pThis->polls[0].fd = pThis->m_ahWakeupSockPair[1];
 #else
     unsigned int cPollNegRet = 0;
     RTHCINTPTR const i64NativeReadPipe = RTPipeToNative(pThis->m_hPipeRead);
@@ -2263,9 +2268,10 @@ VBoxNetSlirpNAT::pollThread(RTTHREAD hThreadSelf, void *pvUser)
         pThis->timersRunExpired();
     }
 
-
+#if 0
     LogRel(("pollThread: Exiting\n"));
     return VERR_INVALID_STATE;
+#endif
 }
 
 

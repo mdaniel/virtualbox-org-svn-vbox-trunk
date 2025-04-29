@@ -41,11 +41,14 @@
 #  include <iprt/err.h>
 #  include <iprt/net.h>
 #  include <iprt/log.h>
+
+#  ifdef VBOX_WITH_LWIP_NAT
 /**
  * Inclusion of lwip/def.h was added here to avoid conflict of definitions
  * of hton-family functions in LWIP and windock's headers.
  */
-#  include <lwip/def.h>
+#   include <lwip/def.h>
+#  endif
 
 #  ifndef PF_LOCAL
 #   define PF_LOCAL AF_INET

@@ -62,7 +62,7 @@ VBoxNetNAT_DEFS     = \
 	$(if $(VBOX_WITH_LWIP_NAT),VBOX_WITH_LWIP_NAT,)
 
 # VBoxNetNAT_DEFS.linux = WITH_VALGRIND # instrument lwip memp.c
- 
+
 ifdef VBOX_WITH_LWIP_NAT
 
  ifndef LWIP_SOURCES

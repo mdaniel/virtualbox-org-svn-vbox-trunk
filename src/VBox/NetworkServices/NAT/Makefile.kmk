@@ -28,40 +28,40 @@
 SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
- #
- # Hardened stub exe for VBoxNetNAT.
- #
- ifdef VBOX_WITH_HARDENING
-  PROGRAMS += VBoxNetNATHardened
-  VBoxNetNATHardened_TEMPLATE = VBoxR3HardenedExe
-  VBoxNetNATHardened_NAME   = VBoxNetNAT
-  ifdef VBOX_WITH_AUTOMATIC_DEFS_QUOTING
-   VBoxNetNATHardened_DEFS  = SERVICE_NAME="VBoxNetNAT"
-  else
-   VBoxNetNATHardened_DEFS  = SERVICE_NAME=\"VBoxNetNAT\"
-  endif
-  VBoxNetNATHardened_SOURCES = VBoxNetNATHardened.cpp
-  VBoxNetNATHardened_LDFLAGS.win = /SUBSYSTEM:windows
-  $(call VBOX_SET_VER_INFO_EXE,VBoxNetNATHardened,VirtualBox NAT Engine,$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
- endif
-
-
- #
- # VBoxNetNAT.
- #
- ifdef VBOX_WITH_HARDENING
-  DLLS   += VBoxNetNAT
+#
+# Hardened stub exe for VBoxNetNAT.
+#
+ifdef VBOX_WITH_HARDENING
+ PROGRAMS += VBoxNetNATHardened
+ VBoxNetNATHardened_TEMPLATE = VBoxR3HardenedExe
+ VBoxNetNATHardened_NAME   = VBoxNetNAT
+ ifdef VBOX_WITH_AUTOMATIC_DEFS_QUOTING
+  VBoxNetNATHardened_DEFS  = SERVICE_NAME="VBoxNetNAT"
  else
-  PROGRAMS += VBoxNetNAT
+  VBoxNetNATHardened_DEFS  = SERVICE_NAME=\"VBoxNetNAT\"
  endif
- VBoxNetNAT_TEMPLATE := $(if-expr defined(VBOX_WITH_HARDENING),VBoxMainDll,VBoxMainClientSignedExe)
- VBoxNetNAT_NAME    := VBoxNetNAT
- VBoxNetNAT_DEFS     = \
- 	IPv6 \
- 	$(if $(VBOX_WITH_INTNET_SERVICE_IN_R3),VBOX_WITH_INTNET_SERVICE_IN_R3,) \
- 	$(if $(VBOX_WITH_LWIP_NAT),VBOX_WITH_LWIP_NAT,)
+ VBoxNetNATHardened_SOURCES = VBoxNetNATHardened.cpp
+ VBoxNetNATHardened_LDFLAGS.win = /SUBSYSTEM:windows
+ $(call VBOX_SET_VER_INFO_EXE,VBoxNetNATHardened,VirtualBox NAT Engine,$(VBOX_WINDOWS_ICON_FILE)) # Version info / description.
+endif
 
- # VBoxNetNAT_DEFS.linux = WITH_VALGRIND # instrument lwip memp.c
+
+#
+# VBoxNetNAT.
+#
+ifdef VBOX_WITH_HARDENING
+ DLLS   += VBoxNetNAT
+else
+ PROGRAMS += VBoxNetNAT
+endif
+VBoxNetNAT_TEMPLATE := $(if-expr defined(VBOX_WITH_HARDENING),VBoxMainDll,VBoxMainClientSignedExe)
+VBoxNetNAT_NAME    := VBoxNetNAT
+VBoxNetNAT_DEFS     = \
+	IPv6 \
+	$(if $(VBOX_WITH_INTNET_SERVICE_IN_R3),VBOX_WITH_INTNET_SERVICE_IN_R3,) \
+	$(if $(VBOX_WITH_LWIP_NAT),VBOX_WITH_LWIP_NAT,)
+
+# VBoxNetNAT_DEFS.linux = WITH_VALGRIND # instrument lwip memp.c
  
 ifdef VBOX_WITH_LWIP_NAT
 

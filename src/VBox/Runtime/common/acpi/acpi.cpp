@@ -2463,6 +2463,6 @@ RTDECL(int) RTAcpiResourceAddGpioInt(RTACPIRES hAcpiRes, RTACPIRESGPIOMOD enmMod
     }
 
     /* Resource name */
-    memcpy(pbPin, pszRsrcSrc, cchRsrcSrc + 1);
+    memcpy(pbPin, pszRsrcSrc, cchRsrcSrc);
     return VINF_SUCCESS;
 }

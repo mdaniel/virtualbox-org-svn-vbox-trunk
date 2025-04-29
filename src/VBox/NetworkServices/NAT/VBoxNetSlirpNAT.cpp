@@ -2309,6 +2309,8 @@ VBoxNetSlirpNAT::receiveThread(RTTHREAD hThreadSelf, void *pvUser)
  * Worker function for drvNATSend().
  *
  * @param   pThis               Pointer to the NAT instance.
+ * @param   pvFrame             Pointer to the frame data.
+ * @param   cbFrame             Size of the frame in bytes.
  * @thread  NAT
  */
 /*static*/ DECLCALLBACK(void) VBoxNetSlirpNAT::slirpSendWorker(VBoxNetSlirpNAT *pThis, void *pvFrame, size_t cbFrame)

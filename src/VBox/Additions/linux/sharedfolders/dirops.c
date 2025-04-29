@@ -1101,12 +1101,6 @@ static int vbsf_inode_mkdir(struct inode *parent, struct dentry *dentry, int mod
 #endif
 {
     int rc;
-#if RTLNX_VER_MIN(6,15,0)
-    /* In 6.15, we need to take a reference to the resulting dentry. */
-    bool fDoLookup = true;
-#else
-    bool fDoLookup = false;
-#endif
 
     TRACE();
     AssertMsg(!(mode & S_IFMT) || (mode & S_IFMT) == S_IFDIR, ("0%o\n", mode));
@@ -1116,9 +1110,9 @@ static int vbsf_inode_mkdir(struct inode *parent, struct dentry *dentry, int mod
                             | SHFL_CF_ACT_FAIL_IF_EXISTS
                             | SHFL_CF_ACCESS_READWRITE
                             | SHFL_CF_DIRECTORY,
-                            false /*fStashHandle*/, fDoLookup, NULL /*phHandle*/, NULL /*fCreated*/);
+                            false /*fStashHandle*/, false /*fDoLookup*/, NULL /*phHandle*/, NULL /*fCreated*/);
 #if RTLNX_VER_MIN(6,15,0)
-    return RT_SUCCESS(rc) ? dentry : ERR_PTR(rc);
+    return ERR_PTR(rc);
 #else
     return rc;
 #endif

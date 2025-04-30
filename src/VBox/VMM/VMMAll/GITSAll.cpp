@@ -343,6 +343,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
             Assert(cb == 4);
             GIC_SET_REG_U64_HI(pGitsDev->aItsTableRegs[idxReg].s.Hi, uValue, fRwMask);
         }
+        /** @todo Clear ITS caches when GITS_BASER<n>.Valid = 0. */
         return;
     }
 
@@ -353,7 +354,12 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
             Assert(!(pGitsDev->uTypeReg.u & GITS_BF_CTRL_REG_TYPER_UMSI_IRQ_MASK));
             GIC_SET_REG_U32(pGitsDev->uCtrlReg, uValue, GITS_BF_CTRL_REG_CTLR_RW_MASK);
             if (RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED))
-                pGitsDev->uCtrlReg &= GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
+                pGitsDev->uCtrlReg &= ~GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
+            else
+            {
+                pGitsDev->uCtrlReg |=  GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK;
+                /** @todo Clear ITS caches. */
+            }
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
@@ -406,7 +412,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     Log4Func(("\n"));
 
     /* GITS_CTLR.*/
-    pGitsDev->uCtrlReg = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT,  1);
+    pGitsDev->uCtrlReg = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, 1);
 
     /* GITS_TYPER. */
     pGitsDev->uTypeReg.u = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)     /* Physical LPIs supported. */
@@ -418,8 +424,8 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */  /* Locally generated errors not recommended. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,       0) */  /* Target is VCPU ID not address. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,       255)   /* Collection count. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  7)     /* Number of collection ID bits minus 1. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       1)     /* Collection ID size set by GITS_BASER.CIDbits. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  0)     /* Collections in memory not supported. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       0)     /* Collections in memory not supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,     0) */  /* VMOVP not supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,      0) */  /* MPAM no supported. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,      0) */  /* VSGI not supported. */

@@ -2111,6 +2111,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                 *puValue |= GIC_DIST_REG_TYPER_LPIS
                          |  GIC_DIST_REG_TYPER_NUM_LPIS_SET(pGicDev->uMaxLpi);
             }
+            Assert((*puValue &  (GIC_DIST_REG_TYPER_MBIS | GIC_DIST_REG_TYPER_LPIS))
+                             == (GIC_DIST_REG_TYPER_MBIS | GIC_DIST_REG_TYPER_LPIS));
             break;
         }
         case GIC_DIST_REG_PIDR2_OFF:

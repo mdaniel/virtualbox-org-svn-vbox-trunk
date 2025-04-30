@@ -310,7 +310,6 @@ $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(PATH_SUB_CURRENT)/dumplog.nsh \
 		$(PATH_SUB_CURRENT)/ReplaceDLL.nsh \
 		$(PATH_SUB_CURRENT)/servicepack.nsh \
-		$(PATH_SUB_CURRENT)/strstr.nsh \
 		$(PATH_SUB_CURRENT)/winver.nsh \
 		$(PATH_SUB_CURRENT)/Languages/English.nsh \
 		$(PATH_SUB_CURRENT)/Languages/German.nsh \
@@ -365,7 +364,6 @@ ifdef VBOX_SIGNING_MODE
  		$(PATH_SUB_CURRENT)/dumplog.nsh \
  		$(PATH_SUB_CURRENT)/ReplaceDLL.nsh \
  		$(PATH_SUB_CURRENT)/servicepack.nsh \
- 		$(PATH_SUB_CURRENT)/strstr.nsh \
  		$(PATH_SUB_CURRENT)/winver.nsh \
  		$(PATH_SUB_CURRENT)/Languages/English.nsh \
  		$(PATH_SUB_CURRENT)/Languages/German.nsh \
@@ -490,7 +488,6 @@ RePackScriptsAddResources_SOURCES = \
 	dumplog.nsh \
 	ReplaceDLL.nsh \
 	servicepack.nsh \
-	strstr.nsh \
 	VBoxGuestAdditionsCommon.nsh \
 	VBoxGuestAdditionsExternal.nsh \
 	VBoxGuestAdditionsLog.nsh \

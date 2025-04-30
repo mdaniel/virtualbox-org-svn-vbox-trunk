@@ -60,15 +60,15 @@ Function W2K_SetVideoResolution
     ; Ex: \Registry\Machine\System\CurrentControlSet\Control\Video\{28B74D2B-F0A9-48E0-8028-D76F6BB1AE65}\0000
     ; Or: \Registry\Machine\System\CurrentControlSet\Control\Video\vboxvideo\Device0
     ; Result: Machine\System\CurrentControlSet\Control\Video\{28B74D2B-F0A9-48E0-8028-D76F6BB1AE65}\0000
-    Push "$tmp" ; String
-    Push "\" ; SubString
-    Push ">" ; SearchDirection
-    Push ">" ; StrInclusionDirection
-    Push "0" ; IncludeSubString
-    Push "2" ; Loops
-    Push "0" ; CaseSensitive
-    Call StrStrAdv
-    Pop $tmppath ; $1 only contains the full path
+    ; Param: "$tmppath" ; Result string
+    ; Param: "$tmp"     ; String to be searched
+    ; Param: "\"        ; SubString
+    ; Param: ">"        ; SearchDirection
+    ; Param: ">"        ; StrInclusionDirection
+    ; Param: "0"        ; IncludeSubString
+    ; Param: "2"        ; Loops
+    ; Param: "0"        ; CaseSensitive
+    ${StrStrAdv} "$tmppath" "$tmp" "\" ">" ">" "0" "2" "0"
     StrCmp $tmppath "" dev_not_found
 
     ; Get device description

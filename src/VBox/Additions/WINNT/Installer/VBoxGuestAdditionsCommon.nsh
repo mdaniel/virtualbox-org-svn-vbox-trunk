@@ -287,19 +287,19 @@ Function ${un}GetWindowsVersionEx
   Call ${un}GetWindowsVersion
   Pop $0         ; Windows Version.
 
-  Push $0        ; The windows version string.
-  Push "NT"      ; String to search for. W2K+ returns no string containing "NT".
-  Call ${un}StrStr
-  Pop $1
+  ; Param "$1"        ; Result string.
+  ; Param "$0"        ; The windows version string.
+  ; Param "NT"        ; String to search for. W2K+ returns no string containing "NT".
+  ${${un}StrStr} "$1" "$0" "NT"
 
   ${If} $1 == "" ; If empty -> not NT 3.XX or 4.XX.
     ; $0 contains the original version string.
   ${Else}
     ; Ok we know it is NT. Must be a string like NT X.XX.
-    Push $0        ; The windows version string.
-    Push "4."      ; String to search for.
-    Call ${un}StrStr
-    Pop $1
+    ; Param "$1"      ; Result string.
+    ; Param "$0"      ; The windows version string.
+    ; Param "4."      ; String to search for.
+    ${${un}StrStr} "$1" "$0" "4."
     ${If} $1 == "" ; If empty -> not NT 4.
       ;; @todo NT <= 3.x ?
       ; $0 contains the original version string.
@@ -341,47 +341,47 @@ Function ${un}GetAdditionsVersion
   ReadRegStr $g_strAddVerRev HKLM "${REGISTRY_KEY_PRODUCT_ROOT}" "Revision"
 
   ; Extract major version.
-  Push "$0"       ; String
-  Push "."        ; SubString
-  Push ">"        ; SearchDirection
-  Push "<"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $g_strAddVerMaj
+  ; Param "$g_strAddVerMaj"   ; Result string
+  ; Param "$0"                ; String to search for
+  ; Param "."                 ; SubString
+  ; Param ">"                 ; SearchDirection
+  ; Param "<"                 ; StrInclusionDirection
+  ; Param "0"                 ; IncludeSubString
+  ; Param "0"                 ; Loops
+  ; Param "0"                 ; CaseSensitive
+  ${${un}StrStrAdv} "$g_strAddVerMaj" "$0" "." ">" "<" "0" "0" "0"
 
   ; Extract minor version.
-  Push "$0"       ; String
-  Push "."        ; SubString
-  Push ">"        ; SearchDirection
-  Push ">"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $1          ; Got first part (e.g. "1.5")
+  ; Param "$1"                ; Result string
+  ; Param "$0"                ; String
+  ; Param "."                 ; SubString
+  ; Param ">"                 ; SearchDirection
+  ; Param ">"                 ; StrInclusionDirection
+  ; Param "0"                 ; IncludeSubString
+  ; Param "0"                 ; Loops
+  ; Param "0"                 ; CaseSensitive
+  ${${un}StrStrAdv} "$1" "$0" "." ">" ">" "0" "0" "0"
 
-  Push "$1"       ; String
-  Push "."        ; SubString
-  Push ">"        ; SearchDirection
-  Push "<"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $g_strAddVerMin   ; Extracted second part (e.g. "5" from "1.5")
+  ; Param "$g_strAddVerMin"   ; Result string
+  ; Param "$1"                ; String
+  ; Param "."                 ; SubString
+  ; Param ">"                 ; SearchDirection
+  ; Param "<"                 ; StrInclusionDirection
+  ; Param "0"                 ; IncludeSubString
+  ; Param "0"                 ; Loops
+  ; Param "0"                 ; CaseSensitive
+  ${${un}StrStrAdv} "$g_strAddVerMin" "$1" "." ">" "<" "0" "0" "0"
 
   ; Extract build number.
-  Push "$0"       ; String
-  Push "."        ; SubString
-  Push "<"        ; SearchDirection
-  Push ">"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $g_strAddVerBuild
+  ; Param "$g_strAddVerBuild" ; Result string
+  ; Param "$0"                ; String
+  ; Param "."                 ; SubString
+  ; Param "<"                 ; SearchDirection
+  ; Param ">"                 ; StrInclusionDirection
+  ; Param "0"                 ; IncludeSubString
+  ; Param "0"                 ; Loops
+  ; Param "0"                 ; CaseSensitive
+  ${${un}StrStrAdv} "$g_strAddVerBuild" "$0" "." "<" ">" "0" "0" "0"
 
   Pop $1
   Pop $0

@@ -319,6 +319,9 @@ private slots:
 
     /** @name General stuff.
       * @{ */
+        /** Handles signal about experience-mode being changed. */
+        void sltHandleSettingsExpertModeChange();
+
         /** Handles signal about context-menu being shown. */
         void sltUpdateContextMenu();
     /** @} */

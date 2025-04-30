@@ -1234,6 +1234,13 @@ void UIChooserModel::sltHandleCloudProfileManagerCumulativeChange()
     buildTreeForMainRoot(true /* preserve selection */);
 }
 
+void UIChooserModel::sltHandleSettingsExpertModeChange()
+{
+    /* Invalidate local and cloud machine context-menus (we are reseting property values): */
+    m_localMenus.value(UIChooserNodeType_Machine)->setProperty("is_valid", QVariant());
+    m_cloudMenus.value(UIChooserNodeType_Machine)->setProperty("is_valid", QVariant());
+}
+
 void UIChooserModel::sltUpdateContextMenu()
 {
     /* Determine sender: */
@@ -1248,57 +1255,65 @@ void UIChooserModel::sltUpdateContextMenu()
         {
             case UIChooserNodeType_Group:
             {
-                pMenu->clear();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Rename));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
-                // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_CreateShortcut));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                if (!pMenu->property("is_valid").toBool())
+                {
+                    pMenu->clear();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Rename));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
+                    // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_CreateShortcut));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                    pMenu->setProperty("is_valid", true);
+                }
                 break;
             }
             case UIChooserNodeType_Machine:
             {
-                pMenu->clear();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                if (gEDataManager->isSettingsInExpertMode())
+                if (!pMenu->property("is_valid").toBool())
                 {
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
+                    pMenu->clear();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+                    if (gEDataManager->isSettingsInExpertMode())
+                    {
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
+                    }
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
+                    // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_CreateShortcut));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
+                    pMenu->setProperty("is_valid", true);
                 }
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
-                // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_CreateShortcut));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
                 break;
             }
             default:
@@ -1316,38 +1331,46 @@ void UIChooserModel::sltUpdateContextMenu()
         {
             case UIChooserNodeType_Group:
             {
-                pMenu->clear();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                if (!pMenu->property("is_valid").toBool())
+                {
+                    pMenu->clear();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                    pMenu->setProperty("is_valid", true);
+                }
                 break;
             }
             case UIChooserNodeType_Machine:
             {
-                pMenu->clear();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                if (gEDataManager->isSettingsInExpertMode())
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
-                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
-                pMenu->addSeparator();
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
-                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
+                if (!pMenu->property("is_valid").toBool())
+                {
+                    pMenu->clear();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+                    if (gEDataManager->isSettingsInExpertMode())
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
+                    pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
+                    pMenu->addSeparator();
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
+                    pMenu->setProperty("is_valid", true);
+                }
                 break;
             }
             default:
@@ -1570,6 +1593,8 @@ void UIChooserModel::prepareCloudUpdateTimer()
 
 void UIChooserModel::prepareConnections()
 {
+    connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
+            this, &UIChooserModel::sltHandleSettingsExpertModeChange);
     connect(this, &UIChooserModel::sigSelectionChanged,
             this, &UIChooserModel::sltUpdateSelectedCloudProfiles);
     connect(m_pTimerCloudProfileUpdate, &QTimer::timeout,

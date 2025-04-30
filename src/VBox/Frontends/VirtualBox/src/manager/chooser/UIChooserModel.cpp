@@ -1234,6 +1234,130 @@ void UIChooserModel::sltHandleCloudProfileManagerCumulativeChange()
     buildTreeForMainRoot(true /* preserve selection */);
 }
 
+void UIChooserModel::sltUpdateContextMenu()
+{
+    /* Determine sender: */
+    QMenu *pMenu = qobject_cast<QMenu*>(sender());
+    AssertPtrReturnVoid(pMenu);
+
+    /* Check if that was one of local menus: */
+    const UIChooserNodeType enmLocalType = m_localMenus.key(pMenu, UIChooserNodeType_Any);
+    if (enmLocalType != UIChooserNodeType_Any)
+    {
+        switch (enmLocalType)
+        {
+            case UIChooserNodeType_Group:
+            {
+                pMenu->clear();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Rename));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
+                // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_CreateShortcut));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                break;
+            }
+            case UIChooserNodeType_Machine:
+            {
+                pMenu->clear();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+                if (gEDataManager->isSettingsInExpertMode())
+                {
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
+                }
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
+                // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_CreateShortcut));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
+                break;
+            }
+            default:
+                AssertMsgFailed(("Unhandled local context-menu type: %d\n", (int)enmLocalType));
+                break;
+        }
+        return;
+    }
+
+    /* Check if that was one of cloud menus: */
+    const UIChooserNodeType enmCloudType = m_cloudMenus.key(pMenu, UIChooserNodeType_Any);
+    if (enmCloudType != UIChooserNodeType_Any)
+    {
+        switch (enmCloudType)
+        {
+            case UIChooserNodeType_Group:
+            {
+                pMenu->clear();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
+                break;
+            }
+            case UIChooserNodeType_Machine:
+            {
+                pMenu->clear();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+                if (gEDataManager->isSettingsInExpertMode())
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
+                pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
+                pMenu->addSeparator();
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
+                pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
+                break;
+            }
+            default:
+                AssertMsgFailed(("Unhandled cloud context-menu type: %d\n", (int)enmCloudType));
+                break;
+        }
+        return;
+    }
+}
+
 void UIChooserModel::sltMakeSureCurrentItemVisible()
 {
     if (currentItem())
@@ -1413,93 +1537,22 @@ void UIChooserModel::prepareContextMenu()
     /* Context menu for local group(s): */
     m_localMenus[UIChooserNodeType_Group] = new QMenu;
     if (QMenu *pMenuGroup = m_localMenus.value(UIChooserNodeType_Group))
-    {
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Rename));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
-        pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->menu());
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
-        // pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
-        pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_CreateShortcut));
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
-    }
+        connect(pMenuGroup, &QMenu::aboutToShow, this, &UIChooserModel::sltUpdateContextMenu);
 
     /* Context menu for local machine(s): */
     m_localMenus[UIChooserNodeType_Machine] = new QMenu;
     if (QMenu *pMenuMachine = m_localMenus.value(UIChooserNodeType_Machine))
-    {
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
-        pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->menu());
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
-        // pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
-        pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_CreateShortcut));
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
-    }
+        connect(pMenuMachine, &QMenu::aboutToShow, this, &UIChooserModel::sltUpdateContextMenu);
 
     /* Context menu for cloud group(s): */
     m_cloudMenus[UIChooserNodeType_Group] = new QMenu;
     if (QMenu *pMenuGroup = m_cloudMenus.value(UIChooserNodeType_Group))
-    {
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
-        pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
-        pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
-        pMenuGroup->addSeparator();
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Sort));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Search));
-    }
+        connect(pMenuGroup, &QMenu::aboutToShow, this, &UIChooserModel::sltUpdateContextMenu);
 
     /* Context menu for cloud machine(s): */
     m_cloudMenus[UIChooserNodeType_Machine] = new QMenu;
     if (QMenu *pMenuMachine = m_cloudMenus.value(UIChooserNodeType_Machine))
-    {
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
-        pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
-        pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
-        pMenuMachine->addSeparator();
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Search));
-    }
+        connect(pMenuMachine, &QMenu::aboutToShow, this, &UIChooserModel::sltUpdateContextMenu);
 }
 
 void UIChooserModel::prepareHandlers()

@@ -317,6 +317,12 @@ protected slots:
 
 private slots:
 
+    /** @name General stuff.
+      * @{ */
+        /** Handles signal about context-menu being shown. */
+        void sltUpdateContextMenu();
+    /** @} */
+
     /** @name Selection stuff.
       * @{ */
         /** Makes sure current item is visible. */

@@ -1409,7 +1409,7 @@ static void gvmmR0CleanupVM(PGVM pGVM)
     }
 
 #ifndef VBOX_WITH_MINIMAL_R0
-    if (VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM))
+    if (!VM_IS_NON_NATIVE_WITH_LIMITED_R0(pGVM))
     {
         GMMR0CleanupVM(pGVM);
 # ifdef VBOX_WITH_NEM_R0

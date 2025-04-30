@@ -17,9 +17,7 @@
       example, services on the host machine or on other virtual machines cannot be compromised or crashed by a
       vulnerability or a bug in the service, and the service can run in a different operating system than the host
       system. </p>
-    <p>To configure port forwarding you can use the graphical <b outputclass="bold">Port Forwarding</b> editor which can
-      be found in the <b outputclass="bold">Network</b> settings dialog for network adaptors configured to use NAT.
-      Here, you can map host ports to guest ports to allow network traffic to be routed to a specific port in the guest. </p>
+    <p>To configure port forwarding, go to <uicontrol>Network</uicontrol>, select the NAT Networks tab, and click the network. On the Port Forwarding tab, click <uicontrol>Add</uicontrol>. Here, you can map host ports to guest ports to allow network traffic to be routed to a specific port in the guest. </p>
     <p>Alternatively, the command line tool <userinput>VBoxManage</userinput> can be used. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>
     <p>You will need to know which ports on the guest the service uses and to decide which ports to use on the host. You
       may want to use the same ports on the guest and on the host. You can use any ports on the host which are not

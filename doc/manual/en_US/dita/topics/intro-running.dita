@@ -6,23 +6,15 @@
   <body>
     <p> To start a virtual machine (VM), you have the following options:</p>
     <ul>
+      <li>Open the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and then double-click the VM's name.</li>
       <li>
-        <p> Double-click the VM's name in the machine list in <ph
-            conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. </p>
+        <p>Select the VM's name in the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and then click <b outputclass="bold">Start</b>.</p>
       </li>
       <li>
-        <p> Select the VM's name in the machine list in <ph
-            conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and click <b outputclass="bold">Start</b>
-          in the toolbar the top of the window. </p>
-      </li>
-      <li>
-        <p> Go to the <filepath>VirtualBox VMs</filepath> folder in your system user's home
-          directory. Find the subdirectory of the machine you want to start and double-click the
-          machine settings file. This file has a <filepath>.vbox</filepath> file extension. </p>
+        <p>Go to the <filepath>VirtualBox VMs</filepath> folder in your system user's home directory. Find the subdirectory of the machine you want to start and double-click the machine settings file. This file has a <filepath>.vbox</filepath> file extension.</p>
       </li>
     </ul>
-    <p>The VM you started appears in a new window and you will see it start to boot up, or prompt you to install an operating system as required. Everything that would normally be seen on the virtual system's monitor is shown in the window. </p>
-    <p>In general, you can use the virtual machine as you would use a real computer. The following topics describe a few
-      points to note when running a VM. </p>
+    <p>The VM you started appears in a new window and you will see it start to boot up, or prompt you to install an operating system as required. Everything that would normally be seen on the virtual system's monitor is shown in the window.</p>
+    <p>In general, you can use the virtual machine as you would use a real computer. The following topics describe a few points to note when running a VM.</p>
   </body>
 </topic>

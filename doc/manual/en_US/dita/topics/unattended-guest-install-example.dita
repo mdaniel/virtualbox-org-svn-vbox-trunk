@@ -4,7 +4,7 @@
 <topic xml:lang="en-us" id="unattended-guest-install-example">
                <title>Creating a New Virtual Machine Using VBoxManage</title>            
                <body>
-      <p>You can create a VM on the command line using VBoxManage. See also <xref href="../cli_topics/man_VBoxManage-createvm.ditamap" format="ditamap"/>.</p>
+      <p>You can create a VM on the command line using VBoxManage. See also <xref href="../cli_topics/vboxmanage-createvm.dita"/>.</p>
                   <p>The following example uses various <userinput>VBoxManage</userinput> commands to specify the VM and configure an unattended guest installation for an Oracle Linux VM on a Linux host.</p>
       <p>It then shows the use of the <userinput>VBoxManage unattended install</userinput> command to install and configure the guest OS.</p>
                   <ol>

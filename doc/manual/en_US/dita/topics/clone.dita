@@ -4,14 +4,14 @@
   <title>Cloning a Virtual Machine</title>
   
   <body>
-    <p>You can create a full copy or a linked copy of an existing VM. This copy is called a <i>clone</i>. You might use
-      a cloned VM to experiment with a VM configuration, to test different guest OS levels, or to back up a VM. </p>
-    <p>To clone a VM: </p>
+    <p>You can create a full copy or a linked copy of an existing VM. This copy is called a <i>clone</i>. You might use a cloned VM to experiment with a VM configuration, to test different guest OS levels, or to back up a VM.</p>
+    <p>To clone a VM:</p>
     <ol id="ol_ulp_zct_bcc">
-      <li>Ensure the VM you want to clone is not running.</li>
       <li>
-        <p>Click the VM name in the machine list, and then select <b outputclass="bold">Clone</b> from the <b
-            outputclass="bold">Machine</b> menu. </p>
+        <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, click <uicontrol>Machines</uicontrol>. Ensure the VM you want to clone is not running.</p>
+      </li>
+      <li>
+        <p>Right-click the VM name in the <uicontrol>Machines</uicontrol> list, and choose <b outputclass="bold">Clone...</b>.</p>
       </li>
       <li>Enter the following details for the clone.<ul id="ul_rkb_nct_bcc">
           <li><b outputclass="bold">Name:</b> A name for the cloned machine. </li>

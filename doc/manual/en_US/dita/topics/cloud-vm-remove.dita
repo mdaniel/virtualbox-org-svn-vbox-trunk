@@ -8,8 +8,7 @@
     <p>Right-click the cloud VM name and select <b outputclass="bold">Remove</b>. </p>
     <ul>
       <li>
-        <p>Click <b outputclass="bold">Remove Only</b> to remove the cloud VM from the machine list in VirtualBox
-          Manager. </p>
+        <p>Click <b outputclass="bold">Remove Only</b> to remove the cloud VM from the <uicontrol>Machines</uicontrol> list in VirtualBox Manager. </p>
       </li>
       <li>
         <p>Click <b outputclass="bold">Delete Everything</b> to remove the cloud VM from <ph

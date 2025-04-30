@@ -32,10 +32,7 @@
     <p>To enable a host-only network interface for a virtual machine, do either of the following: </p>
     <ul>
       <li>
-        <p>Go to the <b outputclass="bold">Network</b> page in the virtual machine's <b outputclass="bold">Settings</b>
-          dialog and select an <b outputclass="bold">Adapter</b> tab. Ensure that the <b outputclass="bold">Enable
-            Network Adapter</b> check box is selected and choose <b outputclass="bold">Host-Only Adapter</b> for the <b
-            outputclass="bold">Attached To</b> field. </p>
+        <p>Go to the <b outputclass="bold">Network</b> section in the virtual machine's <b outputclass="bold">Settings</b> and select an <b outputclass="bold">Adapter</b> tab. Ensure that the <b outputclass="bold">Enable Network Adapter</b> check box is selected and choose <b outputclass="bold">Host-Only Adapter</b> for the <b outputclass="bold">Attached To</b> field. </p>
       </li>
       <li>
         <p>On the command line, use </p>
@@ -48,7 +45,7 @@
       the host-only network. Without the DHCP server you would need to configure all IP addresses statically. </p>
     <ul>
       <li>
-        <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> you can configure the DHCP server by choosing <b outputclass="bold">File</b>, <b outputclass="bold">Tools</b>, <b outputclass="bold">Network Manager</b>. The Network Manager window lists all host-only networks which are presently in use. Select the network name and then use the <b outputclass="bold">DHCP Server</b> tab to configure DHCP server settings. See <xref href="config-network.dita"/>.</p>
+        <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> you can configure the DHCP server by choosing <uicontrol>File</uicontrol>, <uicontrol>Tools</uicontrol>, <uicontrol>Network</uicontrol>. The Network Manager window lists all host-only networks which are presently in use. Select the network name and then use the <b outputclass="bold">DHCP Server</b> tab to configure DHCP server settings. See <xref href="config-network.dita"/>.</p>
       </li>
       <li>
         <p>Alternatively, you can use the <userinput>VBoxManage dhcpserver</userinput> command. See <xref href="../cli_topics/vboxmanage-dhcpserver.dita"/>.</p>

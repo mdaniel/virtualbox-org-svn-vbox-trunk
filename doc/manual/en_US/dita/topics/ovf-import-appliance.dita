@@ -4,48 +4,33 @@
   <title>Importing an Appliance in OVF Format</title>
   
   <body>
-    <p>The following steps show how to import an appliance in OVF format. </p>
+    <p>The following steps show how to import one or more VMs from OVF format.</p>
     <ol>
       <li>
-        <p>Double-click the OVF or OVA file. </p>
-        <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> creates file type associations automatically for any
-          OVF and OVA files on your host OS. </p>
-        <p>The <b outputclass="bold">Appliance Settings</b> page of the <b outputclass="bold">Import Virtual
-            Appliance</b> wizard is shown. This page shows the VMs described in the OVF or OVA file and enables you to
-          change the VM settings. </p>
+        <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, click <uicontrol>Home</uicontrol>, and then click <uicontrol>Import</uicontrol>. Choose the file you want to import.</p>
+        <p>Alternatively, double-click the OVF or OVA file in your file manager. <ph conkeyref="vbox-conkeyref-phrases/product-name"/> creates file type associations automatically for any OVF and OVA files on your host OS.</p>
       </li>
       <li>
-        <p>By default, membership of VM groups is preserved on import for VMs that were initially exported from <ph
-            conkeyref="vbox-conkeyref-phrases/product-name"/>. You can change this behavior by using the <b
-            outputclass="bold">Primary Group</b> setting for the VM. </p>
-        <p>The following global settings apply to all of the VMs that you import: </p>
+        <p>In <uicontrol>Appliance Settings</uicontrol>, check the VMs described in the OVF or OVA file and change any of the VM settings you need to.</p>
+      </li>
+      <li>
+        <p>By default, membership of VM groups is preserved on import for VMs that were initially exported from <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. You can change this behavior by using the <b outputclass="bold">Primary Group</b> setting for the VM.</p>
+        <p>The following global settings apply to all of the VMs that you import:</p>
         <ul>
           <li>
-            <p><b outputclass="bold">Base Folder:</b> Specifies
-                the directory on the host in which to store the imported
-                VMs.
-              </p>
-            <p>If an appliance has multiple VMs, you can specify a different directory for each VM by editing the <b
-                outputclass="bold">Base Folder</b> setting for the VM. </p>
+            <p><b outputclass="bold">Base Folder:</b> Specifies the directory on the host in which to store the imported VMs.</p>
+            <p>If an appliance has multiple VMs, you can specify a different directory for each VM by editing the <b outputclass="bold">Base Folder</b> setting for the VM.</p>
           </li>
           <li>
-            <p><b outputclass="bold">MAC Address Policy:</b>
-                Reinitializes the MAC addresses of network cards in your
-                VMs prior to import, by default. You can override the
-                default behavior and preserve the MAC addresses on
-                import.
-              </p>
+            <p><b outputclass="bold">MAC Address Policy:</b> Reinitializes the MAC addresses of network cards in your VMs prior to import, by default. You can override the default behavior and preserve the MAC addresses on import.</p>
           </li>
           <li>
-            <p><b outputclass="bold">Import Hard Drives as
-                VDI:</b> Imports hard drives in the VDI format
-                rather than in the default VMDK format.
-              </p>
+            <p><b outputclass="bold">Import Hard Drives as VDI:</b> Imports hard drives in the VDI format rather than in the default VMDK format.</p>
           </li>
         </ul>
       </li>
       <li>
-        <p>Click <b outputclass="bold">Finish</b> to import the appliance. </p>
+        <p>Click <b outputclass="bold">Finish</b> to import the appliance.</p>
         <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> copies the disk images and creates local VMs with the
           settings described on the <b outputclass="bold">Appliance Settings</b> page. The imported VMs are shown in the
           list of VMs in VirtualBox Manager. </p>

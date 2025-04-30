@@ -3,7 +3,7 @@
 <topic id="managing_vms">
     <title>Managing VMs</title>
     <body>
-        <p>As you add, import or create VMs they will appear in the machine list. </p>
+        <p>As you add, import or create VMs they will appear in the <uicontrol>Machines</uicontrol> list. </p>
         <p>To change the hardware configuration of a VM. See <xref href="configbasics.dita"/></p>
         <p>To use VM Groups, see <xref href="gui-vmgroups.dita"/>.</p>
         <p>Check the <b outputclass="bold">Notification Center</b> for tasks in progress and error messages. Click

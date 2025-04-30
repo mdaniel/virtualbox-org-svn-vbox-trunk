@@ -8,10 +8,7 @@
     <p>To enable a cloud network interface for a virtual machine, do either of the following: </p>
     <ul>
       <li>
-        <p>Go to the <b outputclass="bold">Network</b> page in the virtual machine's <b outputclass="bold">Settings</b>
-          dialog and select an <b outputclass="bold">Adapter</b> tab. Ensure that the <b outputclass="bold">Enable
-            Network Adapter</b> check box is selected and choose <b outputclass="bold">Cloud Network</b> for the <b
-            outputclass="bold">Attached To</b> field. </p>
+        <p>Go to the <uicontrol>Settings</uicontrol> for a virtual machine, and under <uicontrol>Network</uicontrol>, select an <b outputclass="bold">Adapter</b> tab. Ensure that the <b outputclass="bold">Enable Network Adapter</b> check box is selected and choose <b outputclass="bold">Cloud Network</b> for the <b outputclass="bold">Attached To</b> field. </p>
       </li>
       <li>
         <p>On the command line, use <userinput>VBoxManage modifyvm vmname --nic <varname>x</varname> cloud</userinput>. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>

@@ -4,30 +4,23 @@
   <title>Creating an API Signing Key Pair</title>
   
   <body>
-    <p>To use the cloud integration features of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, you must generate
-      an API signing key pair that is used for API requests to <ph conkeyref="vbox-conkeyref-phrases/oci"/>. </p>
-    <p>Your API requests are signed with your private key, and <ph conkeyref="vbox-conkeyref-phrases/oci"/> uses the
-      public key to verify the authenticity of the request. You must upload the public key to the <ph
-        conkeyref="vbox-conkeyref-phrases/oci"/> Console. </p>
+    <p>To use the cloud integration features of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, you must generate an API signing key pair that is used for API requests to <ph conkeyref="vbox-conkeyref-phrases/oci"/>.</p>
+    <p>Your API requests are signed with your private key, and <ph conkeyref="vbox-conkeyref-phrases/oci"/> uses the public key to verify the authenticity of the request. You must upload the public key to the <ph conkeyref="vbox-conkeyref-phrases/oci"/> Console.</p>
     <note>
-      <p>
-          This key pair is not the same SSH key that you use to access
-          compute instances on <ph conkeyref="vbox-conkeyref-phrases/oci"/>.
-        </p>
+      <p> This key pair is not the same SSH key that you use to access compute instances on <ph conkeyref="vbox-conkeyref-phrases/oci"/>.</p>
     </note>
     <ol>
       <li>
-        <p>(Optional) Create a <filepath>.oci</filepath> directory to store the key pair. </p>
+        <p>(Optional) Create a <filepath>.oci</filepath> directory to store the key pair.</p>
         <pre xml:space="preserve">$ mkdir ~/.oci</pre>
-        <p>The key pair is usually installed in the <filepath>.oci</filepath> folder in your home directory. For
-          example, <filepath>~/.oci</filepath> on a Linux system. </p>
+        <p>The key pair is usually installed in the <filepath>.oci</filepath> folder in your home directory. For example, <filepath>~/.oci</filepath> on a Linux system.</p>
       </li>
       <li>
         <p>Generate the private key. </p>
-        <p>Use the <codeph>openssl</codeph> command. </p>
+        <p>Use the <codeph>openssl</codeph> command.</p>
         <ul>
           <li>
-            <p> To generate a private key with a passphrase (prompt for passphrase): </p>
+            <p> To generate a private key with a passphrase (prompt for passphrase):</p>
             <pre xml:space="preserve">$ openssl genrsa -out ~/.oci/oci_api_key.pem -aes256 2048 </pre>
           </li>
           <li>
@@ -35,17 +28,15 @@
             <pre xml:space="preserve">$ openssl genrsa -aes256 -passout pass:user_passphrase -out ~/.oci/oci_api_key.pem 2048</pre>
           </li>
           <li>
-            <p>
-                To generate a private key without a passphrase:
-              </p>
+            <p> To generate a private key without a passphrase:</p>
             <pre xml:space="preserve">$ openssl genrsa -out ~/.oci/oci_api_key.pem 2048</pre>
           </li>
         </ul>
       </li>
       <li>
-        <p>Change permissions for the private key. </p>
+        <p>Change permissions for the private key.</p>
         <pre xml:space="preserve">$ chmod 600 ~/.oci/oci_api_key.pem</pre>
-        <p>Generate the public key. </p>
+        <p>Generate the public key.</p>
         <pre xml:space="preserve">$ openssl rsa -pubout -in ~/.oci/oci_api_key.pem -out ~/.oci/oci_api_key_public.pem</pre>
         <p>Enter the passphrase when prompted, if you set one.</p>
       </li>

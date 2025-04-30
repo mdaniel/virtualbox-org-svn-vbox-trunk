@@ -21,7 +21,7 @@
       </li>
       <li><p><uicontrol>Preferences</uicontrol></p>
       </li>
-      <li><p><uicontrol>Settings</uicontrol> for a virtual machine.</p>
+      <li><p><uicontrol>Settings</uicontrol> for a virtual machine</p>
    </li>
     </ul>
    <p>Wherever you set it, the preference applies throughout <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>.</p> 

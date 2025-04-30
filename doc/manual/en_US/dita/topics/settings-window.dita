@@ -1,19 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="ct_settings-window">
-  <title>The Settings Window</title>
+  <title>Virtual Machine Settings</title>
   <body>
     <p>Settings for a virtual machine are configured using the <b>Settings</b> window.</p>
     <p>To display the <b>Settings</b> window, do either of the following:</p>
     <ul>
       <li>
-        <p>In the machine list, right-click the virtual machine name. Select the <b>Settings</b> menu option.</p>
+        <p>In the <uicontrol>Machines</uicontrol> list, right-click the virtual machine name, and click <b>Settings</b>.</p>
       </li>
       <li>
-        <p>In the machine list, click the virtual machine name. Select the <b>Machine</b>, <b>Settings</b> menu option.</p>
-      </li>
-      <li>
-        <p> Click the <b>Settings</b> button in the toolbar in the <b>Details</b> pane.</p>
+        <p>In the <uicontrol>Machines</uicontrol> list, click the virtual machine name, and then click <uicontrol>Settings</uicontrol> on the toolbar.</p>
       </li>
     </ul>
     <note>

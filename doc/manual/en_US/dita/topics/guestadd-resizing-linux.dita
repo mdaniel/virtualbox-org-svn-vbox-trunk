@@ -4,7 +4,7 @@
   <title>X11/XWayland Desktop Environments</title>
   
   <body>
-    <p> The Guest Additions provide services for controlling the guest system's monitor topology. Monitor topology means the resolution of each virtual monitor and its state (disabled/enabled). The resolution of a virtual monitor can be modified from the host side either by resizing the window that hosts the virtual monitor, by using the <b outputclass="bold">View</b> menu or the <userinput>VBoxManage controlvm <varname>vmname</varname> setscreenlayout</userinput> command. See <xref href="../cli_topics/vboxmanage-controlvm-setscreenlayout.dita"/>. Screens enabled must be contiguous or the command will have no effect.</p>
+    <p> The Guest Additions provide services for controlling the guest system's monitor topology. Monitor topology means the resolution of each virtual monitor and its state (disabled/enabled). The resolution of a virtual monitor can be modified on the VM by using the <b outputclass="bold">View</b> menu, or from the host side by resizing the window that hosts the virtual monitor, or the <userinput>VBoxManage controlvm <varname>vmname</varname> setscreenlayout</userinput> command. See <xref href="../cli_topics/vboxmanage-controlvm-setscreenlayout.dita"/>. Screens enabled must be contiguous or the command will have no effect.</p>
     <p>On guest operating systems with X11/XWayland desktops this is put into effect by any of the following services:</p>
     <pre xml:space="preserve">VBoxClient --vmsvga</pre>
     <pre xml:space="preserve">VBoxClient --vmsvga-session</pre>

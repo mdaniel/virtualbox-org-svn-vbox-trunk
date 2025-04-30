@@ -6,7 +6,7 @@
   <body>
     <ol>
       <li>
-        <p>Download the latest <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/> from <xref href="https://www.virtualbox.org/wiki/Downloads" format="html" scope="external"/> and save it on the host machine.</p>
+        <p>Download the latest <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/> from <xref href="https://www.virtualbox.org/wiki/Downloads" format="html" scope="external">Download VirtualBox</xref> and save it on the host machine.</p>
       </li>
       <li>
         <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, Click <uicontrol>Extensions</uicontrol>.</p>

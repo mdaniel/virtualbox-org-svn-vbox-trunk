@@ -3,7 +3,7 @@
 <topic xml:lang="en-us" id="tk_using-cloud-profile-manager">
   <title>Using the Cloud Profile Manager</title>
   <body>
-    <p>To open the Cloud Profile Manager click <b outputclass="bold">File</b>, <b>Tools</b>, <b outputclass="bold">Cloud Profile Manager</b> in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. </p>
+    <p>To open the Cloud Profile Manager click <uicontrol>Cloud</uicontrol> in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. </p>
     <p>You can use the Cloud Profile Manager in the following ways: </p>
     <ul>
       <li>

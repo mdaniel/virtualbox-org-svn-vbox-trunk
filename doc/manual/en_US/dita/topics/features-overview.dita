@@ -16,7 +16,8 @@
     </section>
     <section>
       <title>Guest Additions</title>
-      <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions are software packages that can be installed on VMs to improve their performance and to provide additional integration and communication with the host system. VMs running Guest Additions support automatic adjustment of video resolutions, seamless windows, accelerated 3D graphics, shared folders, clipboard sharing, and more. See <?oxy_comment_start author="Mhari Duncan" timestamp="20250130T205410+0000" comment="Replace with links to individual features"?><xref href="guestadditions.dita#guestadditions"/><?oxy_comment_end?>.</p>
+      <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
+        <xref href="guestadd-intro.dita">Guest Additions</xref> are software packages that can be installed on VMs to improve their performance and to provide additional integration and communication with the host system. VMs running Guest Additions support automatic adjustment of video resolutions, <xref href="seamlesswindows.dita">seamless windows</xref>, <xref href="guestadd-video.dita">accelerated 3D graphics</xref>, <xref href="sharedfolders.dita">shared folders</xref>, <xref href="guestadd-clipboard.dita">clipboard sharing</xref>, <xref href="guestadd-dnd.dita">drag and drop</xref>, and more.</p>
     </section>
     <section>
       <title>Virtual Hardware</title>

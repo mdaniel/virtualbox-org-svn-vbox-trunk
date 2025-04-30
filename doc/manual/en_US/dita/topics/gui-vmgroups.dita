@@ -4,34 +4,35 @@
   <title>Using VM Groups</title>
   
   <body>
-    <p>Create VM groups if you want to manage several VMs together, and perform functions on them collectively, as well
-      as individually. </p>
-    <p>The following features are available for groups: </p>
+    <p>Create VM groups if you want to manage several VMs together, and perform functions on them collectively, as well as individually.</p>
     <ul>
       <li>
-        <p>Create a group using <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. Do one of the following: </p>
+        <p>Create a group using <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. Do one of the following:</p>
         <ul>
           <li>
-            <p>Drag a VM on top of another VM. </p>
+            <p>Drag a VM on top of another VM.</p>
           </li>
           <li>
-            <p>Select multiple VMs and select <b outputclass="bold">Group</b> from the right-click menu. </p>
+            <p>Select multiple VMs and select <uicontrol>Move to Group</uicontrol>, <uicontrol>New Group</uicontrol> from the right-click menu.</p>
           </li>
         </ul>
       </li>
       <li>
-        <p>Create and manage a group using the command line. Do one of the following: </p>
+        <p>To rename the new group, right-click on the group's name and choose <uicontrol>Rename Group</uicontrol></p>
+      </li>
+      <li>
+        <p>Create and manage a group using the command line. Do one of the following:</p>
         <ul>
           <li>
-            <p>Create a group and assign a VM. For example: </p>
+            <p>Create a group and assign a VM. For example:</p>
             <pre xml:space="preserve">VBoxManage modifyvm "vm01" --groups "/TestGroup"</pre>
             <p>This command creates a group <codeph>TestGroup</codeph> and attaches the VM <codeph>vm01</codeph> to that
               group. </p>
           </li>
           <li>
-            <p>Detach a VM from the group, and delete the group if empty. For example: </p>
+            <p>Detach a VM from the group, and delete the group if empty. For example:</p>
             <pre xml:space="preserve">VBoxManage modifyvm "vm01" --groups ""</pre>
-            <p>This command detaches all groups from the VM <codeph>vm01</codeph> and deletes the empty group. </p>
+            <p>This command detaches all groups from the VM <codeph>vm01</codeph> and deletes the empty group.</p>
           </li>
         </ul>
       </li>

@@ -6,10 +6,7 @@
     <p>You can use <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> to control a cloud VM as follows: </p>
     <ul>
       <li>
-        <p><b outputclass="bold">Start.</b> Use the
-              <b outputclass="bold">Start</b> button in the
-              <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> toolbar.
-            </p>
+        <p><b outputclass="bold">Start.</b> Use the <b outputclass="bold">Start</b> button in the <uicontrol>Machines</uicontrol> toolbar.</p>
       </li>
       <li>
         <p><b outputclass="bold">Stop.</b> Click the

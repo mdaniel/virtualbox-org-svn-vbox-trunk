@@ -4,26 +4,18 @@
   <title>Preparing for <ph conkeyref="vbox-conkeyref-phrases/oci"/> Integration</title>
   
   <body>
-    <p>Perform the following configuration steps before using <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to
-      integrate with your <ph conkeyref="vbox-conkeyref-phrases/oci"/> account. </p>
+    <p>Perform the following configuration steps before using <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to integrate with your <ph conkeyref="vbox-conkeyref-phrases/oci"/> account.</p>
     <ol>
       <li>
         <p><b outputclass="bold">Install the Extension Pack.</b> Cloud integration features are only available when you install the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>. See <xref href="install-ext-pack.dita"/>.</p>
       </li>
       <li>
-        <p><b outputclass="bold">Create a key pair.</b> Generate
-            an API signing key pair that is used for API requests to
-            <ph conkeyref="vbox-conkeyref-phrases/oci"/>. See <xref href="cloud-create-api-keypair.dita#cloud-create-api-keypair"/>.
-          </p>
+        <p><b outputclass="bold">Create a key pair.</b> Generate an API signing key pair that is used for API requests to <ph conkeyref="vbox-conkeyref-phrases/oci"/>. See <xref href="cloud-create-api-keypair.dita#cloud-create-api-keypair"/>.</p>
         <p>Upload the public key of the key pair from your client device to the cloud service. See <xref
             href="cloud-upload-public-key.dita#cloud-upload-public-key"/>. </p>
       </li>
       <li>
-        <p><b outputclass="bold">Create a cloud profile.</b> The
-            cloud profile contains resource identifiers for your cloud
-            account, such as your user OCID, and details of your key
-            pair. See <xref href="cloud-create-cloud-profile.dita#cloud-create-cloud-profile"/>.
-          </p>
+        <p><b outputclass="bold">Create a cloud profile.</b> The cloud profile contains resource identifiers for your cloud account, such as your user OCID, and details of your key pair. See <xref href="cloud-create-cloud-profile.dita#cloud-create-cloud-profile"/>.</p>
       </li>
     </ol>
   </body>

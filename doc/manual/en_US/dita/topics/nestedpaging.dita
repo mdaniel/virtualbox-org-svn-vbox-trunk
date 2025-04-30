@@ -4,10 +4,7 @@
   <title><?oxy_comment_start author="Mhari Duncan" timestamp="20250115T154133+0000" comment="Put this in context of configuring VM"?>Nested Paging and VPIDs<?oxy_comment_end?></title>
   
   <body>
-    <p>
-      In addition to normal hardware virtualization, your processor may
-      also support the following additional sophisticated techniques:
-    </p>
+    <p>In addition to normal hardware virtualization, your processor may also support the following additional sophisticated techniques:</p>
     <ul>
       <li>
         <p>

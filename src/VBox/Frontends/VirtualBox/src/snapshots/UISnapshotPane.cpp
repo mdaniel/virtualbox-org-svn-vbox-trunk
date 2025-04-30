@@ -1194,15 +1194,21 @@ void UISnapshotPane::sltHandleContextMenuRequest(const QPoint &position)
         menu.addSeparator();
         menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Restore));
         menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_T_Properties));
-        menu.addSeparator();
-        menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Clone));
+        if (gEDataManager->isSettingsInExpertMode())
+        {
+            menu.addSeparator();
+            menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Clone));
+        }
     }
     /* For "current state" item: */
     else
     {
         menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Take));
-        menu.addSeparator();
-        menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Clone));
+        if (gEDataManager->isSettingsInExpertMode())
+        {
+            menu.addSeparator();
+            menu.addAction(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Clone));
+        }
     }
 
     /* Show menu: */

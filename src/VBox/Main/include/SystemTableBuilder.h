@@ -103,6 +103,7 @@ private:
     int buildGtdt(RTVFSIOSTREAM hVfsIos, size_t *pcbGtdt);
     int buildFadt(RTVFSIOSTREAM hVfsIos, RTGCPHYS GCPhysXDsdt, size_t *pcbFadt);
     int buildTpm20(RTVFSIOSTREAM hVfsIos, size_t *pcbTpm20);
+    int buildIort(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt);
 
     RTACPITBL m_hAcpiDsdt;
     RTACPIRES m_hAcpiRes;

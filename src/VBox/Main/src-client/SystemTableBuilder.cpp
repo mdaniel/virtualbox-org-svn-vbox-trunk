@@ -225,6 +225,19 @@ int SystemTableBuilderAcpi::finishTables(RTGCPHYS GCPhysTblsStart, RTVFSIOSTREAM
         GCPhysTblsStart += cbTbl;
     }
 
+    /* Build the IORT if an ITS is configured. */
+    if (m_GCPhysIntcIts)
+    {
+        Assert(m_cbMmioIntcIts > 0);
+        Assert(m_GCPhysIntcIts != NIL_RTGCPHYS);
+        vrc = buildIort(hVfsIos, &cbTbl);
+        AssertRCReturn(vrc, vrc);
+
+        pXsdt->au64AddrTbl[cTbls++] = GCPhysTblsStart;
+        cbAcpiTbls      += cbTbl;
+        GCPhysTblsStart += cbTbl;
+    }
+
     /* Build XSDT. */
     RTGCPHYS GCPhysXsdt = GCPhysTblsStart;
     size_t const cbXsdt = RT_UOFFSETOF_DYN(ACPIXSDT, au64AddrTbl[cTbls]);
@@ -477,6 +490,69 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
 int SystemTableBuilderAcpi::dumpTables(const char *pszFilename)
 {
     return RTAcpiTblDumpToFile(m_hAcpiDsdt, RTACPITBLTYPE_AML, pszFilename);
+}
+
+
+int SystemTableBuilderAcpi::buildIort(RTVFSIOSTREAM hVfsIos, size_t *pcbIort)
+{
+    uint8_t abIort[  sizeof(ACPIIORT)
+                   + sizeof(ACPIIORTNODEITSGROUP)
+                   + sizeof(ACPIIORTNODEPCIRC)
+                   + sizeof(ACPIIIORTIDMAPPING)];
+    RT_ZERO(abIort);
+    uint32_t cbIort = 0;
+    uint8_t  cNodes = 0;
+
+    PACPIIORT             pIort         = (PACPIIORT)&abIort[0];
+    PACPIIORTNODEITSGROUP pItsGroup     = (PACPIIORTNODEITSGROUP)(pIort + 1);
+    PACPIIORTNODEPCIRC    pPciRc        = (PACPIIORTNODEPCIRC)(pItsGroup + 1);
+    PACPIIIORTIDMAPPING   pPciRcMapping = (PACPIIIORTIDMAPPING)(pPciRc + 1);
+    cbIort += sizeof(*pIort);
+
+    /* Add ITS group node (we support only a single ITS). */
+    ++cNodes;
+    {
+        pItsGroup->Hdr.bType  = ACPI_IORT_NODE_TYPE_ITS_GROUP;
+        pItsGroup->Hdr.cbThis = sizeof(*pItsGroup);
+        pItsGroup->cIts       = 1;
+        cbIort += sizeof(*pItsGroup);
+    }
+
+    /* Add PCI root complex for a single ITS with a 1:1 mapping of IDs. */
+    ++cNodes;
+    {
+        pPciRc->Hdr.bType         = ACPI_IORT_NODE_TYPE_ROOT_COMPLEX;
+        pPciRc->Hdr.cbThis        = sizeof(*pPciRc) + sizeof(*pPciRcMapping);
+        pPciRc->Hdr.bRevision     = 2;
+        pPciRc->Hdr.cIdMappings   = 1;
+        pPciRc->Hdr.offIdArray    = sizeof(*pPciRc);
+        pPciRc->bMemAddrSizeLimit = 64;
+        cbIort += sizeof(*pPciRc);
+
+        /* Add the ID mapping. */
+        pPciRcMapping->fFlags       = ACPI_IORT_ID_MAPPING_SINGLE;
+        pPciRcMapping->offOutputRef = sizeof(*pIort);  /** Offset from start of IORT to start of ITS GROUP 0. */
+        cbIort += sizeof(*pPciRcMapping);
+    }
+
+    /* Finalize the IORT. */
+    pIort->Hdr.u32Signature       = ACPI_TABLE_HDR_SIGNATURE_RSVD_IORT;
+    pIort->Hdr.cbTbl              = cbIort;
+    pIort->Hdr.bRevision          = 1;
+    pIort->Hdr.bChkSum            = 0;
+    pIort->Hdr.u32OemRevision     = 1;
+    pIort->Hdr.u32CreatorRevision = 1;
+    pIort->cIortNodes             = cNodes;
+    pIort->offFirstNode           = sizeof(ACPIIORT);
+
+    memcpy(&pIort->Hdr.abOemId[0],    "ORCLVB",                 6);
+    memcpy(&pIort->Hdr.abOemTblId[0], "ORCL",                   4);
+    memcpy(&pIort->Hdr.abOemTblId[4], &pIort->Hdr.u32Signature, 4);
+    memcpy(&pIort->Hdr.abCreatorId[0], "ORCL", 4);
+
+    RTAcpiTblHdrChecksumGenerate(&pIort->Hdr, cbIort);
+    *pcbIort = cbIort;
+    return RTVfsIoStrmWrite(hVfsIos, pIort, cbIort, true /*fBlocking*/, NULL /*pcbWritten*/);
 }
 
 

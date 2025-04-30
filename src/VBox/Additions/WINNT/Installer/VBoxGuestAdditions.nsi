@@ -624,8 +624,6 @@ Section $(VBOX_COMPONENT_MAIN) SEC01
   ${LogVerbose} "Installer runs in debug mode"
 !endif
 
-    Abort
-
   ;
   ; Here starts the main dispatcher (based on guest OS).
   ;

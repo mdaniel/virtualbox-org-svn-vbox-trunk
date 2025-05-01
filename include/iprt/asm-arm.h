@@ -192,7 +192,7 @@ DECLINLINE(void) ASMIntDisable(void)
 # if RT_INLINE_ASM_GNU_STYLE
 #  ifdef RT_ARCH_ARM64
     __asm__ __volatile__("Lstart_ASMIntDisable_%=:\n\t"
-                         "msr daifset, #0xf\n\t");
+                         "msr daifset, #0xf\n\t" :); /* The ':' is to make clang 16 happy. */
 #  else
     RTCCUINTREG uFlags;
     __asm__ __volatile__("Lstart_ASMIntDisable_%=:\n\t"
@@ -307,7 +307,7 @@ DECLINLINE(void) ASMSetFlags(RTCCUINTREG uFlags)
  */
 DECLINLINE(bool) ASMIntAreEnabled(void)
 {
-    return ASMGetFlags() & 0xc0 /* IRQ and FIQ bits */ ? true : false;
+    return (ASMGetFlags() & 0xc0 /* IRQ and FIQ bits */) == 0;
 }
 
 

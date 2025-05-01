@@ -1272,7 +1272,11 @@ bool VBOXCALL supdrvOSAreCpusOfflinedOnSuspend(void)
 
 bool VBOXCALL supdrvOSAreTscDeltasInSync(void)
 {
+#ifdef RT_ARCH_ARM64
+    return true;
+#else
     return false;
+#endif
 }
 
 

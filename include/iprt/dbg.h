@@ -2018,12 +2018,34 @@ RTR0DECL(int)       RTR0DbgKrnlInfoQueryMember(RTDBGKRNLINFO hKrnlInfo, const ch
  *                          VERR_SYMBOL_NOT_FOUND is returned.
  *
  * @sa      RTR0DbgKrnlInfoGetSymbol, RTLdrGetSymbol
+ *
+ * @note    This is problematic wrt pointer authentication on ARM64,
+ *          so use RTR0DbgKrnlInfoGetFunction and RTR0DbgKrnlInfoGetSymbol
+ *          instead when possible.
  */
 RTR0DECL(int)       RTR0DbgKrnlInfoQuerySymbol(RTDBGKRNLINFO hKrnlInfo, const char *pszModule,
                                                const char *pszSymbol, void **ppvSymbol);
 
 /**
- * Wrapper around RTR0DbgKrnlInfoQuerySymbol that returns the symbol.
+ * Wrapper around RTR0DbgKrnlInfoQuerySymbol that returns the a function
+ * pointer.
+ *
+ * @return  Symbol address if found, NULL if not found or some invalid parameter
+ *          or something.
+ * @param   hKrnlInfo       The kernel info handle.
+ * @param   pszModule       The name of the module to search, pass NULL to
+ *                          search the default kernel module(s).
+ * @param   pszSymbol       The C name of the symbol.
+ *                          On Windows NT there are the following special symbols:
+ *                              - __ImageBase: The base address of the module.
+ *                              - __ImageSize: The size of the module.
+ *                              - __ImageNtHdrs: Address of the NT headers.
+ * @sa      RTR0DbgKrnlInfoQuerySymbol, RTLdrGetSymbol
+ */
+RTR0DECL(PFNRT)     RTR0DbgKrnlInfoGetFunction(RTDBGKRNLINFO hKrnlInfo, const char *pszModule, const char *pszSymbol);
+
+/**
+ * Wrapper around RTR0DbgKrnlInfoQuerySymbol that returns the (data) symbol.
  *
  * @return  Symbol address if found, NULL if not found or some invalid parameter
  *          or something.

@@ -3724,6 +3724,7 @@ RuntimeR0Drv_SOURCES    = \
 	r0drv/initterm-r0drv.cpp \
 	r0drv/generic/semspinmutex-r0drv-generic.c \
 	r0drv/RTR0DbgKrnlInfoGetSymbol.cpp \
+	r0drv/RTR0DbgKrnlInfoGetFunction.cpp \
 	VBox/log-vbox.cpp
 
 RuntimeR0Drv_SOURCES.amd64 = \
@@ -3749,7 +3750,8 @@ RuntimeR0Drv_SOURCES.arm32 += \
 	common/asm/ASMMultU64ByU32DivByU32-generic.cpp
 RuntimeR0Drv_SOURCES.arm64 += \
 	common/string/RTStrEnd.cpp \
-	common/asm/ASMMultU64ByU32DivByU32-generic.cpp
+	common/asm/ASMMultU64ByU32DivByU32-generic.cpp \
+	common/asm/ASMMemFirstMismatchingU8-generic.cpp
 RuntimeR0Drv_SOURCES.sparc32 += \
 	common/string/RTStrEnd.cpp \
 	common/asm/ASMMultU64ByU32DivByU32-generic.cpp
@@ -4041,8 +4043,6 @@ RuntimeR0Drv_SOURCES.darwin = \
 	common/math/bignum.cpp \
 	common/misc/thread.cpp \
 	common/string/base64.cpp \
-	common/string/memchr.asm \
-	common/string/mempcpy.asm \
 	common/string/strpbrk.cpp \
 	common/string/strstrip.cpp \
 	common/string/RTStrPrintHexBytes.cpp \
@@ -4091,9 +4091,15 @@ RuntimeR0Drv_SOURCES.darwin = \
 # - The xnu memcpy implementation in osfmk/x86_64/bcopy.s returned 'void' rather than 'void *' for a long time, so use our own.
 # - The memcmp and strlen implementations are still C implementations living in osfmk/x86_64/loose_ends.c, so use our asm code.
 RuntimeR0Drv_SOURCES.darwin.amd64 = \
-	common/string/memcpy.asm
+	common/string/memcpy.asm \
+	common/string/memchr.asm \
+	common/string/mempcpy.asm
 #	common/string/strlen.asm - try again later \
 #	common/string/memcmp.asm
+
+RuntimeR0Drv_SOURCES.darwin.x86 = \
+	common/string/memchr.asm \
+	common/string/mempcpy.asm
 
 RuntimeR0Drv_SOURCES.os2 = \
 	common/path/RTPathFilenameUtf16.cpp \

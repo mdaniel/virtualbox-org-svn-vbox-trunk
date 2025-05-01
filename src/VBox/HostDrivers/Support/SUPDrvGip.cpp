@@ -214,8 +214,9 @@ DECLINLINE(uint32_t) supdrvGipGetApicId(PSUPGLOBALINFOPAGE pGip)
     RT_NOREF(pGip);
     return (uint32_t)ASMGetThreadIdRoEL0();
 
-#elif defined(RT_ARCH_ARM64) && defined(RT_OS_LINUX)
-    return (uint32_t)RTMpCurSetIndex();
+#elif defined(RT_ARCH_ARM64) && (defined(RT_OS_LINUX) || defined(RT_OS_DARWIN))
+    RT_NOREF(pGip);
+    return (uint32_t)RTMpCurSetIndex(); /* the easy way out for now */
 
 #else
 # error "port me"
@@ -268,8 +269,8 @@ static uint32_t supdrvGipGetApicIdSlow(void)
 #elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
     return (uint32_t)ASMGetThreadIdRoEL0();
 
-#elif defined(RT_ARCH_ARM64) && defined(RT_OS_LINUX)
-    return (uint32_t)RTMpCurSetIndex();
+#elif defined(RT_ARCH_ARM64) && (defined(RT_OS_LINUX) || defined(RT_OS_DARWIN))
+    return (uint32_t)RTMpCurSetIndex(); /* the easy way out for now */
 
 #else
 # error "port me"

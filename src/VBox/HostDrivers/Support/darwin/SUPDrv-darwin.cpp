@@ -45,7 +45,11 @@
 #include <VBox/version.h>
 #include <iprt/assert.h>
 #include <iprt/asm.h>
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <iprt/asm-arm.h>
+#endif
 #include <iprt/ctype.h>
 #include <iprt/dbg.h>
 #include <iprt/initterm.h>
@@ -56,7 +60,9 @@
 #include <iprt/process.h>
 #include <iprt/spinlock.h>
 #include <iprt/semaphore.h>
-#include <iprt/x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/x86.h>
+#endif
 #include <iprt/crypto/applecodesign.h>
 #include <iprt/crypto/store.h>
 #include <iprt/crypto/pkcs7.h>
@@ -79,8 +85,15 @@
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 101100
 # include <IOKit/usb/IOUSBHIDDriver.h>
 #endif
+#if RT_CLANG_PREREQ(15,0)
+# pragma clang diagnostic push
+# pragma GCC diagnostic ignored "-Winvalid-utf8"
+#endif
 #include <IOKit/bluetooth/IOBluetoothHIDDriver.h>
 #include <IOKit/bluetooth/IOBluetoothHIDDriverTypes.h>
+#if RT_CLANG_PREREQ(15,0)
+# pragma clang diagnostic pop
+#endif
 
 #ifdef VBOX_WITH_HOST_VMX
 # include <libkern/version.h>
@@ -133,7 +146,9 @@ static IOReturn         VBoxDrvDarwinSleepHandler(void *pvTarget, void *pvRefCon
 RT_C_DECLS_END
 
 static int              vboxdrvDarwinResolveSymbols(void);
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 static bool             vboxdrvDarwinCpuHasSMAP(void);
+#endif
 
 
 /*********************************************************************************************************************************
@@ -238,8 +253,13 @@ static struct cdevsw    g_DevCW =
     /*.d_select= */eno_select,
     /*.d_mmap  = */eno_mmap,
     /*.d_strategy = */eno_strat,
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1200 /* changed from 'void *' to 'rsvd_fcn_t' */
+    /*.d_getc/d_reserved_1 = */eno_getc,
+    /*.d_putc/d_reserved_2 = */eno_putc,
+#else
     /*.d_getc  = */(void *)(uintptr_t)&enodev, //eno_getc,
     /*.d_putc  = */(void *)(uintptr_t)&enodev, //eno_putc,
+#endif
     /*.d_type  = */0
 };
 
@@ -261,6 +281,7 @@ static int32_t volatile     g_cSessions = 0;
 /** The notifier handle for the sleep callback handler. */
 static IONotifier          *g_pSleepNotifier = NULL;
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /** Pointer to vmx_suspend(). */
 static PFNRT            g_pfnVmxSuspend = NULL;
 /** Pointer to vmx_resume(). */
@@ -268,14 +289,15 @@ static PFNRT            g_pfnVmxResume = NULL;
 /** Pointer to vmx_use_count. */
 static int volatile    *g_pVmxUseCount = NULL;
 
-#ifdef SUPDRV_WITH_MSR_PROBER
+# ifdef SUPDRV_WITH_MSR_PROBER
 /** Pointer to rdmsr_carefully if found. Returns 0 on success. */
 static int             (*g_pfnRdMsrCarefully)(uint32_t uMsr, uint32_t *puLow, uint32_t *puHigh) = NULL;
 /** Pointer to rdmsr64_carefully if found. Returns 0 on success. */
 static int             (*g_pfnRdMsr64Carefully)(uint32_t uMsr, uint64_t *uValue) = NULL;
 /** Pointer to wrmsr[64]_carefully if found. Returns 0 on success. */
 static int             (*g_pfnWrMsr64Carefully)(uint32_t uMsr, uint64_t uValue) = NULL;
-#endif
+# endif
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 /** SUPKERNELFEATURES_XXX */
 static uint32_t         g_fKernelFeatures = 0;
@@ -313,14 +335,16 @@ static kern_return_t    VBoxDrvDarwinStart(struct kmod_info *pKModInfo, void *pv
             rc = RTSpinlockCreate(&g_Spinlock, RTSPINLOCK_FLAGS_INTERRUPT_SAFE, "VBoxDrvDarwin");
             if (RT_SUCCESS(rc))
             {
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
                 if (vboxdrvDarwinCpuHasSMAP())
                 {
                     g_fKernelFeatures |= SUPKERNELFEATURES_SMAP;
-#ifndef VBOX_WITHOUT_EFLAGS_AC_SET_IN_VBOXDRV
+# ifndef VBOX_WITHOUT_EFLAGS_AC_SET_IN_VBOXDRV
                     LogRel(("disabling SMAP for VBoxDrvDarwinIOCtl\n"));
                     g_DevCW.d_ioctl = VBoxDrvDarwinIOCtlSMAP;
-#endif
+# endif
                 }
+#endif
 
                 /*
                  * Resolve some extra kernel symbols.
@@ -399,6 +423,7 @@ static kern_return_t    VBoxDrvDarwinStart(struct kmod_info *pKModInfo, void *pv
  */
 static int vboxdrvDarwinResolveSymbols(void)
 {
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     RTDBGKRNLINFO hKrnlInfo;
     int rc = RTR0DbgKrnlInfoOpen(&hKrnlInfo, 0);
     if (RT_SUCCESS(rc))
@@ -421,14 +446,14 @@ static int vboxdrvDarwinResolveSymbols(void)
             g_pfnVmxResume  = NULL;
             g_pfnVmxSuspend = NULL;
             g_pVmxUseCount  = NULL;
-#ifdef VBOX_WITH_RAW_MODE
+# ifdef VBOX_WITH_RAW_MODE
             rc = VERR_SYMBOL_NOT_FOUND;
-#endif
+# endif
         }
 
         if (RT_SUCCESS(rc))
         {
-#ifdef SUPDRV_WITH_MSR_PROBER
+# ifdef SUPDRV_WITH_MSR_PROBER
             /*
              * MSR prober stuff - optional!
              */
@@ -438,16 +463,16 @@ static int vboxdrvDarwinResolveSymbols(void)
             rc2 = RTR0DbgKrnlInfoQuerySymbol(hKrnlInfo, NULL, "rdmsr64_carefully", (void **)&g_pfnRdMsr64Carefully);
             if (RT_FAILURE(rc2))
                 g_pfnRdMsr64Carefully = NULL;
-# ifdef RT_ARCH_AMD64 /* Missing 64 in name, so if implemented on 32-bit it could have different signature. */
+#  ifdef RT_ARCH_AMD64 /* Missing 64 in name, so if implemented on 32-bit it could have different signature. */
             rc2 = RTR0DbgKrnlInfoQuerySymbol(hKrnlInfo, NULL, "wrmsr_carefully", (void **)&g_pfnWrMsr64Carefully);
             if (RT_FAILURE(rc2))
-# endif
+#  endif
                 g_pfnWrMsr64Carefully = NULL;
 
             LogRel(("VBoxDrv: g_pfnRdMsrCarefully=%p g_pfnRdMsr64Carefully=%p g_pfnWrMsr64Carefully=%p\n",
                     g_pfnRdMsrCarefully, g_pfnRdMsr64Carefully, g_pfnWrMsr64Carefully));
 
-#endif /* SUPDRV_WITH_MSR_PROBER */
+# endif /* SUPDRV_WITH_MSR_PROBER */
         }
 
         RTR0DbgKrnlInfoRelease(hKrnlInfo);
@@ -455,6 +480,9 @@ static int vboxdrvDarwinResolveSymbols(void)
     else
         LogRel(("VBoxDrv: Failed to open kernel symbols, rc=%Rrc\n", rc));
     return rc;
+#else  /* !RT_ARCH_AMD64 && !RT_ARCH_X86 */
+    return VINF_SUCCESS;
+#endif /* !RT_ARCH_AMD64 && !RT_ARCH_X86 */
 }
 
 
@@ -1054,8 +1082,9 @@ IOReturn VBoxDrvDarwinSleepHandler(void * /* pvTarget */, void *pvRefCon, UInt32
     return 0;
 }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 
-#ifdef VBOX_WITH_HOST_VMX
+# ifdef VBOX_WITH_HOST_VMX
 /**
  * For cleaning up the mess we left behind on Yosemite with 4.3.28 and earlier.
  *
@@ -1075,7 +1104,7 @@ static DECLCALLBACK(void) vboxdrvDarwinVmxEnableFix(RTCPUID idCpu, void *pvUser1
         ASMSetCR4(uCr4);
     }
 }
-#endif
+# endif
 
 
 /**
@@ -1083,14 +1112,14 @@ static DECLCALLBACK(void) vboxdrvDarwinVmxEnableFix(RTCPUID idCpu, void *pvUser1
  */
 int VBOXCALL supdrvOSEnableVTx(bool fEnable)
 {
-#ifdef VBOX_WITH_HOST_VMX
+# ifdef VBOX_WITH_HOST_VMX
     int rc;
     if (   version_major >= 10 /* 10 = 10.6.x = Snow Leopard */
-# ifdef VBOX_WITH_RAW_MODE
+#  ifdef VBOX_WITH_RAW_MODE
         && g_pfnVmxSuspend
         && g_pfnVmxResume
         && g_pVmxUseCount
-# endif
+#  endif
        )
     {
         IPRT_DARWIN_SAVE_EFL_AC();
@@ -1166,9 +1195,9 @@ int VBOXCALL supdrvOSEnableVTx(bool fEnable)
         rc = VERR_NOT_SUPPORTED;
     }
     return rc;
-#else
+# else  /* !VBOX_WITH_HOST_VMX */
     return VERR_NOT_SUPPORTED;
-#endif
+# endif /* !VBOX_WITH_HOST_VMX */
 }
 
 
@@ -1177,7 +1206,7 @@ int VBOXCALL supdrvOSEnableVTx(bool fEnable)
  */
 bool VBOXCALL supdrvOSSuspendVTxOnCpu(void)
 {
-#ifdef VBOX_WITH_HOST_VMX
+# ifdef VBOX_WITH_HOST_VMX
     /*
      * Consult the VMX usage counter, don't try suspend if not enabled.
      *
@@ -1194,9 +1223,9 @@ bool VBOXCALL supdrvOSSuspendVTxOnCpu(void)
         return true;
     }
     return false;
-#else
+# else
     return false;
-#endif
+# endif
 }
 
 
@@ -1205,7 +1234,7 @@ bool VBOXCALL supdrvOSSuspendVTxOnCpu(void)
  */
 void VBOXCALL   supdrvOSResumeVTxOnCpu(bool fSuspended)
 {
-#ifdef VBOX_WITH_HOST_VMX
+# ifdef VBOX_WITH_HOST_VMX
     /*
      * Don't consult the counter here, the state knows better.
      * We're executing with interrupts disabled and anyone racing us with
@@ -1220,11 +1249,12 @@ void VBOXCALL   supdrvOSResumeVTxOnCpu(bool fSuspended)
     }
     else
         Assert(!fSuspended);
-#else
+# else
     Assert(!fSuspended);
-#endif
+# endif
 }
 
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 bool VBOXCALL supdrvOSGetForcedAsyncTscMode(PSUPDRVDEVEXT pDevExt)
 {
@@ -1723,7 +1753,7 @@ void VBOXCALL   supdrvOSLdrReleaseWrapperModule(PSUPDRVDEVEXT pDevExt, PSUPDRVLD
 }
 
 
-#ifdef SUPDRV_WITH_MSR_PROBER
+#if defined(SUPDRV_WITH_MSR_PROBER) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
 
 typedef struct SUPDRVDARWINMSRARGS
 {
@@ -1907,7 +1937,7 @@ int VBOXCALL    supdrvOSMsrProberModify(RTCPUID idCpu, PSUPMSRPROBER pReq)
     return RTMpOnSpecific(idCpu, supdrvDarwinMsrProberModifyOnCpu, pReq, NULL);
 }
 
-#endif /* SUPDRV_WITH_MSR_PROBER */
+#endif /* SUPDRV_WITH_MSR_PROBER || (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) */
 
 /**
  * Resume Bluetooth keyboard.
@@ -2010,6 +2040,7 @@ static int VBoxDrvDarwinErr2DarwinErr(int rc)
 }
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /**
  * Check if the CPU has SMAP support.
  */
@@ -2024,12 +2055,13 @@ static bool vboxdrvDarwinCpuHasSMAP(void)
         if (uEBX & X86_CPUID_STEXT_FEATURE_EBX_SMAP)
             return true;
     }
-#ifdef VBOX_WITH_EFLAGS_AC_SET_IN_VBOXDRV
+# ifdef VBOX_WITH_EFLAGS_AC_SET_IN_VBOXDRV
     return true;
-#else
+# else
     return false;
-#endif
+# endif
 }
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 
 RTDECL(int) SUPR0PrintfV(const char *pszFormat, va_list va)

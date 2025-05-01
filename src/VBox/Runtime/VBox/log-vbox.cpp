@@ -181,7 +181,13 @@
 # endif
 #endif
 #if defined(IN_RING0) && defined(RT_OS_DARWIN)
-# include <iprt/asm-amd64-x86.h>
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#  include <iprt/asm-amd64-x86.h>
+# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+#  include <iprt/asm-arm.h>
+# else
+#  error "port me"
+# endif
 # include <iprt/thread.h>
 #endif
 

@@ -44,6 +44,8 @@
 
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <iprt/asm-arm.h>
 #endif
 #include <iprt/assert.h>
 #include <iprt/cpuset.h>
@@ -206,8 +208,10 @@ RTDECL(void) RTThreadPreemptRestore(PRTTHREADPREEMPTSTATE pState)
 RTDECL(bool) RTThreadIsInInterrupt(RTTHREAD hThread)
 {
     Assert(hThread == NIL_RTTHREAD); NOREF(hThread);
-    /** @todo Darwin: Implement RTThreadIsInInterrupt. Required for guest
-     *        additions! */
+#if 1
+    return ml_at_interrupt_context() != FALSE; /* exported since xnu-517.3.7; first intel version was xnu-792.x.y. */
+#else
     return !ASMIntAreEnabled();
+#endif
 }
 

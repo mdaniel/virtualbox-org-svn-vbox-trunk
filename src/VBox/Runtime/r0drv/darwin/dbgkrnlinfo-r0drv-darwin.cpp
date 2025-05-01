@@ -102,6 +102,7 @@ RT_C_DECLS_END
 # define MY_SEGMENT_COMMAND     segment_command_32_t
 # define MY_SECTION             section_32_t
 # define MY_NLIST               macho_nlist_32_t
+# define MY_MAX_SECT_ALIGN      12
 
 #elif defined(RT_ARCH_AMD64)
 # define MY_CPU_TYPE            CPU_TYPE_X86_64
@@ -111,15 +112,17 @@ RT_C_DECLS_END
 # define MY_SEGMENT_COMMAND     segment_command_64_t
 # define MY_SECTION             section_64_t
 # define MY_NLIST               macho_nlist_64_t
+# define MY_MAX_SECT_ALIGN      12
 
 #elif defined(RT_ARCH_ARM64)
 # define MY_CPU_TYPE            CPU_TYPE_ARM64
-# define MY_CPU_SUBTYPE_ALL     CPU_SUBTYPE_ARM64_ALL
+# define MY_CPU_SUBTYPE_ALL     (int32_t)(CPU_SUBTYPE_ARM64E | CPU_SUBTYPE_ARM64E_PTRAUTH_ABI | CPU_SUBTYPE_ARM64E_KERNEL_PTRAUTH_ABI)
 # define MY_MACHO_HEADER        mach_header_64_t
 # define MY_MACHO_MAGIC         IMAGE_MACHO64_SIGNATURE
 # define MY_SEGMENT_COMMAND     segment_command_64_t
 # define MY_SECTION             section_64_t
 # define MY_NLIST               macho_nlist_64_t
+# define MY_MAX_SECT_ALIGN      14
 
 #else
 # error "Port me!"
@@ -130,21 +133,24 @@ RT_C_DECLS_END
  */
 #ifdef DEBUG
 # define RETURN_VERR_BAD_EXE_FORMAT \
-    do { Assert(!g_fBreakpointOnError);         return VERR_BAD_EXE_FORMAT; } while (0)
+    do { printf("Bad exe at: %u\n", __LINE__); Assert(!g_fBreakpointOnError);         return VERR_BAD_EXE_FORMAT; } while (0)
+# define RETURN_VERR_BAD_EXE_FORMAT_EX(...) \
+    do { printf("Bad exe at: %u\n", __LINE__); printf(__VA_ARGS__); Assert(!g_fBreakpointOnError); return VERR_BAD_EXE_FORMAT; } while (0)
 # define RETURN_VERR_LDR_UNEXPECTED \
-    do { Assert(!g_fBreakpointOnError);         return VERR_LDR_UNEXPECTED; } while (0)
+    do { printf("unexpect at: %u\n", __LINE__); Assert(!g_fBreakpointOnError);         return VERR_LDR_UNEXPECTED; } while (0)
 # define RETURN_VERR_LDR_ARCH_MISMATCH \
-    do { Assert(!g_fBreakpointOnError);         return VERR_LDR_ARCH_MISMATCH; } while (0)
+    do { printf("mismatch at: %u\n", __LINE__); Assert(!g_fBreakpointOnError);         return VERR_LDR_ARCH_MISMATCH; } while (0)
 #else
-# define RETURN_VERR_BAD_EXE_FORMAT     do {    return VERR_BAD_EXE_FORMAT; } while (0)
-# define RETURN_VERR_LDR_UNEXPECTED     do {    return VERR_LDR_UNEXPECTED; } while (0)
-# define RETURN_VERR_LDR_ARCH_MISMATCH  do {    return VERR_LDR_ARCH_MISMATCH; } while (0)
+# define RETURN_VERR_BAD_EXE_FORMAT             do { return VERR_BAD_EXE_FORMAT; } while (0)
+# define RETURN_VERR_BAD_EXE_FORMAT_EX(...)     do { return VERR_BAD_EXE_FORMAT; } while (0)
+# define RETURN_VERR_LDR_UNEXPECTED             do { return VERR_LDR_UNEXPECTED; } while (0)
+# define RETURN_VERR_LDR_ARCH_MISMATCH          do { return VERR_LDR_ARCH_MISMATCH; } while (0)
 #endif
 #if defined(DEBUG_bird) && !defined(IN_RING3)
-# define LOG_MISMATCH(...)                      kprintf(__VA_ARGS__)
-# define LOG_NOT_PRESENT(...)                   kprintf(__VA_ARGS__)
-# define LOG_BAD_SYM(...)                       kprintf(__VA_ARGS__)
-# define LOG_SUCCESS(...)                       kprintf(__VA_ARGS__)
+# define LOG_MISMATCH(...)                      printf(__VA_ARGS__)
+# define LOG_NOT_PRESENT(...)                   printf(__VA_ARGS__)
+# define LOG_BAD_SYM(...)                       printf(__VA_ARGS__)
+# define LOG_SUCCESS(...)                       printf(__VA_ARGS__)
 #else
 # define LOG_MISMATCH(...)                      Log((__VA_ARGS__))
 # define LOG_NOT_PRESENT(...)                   Log((__VA_ARGS__))
@@ -152,6 +158,17 @@ RT_C_DECLS_END
 # define LOG_SUCCESS(...)                       printf(__VA_ARGS__)
 #endif
 /** @} */
+
+#if defined(IN_RING3) || !defined(DEBUG)
+# define PTR_FMT    "%p"
+# define PTR_ARG(p) (void *)(p)
+#elif ARCH_BITS == 32
+# define PTR_FMT    "%08lx"
+# define PTR_ARG(p) (uintptr_t)(p)
+#else
+# define PTR_FMT    "%08x'%08x"
+# define PTR_ARG(p) (unsigned)((uintptr_t)(p) >> 32), (unsigned)((uintptr_t)(p) & 0xffffffffU)
+#endif
 
 #define VERR_LDR_UNEXPECTED     (-641)
 
@@ -225,17 +242,27 @@ typedef struct RTDBGKRNLINFOINT
     /** The load commands. */
     load_command_t     *pLoadCmds;
     /** The number of segments. */
-    uint32_t            cSegments;
+    uint8_t             cSegments;
     /** The number of sections. */
-    uint32_t            cSections;
-    /** Section pointer table (points into the load commands). */
+    uint8_t             cSections;
+    /** Mapping for section index (MY_NLIST::n_sect - 1) to segment index (into
+     *  apSegments and aoffLoadSegments).
+     *  Runs parallel to apSections. */
+    uint8_t             aidxSection2Segment[MACHO_MAX_SECT];
+    /** Records whether a section is a code section or not.
+     *  Runs parallel to apSections and aidxSection2Segment. */
+    uint8_t             afIsCodeSection[MACHO_MAX_SECT];
+    /** Load displacement table for each segment.
+     *  Runs parallel to apSegments. */
+    uintptr_t           aoffLoadSegments[MACHO_MAX_SECT / 2];
+
+    /** Section pointer table (points into the load commands).
+     * @note Freed by rtR0DbgKrnlDarwinLoadDone.  */
     MY_SEGMENT_COMMAND const *apSegments[MACHO_MAX_SECT / 2];
-    /** Load displacement table for each segment. */
-    uintptr_t          aoffLoadSegments[MACHO_MAX_SECT / 2];
-    /** Section pointer table (points into the load commands). */
+    /** Section pointer table (points into the load commands).
+     *  Indexed by MY_NLIST::n_sect - 1 (since MACHO_MAX_SECT is 0xff).
+     * @note Freed by rtR0DbgKrnlDarwinLoadDone.  */
     MY_SECTION const   *apSections[MACHO_MAX_SECT];
-    /** Mapping table to quickly get to a segment from MY_NLIST::n_sect. */
-    uint8_t            auSections2Segment[MACHO_MAX_SECT];
     /** @} */
 
     /** Buffer space. */
@@ -246,9 +273,33 @@ typedef struct RTDBGKRNLINFOINT
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
+#if defined(RT_ARCH_ARM64) && defined(IN_RING0)
+/** ARM64: The virtual address width. */
+static unsigned g_cAddressWidth = 48;
+#endif
 #ifdef DEBUG
 static bool g_fBreakpointOnError = false;
 #endif
+
+
+#ifdef IN_RING0
+/**
+ * Unpacks authenticated and taggeed pointers on arm64.
+ */
+DECLINLINE(uintptr_t) rtR0DbgKrnlDarwinUnpackPtr(uintptr_t uPtr)
+{
+# if !defined(IN_RING0) || defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    return (uintptr_t)uPtr;
+
+# elif defined(RT_ARCH_ARM64)
+    if (uPtr & RT_BIT_64(55))
+        return uPtr | (UINT64_MAX << g_cAddressWidth);
+    return uPtr & ~(UINT64_MAX << g_cAddressWidth);
+# else
+#  error "port me"
+# endif
+}
+#endif /* IN_RING0 */
 
 
 /**
@@ -310,29 +361,53 @@ static MY_NLIST const *rtR0DbgKrnlDarwinLookupSym(RTDBGKRNLINFOINT *pThis, const
  * @param   pThis               The internal scratch data.
  * @param   pszSymbol           The symbol to resolve.  Automatically prefixed
  *                              with an underscore.
+ * @param   fInternal           Internal lookup, do not log or apply pointer
+ *                              authentication.
  */
-static uintptr_t rtR0DbgKrnlDarwinLookup(RTDBGKRNLINFOINT *pThis, const char *pszSymbol)
+DECL_NO_INLINE(static, uintptr_t) rtR0DbgKrnlDarwinLookup(RTDBGKRNLINFOINT *pThis, const char *pszSymbol, bool fInternal)
 {
     MY_NLIST const *pSym = rtR0DbgKrnlDarwinLookupSym(pThis, pszSymbol);
     if (pSym)
     {
-        uint8_t idxSeg = pThis->auSections2Segment[pSym->n_sect];
-        if (pThis->aoffLoadSegments[idxSeg] != UINTPTR_MAX)
-            return pSym->n_value + pThis->aoffLoadSegments[idxSeg];
+        uint8_t const idxSect = pSym->n_sect - 1;
+        if (idxSect < pThis->cSections)
+        {
+#if 0
+            if (!fInternal)
+                printf("rtR0DbgKrnlDarwinLookup/%s: n_type=%#x n_sect=%#x n_desc=%#x n_value=%#llx iscode=%u\n",
+                       pszSymbol, pSym->n_type, pSym->n_sect, pSym->n_desc, (unsigned long long)pSym->n_value,
+                       pThis->afIsCodeSection[idxSect]);
+#endif
+            uint8_t const idxSeg = pThis->aidxSection2Segment[idxSect];
+            if (   idxSeg < pThis->cSegments
+                && pThis->aoffLoadSegments[idxSeg] != UINTPTR_MAX)
+            {
+                uintptr_t const uPtrRet = pSym->n_value + pThis->aoffLoadSegments[idxSeg];
+#if RT_CLANG_HAS_FEATURE(ptrauth_calls)
+                /* This is what dyld does for dlsym. The pointer authentication verification code
+                   in RTR0DbgKrnlGetFunction matches this and does not trigger the BRK #0xc470.
+                   We must apply it to functions, using the section type as a heuristic. */
+                if (!fInternal && pThis->afIsCodeSection[idxSect])
+                    return (uintptr_t)__builtin_ptrauth_sign_unauthenticated((void *)uPtrRet,
+                                                                             0 /*ptrauth_key_asia*/, 0 /*discriminator*/);
+#endif
+                return uPtrRet;
+            }
+        }
     }
 
+    RT_NOREF(fInternal);
     return 0;
 }
 
 
 /* Rainy day: Find the right headers for these symbols ... if there are any. */
-extern "C" void ev_try_lock(void);
 extern "C" void OSMalloc(void);
 extern "C" void OSlibkernInit(void);
 extern "C" void kdp_set_interface(void);
 
 
-/*
+/**
  * Determine the load displacement (10.8 kernels are PIE).
  *
  * Starting with 11.0 (BigSur) all segments can have different load displacements
@@ -366,22 +441,27 @@ static int rtR0DbgKrnlDarwinInitLoadDisplacements(RTDBGKRNLINFOINT *pThis)
         MY_NLIST const *pSym = rtR0DbgKrnlDarwinLookupSym(pThis, s_aStandardSyms[i].pszName);
         if (RT_UNLIKELY(!pSym))
             return VERR_INTERNAL_ERROR_2;
+        uint8_t const idxSect = pSym->n_sect - 1;
+        if (RT_UNLIKELY(idxSect >= RT_ELEMENTS(pThis->aidxSection2Segment)))
+            return VERR_INTERNAL_ERROR_3;
 
-        uint8_t idxSeg = pThis->auSections2Segment[pSym->n_sect];
+        uint8_t const idxSeg = pThis->aidxSection2Segment[idxSect];
+
 #ifdef IN_RING0
         /*
          * The segment should either not have the load displacement determined or it should
          * be the same for all symbols in the same segment.
          */
+        uintptr_t const uAddrStdSym = rtR0DbgKrnlDarwinUnpackPtr(s_aStandardSyms[i].uAddr);
         if (   pThis->aoffLoadSegments[idxSeg] != UINTPTR_MAX
-            && pThis->aoffLoadSegments[idxSeg] != s_aStandardSyms[i].uAddr - pSym->n_value)
-            return VERR_INTERNAL_ERROR_2;
+            && pThis->aoffLoadSegments[idxSeg] != uAddrStdSym - pSym->n_value)
+            return VERR_INTERNAL_ERROR_4;
 
-        pThis->aoffLoadSegments[idxSeg] = s_aStandardSyms[i].uAddr - pSym->n_value;
+        pThis->aoffLoadSegments[idxSeg] = uAddrStdSym - pSym->n_value;
 #elif defined(IN_RING3)
         pThis->aoffLoadSegments[idxSeg] = 0;
 #else
-# error "Either IN_RING0 or IN_RING3 msut be defined"
+# error "Either IN_RING0 or IN_RING3 must be defined"
 #endif
     }
 
@@ -423,7 +503,6 @@ static int rtR0DbgKrnlDarwinCheckStandardSymbols(RTDBGKRNLINFOINT *pThis, const 
         KNOWN_ENTRY(PE_cpu_halt),
         KNOWN_ENTRY(gIOKitDebug),
         KNOWN_ENTRY(gIOServicePlane),
-        KNOWN_ENTRY(ev_try_lock),
 
         /* Libkern: */
         KNOWN_ENTRY(OSAddAtomic),
@@ -442,8 +521,8 @@ static int rtR0DbgKrnlDarwinCheckStandardSymbols(RTDBGKRNLINFOINT *pThis, const 
         KNOWN_ENTRY(lck_mtx_alloc_init),
         KNOWN_ENTRY(lck_rw_alloc_init),
         KNOWN_ENTRY(lck_spin_alloc_init),
-        KNOWN_ENTRY(osrelease),
-        KNOWN_ENTRY(ostype),
+//removed?        KNOWN_ENTRY(osrelease),
+//removed?        KNOWN_ENTRY(ostype),
         KNOWN_ENTRY(panic),
         KNOWN_ENTRY(strprefix),
         //KNOWN_ENTRY(sysctlbyname), - we get kernel_sysctlbyname from the 10.10+ kernels.
@@ -524,19 +603,22 @@ static int rtR0DbgKrnlDarwinCheckStandardSymbols(RTDBGKRNLINFOINT *pThis, const 
 
     for (unsigned i = 0; i < RT_ELEMENTS(s_aStandardCandles); i++)
     {
-        uintptr_t uAddr = rtR0DbgKrnlDarwinLookup(pThis, s_aStandardCandles[i].pszName);
+        uintptr_t const uAddrLookup = rtR0DbgKrnlDarwinLookup(pThis, s_aStandardCandles[i].pszName, true /*fInternal*/);
 #ifdef IN_RING0
-        if (uAddr != s_aStandardCandles[i].uAddr)
+        uintptr_t const uAddrCandle = rtR0DbgKrnlDarwinUnpackPtr(s_aStandardCandles[i].uAddr);
+        bool const      fMatch      = uAddrLookup == uAddrCandle;
 #else
-        if (uAddr == 0)
+        uintptr_t const uAddrCandle = 0;
+        bool const      fMatch      = uAddrLookup != 0;
 #endif
+        if (!fMatch)
         {
 #if defined(IN_RING0) && defined(DEBUG_bird)
-            kprintf("RTR0DbgKrnlInfoOpen: error: %s (%p != %p) in %s\n",
-                    s_aStandardCandles[i].pszName, (void *)uAddr, (void *)s_aStandardCandles[i].uAddr, pszKernelFile);
+            kprintf("RTR0DbgKrnlInfoOpen: error: %s (" PTR_FMT " != " PTR_FMT ") in %s\n",
+                    s_aStandardCandles[i].pszName, PTR_ARG(uAddrLookup), PTR_ARG(uAddrCandle), pszKernelFile);
 #endif
-            printf("RTR0DbgKrnlInfoOpen: error: %s (%p != %p) in %s\n",
-                   s_aStandardCandles[i].pszName, (void *)uAddr, (void *)s_aStandardCandles[i].uAddr, pszKernelFile);
+            printf("RTR0DbgKrnlInfoOpen: error: %s (" PTR_FMT " != " PTR_FMT ") in %s\n",
+                   s_aStandardCandles[i].pszName, PTR_ARG(uAddrLookup), PTR_ARG(uAddrCandle), pszKernelFile);
             return VERR_INTERNAL_ERROR_2;
         }
     }
@@ -748,10 +830,13 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                 if (pSymTab->cmdsize != sizeof(*pSymTab))
                     RETURN_VERR_BAD_EXE_FORMAT;
                 if (pSymTab->nsyms > _1M)
-                    RETURN_VERR_BAD_EXE_FORMAT;
-                if (pSymTab->strsize > _2M)
-                    RETURN_VERR_BAD_EXE_FORMAT;
-
+                    RETURN_VERR_BAD_EXE_FORMAT_EX("cmd %i LC_SYMTAB: symoff=%#x nsyms=%#x (too many) stroff=%#x strsize=%#x\n",
+                                                  iCmd, (unsigned)pSymTab->symoff, (unsigned)pSymTab->nsyms,
+                                                  (unsigned)pSymTab->stroff, (unsigned)pSymTab->strsize);
+                if (pSymTab->strsize > (!pThis->fIsInMem ? _2M : _32M)) /* In mem 14.7.5/arm was just under 20MB here. */
+                    RETURN_VERR_BAD_EXE_FORMAT_EX("cmd %i LC_SYMTAB: symoff=%#x nsyms=%#x stroff=%#x strsize=%#x (too big)\n",
+                                                  iCmd, (unsigned)pSymTab->symoff, (unsigned)pSymTab->nsyms,
+                                                  (unsigned)pSymTab->stroff, (unsigned)pSymTab->strsize);
                 pThis->offStrTab = pSymTab->stroff;
                 pThis->cbStrTab  = pSymTab->strsize;
                 pThis->offSyms   = pSymTab->symoff;
@@ -771,6 +856,13 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                 MY_SEGMENT_COMMAND const *pSeg = (MY_SEGMENT_COMMAND const *)pCmd;
                 if (pSeg->cmdsize < sizeof(*pSeg))
                     RETURN_VERR_BAD_EXE_FORMAT;
+#if 0
+                if (pThis->fIsInMem)
+                    printf("cmd %i seg #%u: vmaddr=" PTR_FMT " vmsize=" PTR_FMT " fileoff=%#09lx filesize=%#09lx prot=%#03x/%1x nsect=%u flags=%#010x %s\n",
+                           iCmd, pThis->cSegments, PTR_ARG(pSeg->vmaddr), PTR_ARG(pSeg->vmsize), (unsigned long)pSeg->fileoff,
+                           (unsigned long)pSeg->filesize, (unsigned)pSeg->maxprot, (unsigned)pSeg->initprot, (unsigned)pSeg->nsects,
+                           (unsigned)pSeg->flags, pSeg->segname);
+#endif
 
                 if (pSeg->segname[0] == '\0')
                     RETURN_VERR_BAD_EXE_FORMAT;
@@ -802,6 +894,12 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                 MY_SECTION const   *paSects    = (MY_SECTION const *)(pSeg + 1);
                 for (uint32_t i = 0; i < pSeg->nsects; i++)
                 {
+#if 0
+                    if (pThis->fIsInMem)
+                        printf("sect #%u/%u: addr=" PTR_FMT " size=" PTR_FMT " offset=%#09x align=%#06x flags=%010x %s.%s\n",
+                               i, pThis->cSections, PTR_ARG(paSects[i].addr), PTR_ARG(paSects[i].size), (unsigned)paSects[i].offset,
+                               (unsigned)paSects[i].align, (unsigned)paSects[i].flags, paSects[i].segname, paSects[i].sectname);
+#endif
                     if (paSects[i].sectname[0] == '\0')
                         RETURN_VERR_BAD_EXE_FORMAT;
                     if (memcmp(paSects[i].segname, pSeg->segname, sizeof(pSeg->segname)))
@@ -816,10 +914,29 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                         case S_MOD_TERM_FUNC_POINTERS:
                         case S_COALESCED:
                         case S_4BYTE_LITERALS:
+#if defined(RT_ARCH_ARM64)
+                        case S_16BYTE_LITERALS:
+#endif
                             if (  pSeg->filesize != 0
                                 ? paSects[i].offset - pSeg->fileoff >= pSeg->filesize
                                 : paSects[i].offset - pSeg->fileoff != pSeg->filesize)
+                            {
+                                /* HACK ALERT! On 14.7.5/arm64 the __CTF.__ctf segment/section have sect.offset,
+                                   sect.size and seg.filesize set to zero, while seg.fileoff is some odd value (0xfc000 in
+                                   memory, 0xc94000 on disk). */
+                                if (   pThis->fIsInMem
+                                    && pSeg->filesize == 0
+                                    && paSects[i].size == 0
+                                    && paSects[i].offset == 0
+                                    && strcmp(pSeg->segname, "__CTF") == 0)
+                                    break;
+                                printf("cmd %i sect %i (%s.%s) offset=%#lx - fileoff=%lx -> %lx vs filesize=%lx; vmaddr=" PTR_FMT " addr=" PTR_FMT "\n",
+                                       iCmd, i, paSects[i].sectname, pSeg->segname,
+                                       (unsigned long)paSects[i].offset,  (unsigned long)pSeg->fileoff,
+                                       (unsigned long)paSects[i].offset - (unsigned long)pSeg->fileoff,
+                                       (unsigned long)pSeg->filesize, PTR_ARG(pSeg->vmaddr), PTR_ARG(paSects[i].addr));
                                 RETURN_VERR_BAD_EXE_FORMAT;
+                            }
                             if (   paSects[i].addr != 0
                                 && paSects[i].offset - pSeg->fileoff != paSects[i].addr - pSeg->vmaddr)
                                 RETURN_VERR_BAD_EXE_FORMAT;
@@ -834,10 +951,13 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                         case S_SYMBOL_STUBS:
                         case S_INTERPOSING:
                         case S_8BYTE_LITERALS:
+#if !defined(RT_ARCH_ARM64)
                         case S_16BYTE_LITERALS:
+#endif
                         case S_DTRACE_DOF:
                         case S_LAZY_SYMBOL_POINTERS:
                         case S_LAZY_DYLIB_SYMBOL_POINTERS:
+                            //printf("sect %i flags=%#x\n", i, paSects[i].flags);
                             RETURN_VERR_LDR_UNEXPECTED;
                         case S_GB_ZEROFILL:
                             RETURN_VERR_LDR_UNEXPECTED;
@@ -845,16 +965,21 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                             RETURN_VERR_BAD_EXE_FORMAT;
                     }
 
-                    if (paSects[i].align > 12)
+                    if (paSects[i].align > MY_MAX_SECT_ALIGN)
                         RETURN_VERR_BAD_EXE_FORMAT;
                     if (paSects[i].align > uAlignment)
                         uAlignment = paSects[i].align;
 
                     /* Add to the section table. */
-                    if (pThis->cSections >= RT_ELEMENTS(pThis->apSections))
+                    AssertCompile(RT_ELEMENTS(pThis->apSections) <= UINT8_MAX);
+                    uint8_t const idxSect = pThis->cSections;
+                    if (idxSect >= RT_ELEMENTS(pThis->apSections))
                         RETURN_VERR_BAD_EXE_FORMAT;
-                    pThis->auSections2Segment[pThis->cSections] = pThis->cSegments;
-                    pThis->apSections[pThis->cSections++] = &paSects[i];
+                    pThis->aidxSection2Segment[idxSect] = pThis->cSegments;
+                    pThis->afIsCodeSection[idxSect] = (paSects[i].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS))
+                                                    && ((pSeg->maxprot | pSeg->initprot) & VM_PROT_EXECUTE);
+                    pThis->apSections[idxSect] = &paSects[i];
+                    pThis->cSections = idxSect + 1;
                 }
 
                 if (RT_ALIGN_Z(pSeg->vmaddr, RT_BIT_32(uAlignment)) != pSeg->vmaddr)
@@ -902,6 +1027,7 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
             case LC_VERSION_MIN_WATCHOS:
             case LC_NOTE:
             case LC_SEGMENT_SPLIT_INFO:
+            case LC_DYLD_CHAINED_FIXUPS & ~LC_REQ_DYLD: /* arm64 14.7.1 */
                 break;
 
             case LC_BUILD_VERSION:
@@ -1132,11 +1258,20 @@ static int rtR0DbgKrnlDarwinLoadFileHeaders(RTDBGKRNLINFOINT *pThis)
     }
 
     if (pHdr->cputype    != MY_CPU_TYPE)
+    {
+        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": cputype=%#x\n", PTR_ARG(pHdr), pHdr->cputype);
         RETURN_VERR_LDR_ARCH_MISMATCH;
+    }
     if (pHdr->cpusubtype != MY_CPU_SUBTYPE_ALL)
+    {
+        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": cpusubtype=%#x\n", PTR_ARG(pHdr), pHdr->cpusubtype);
         RETURN_VERR_LDR_ARCH_MISMATCH;
+    }
     if (pHdr->filetype   != MH_EXECUTE)
+    {
+        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": filetype=%#x\n", PTR_ARG(pHdr), pHdr->filetype);
         RETURN_VERR_LDR_UNEXPECTED;
+    }
     if (pHdr->ncmds      < 4)
         RETURN_VERR_LDR_UNEXPECTED;
     if (pHdr->ncmds      > 256)
@@ -1146,7 +1281,10 @@ static int rtR0DbgKrnlDarwinLoadFileHeaders(RTDBGKRNLINFOINT *pThis)
     if (pHdr->sizeofcmds >= _1M)
         RETURN_VERR_LDR_UNEXPECTED;
     if (pHdr->flags & ~MH_VALID_FLAGS)
+    {
+        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": flags=%#x\n", PTR_ARG(pHdr), pHdr->flags);
         RETURN_VERR_LDR_UNEXPECTED;
+    }
 
     pThis->cLoadCmds  = pHdr->ncmds;
     pThis->cbLoadCmds = pHdr->sizeofcmds;
@@ -1189,7 +1327,8 @@ static int rtR0DbgKrnlDarwinSuccess(PRTDBGKRNLINFO phKrnlInfo, RTDBGKRNLINFOINT 
     pThis->cRefs    = 1;
 
 #if defined(DEBUG) || defined(IN_RING3)
-    LOG_SUCCESS("RTR0DbgKrnlInfoOpen: Found: %#zx + %#zx - %s\n", pThis->uTextSegLinkAddr, pThis->offLoad, pszKernelFile);
+    LOG_SUCCESS("RTR0DbgKrnlInfoOpen: Found: " PTR_FMT " + %#zx - %s\n",
+                PTR_ARG(pThis->uTextSegLinkAddr), pThis->offLoad, pszKernelFile);
 #else
     LOG_SUCCESS("RTR0DbgKrnlInfoOpen: Found: %s\n", pszKernelFile);
 #endif
@@ -1277,8 +1416,8 @@ static bool rtR0DbgKrnlDarwinIsRangePresent(uintptr_t uAddress, size_t cb,
     {
         if (!rtR0DbgKrnlDarwinIsPagePresent(uAddress))
         {
-            LOG_NOT_PRESENT("RTR0DbgInfo: %p: Page in %s is not present: %#zx - rva %#zx; in structure %#zx (%#zx LB %#zx)\n",
-                            (void *)pHdr, pszWhat, uAddress, uAddress - (uintptr_t)pHdr, uAddress - uStartAddress, uStartAddress, cb);
+            LOG_NOT_PRESENT("RTR0DbgInfo: " PTR_FMT ": Page in %s is not present: " PTR_FMT " - rva %#zx; in structure %#zx (" PTR_FMT " LB %#zx)\n",
+                            PTR_ARG(pHdr), pszWhat, PTR_ARG(uAddress), uAddress - (uintptr_t)pHdr, uAddress - uStartAddress, PTR_ARG(uStartAddress), cb);
             return false;
         }
 
@@ -1315,7 +1454,7 @@ static int rtR0DbgKrnlDarwinOpenInMemory(PRTDBGKRNLINFO phKrnlInfo)
      * file, kernel.kasan, is around 45MB, but the end of __TEXT is about 27 MB,
      * which means we should still have plenty of room for future growth with 64MB).
      */
-    uintptr_t  const    uSomeKernelAddr   = (uintptr_t)&absolutetime_to_nanoseconds;
+    uintptr_t  const    uSomeKernelAddr   = rtR0DbgKrnlDarwinUnpackPtr((uintptr_t)&absolutetime_to_nanoseconds);
     uintptr_t  const    uLowestKernelAddr = uSomeKernelAddr - _64M;
 
     /*
@@ -1325,7 +1464,13 @@ static int rtR0DbgKrnlDarwinOpenInMemory(PRTDBGKRNLINFO phKrnlInfo)
      * we've reach the page size.
      */
     uintptr_t           fPrevAlignMask    = ~(uintptr_t)0;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uintptr_t           uCurAlign         = _2M;                    /* ASSUMES the kernel is typically 2MB aligned. */
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    uintptr_t           uCurAlign         = _16K;                   /* Seen 0xfffffe002d50c000, so 16KB aligned. */
+#else
+# error "port me"
+#endif
     while (uCurAlign >= PAGE_SIZE)
     {
         /*
@@ -1347,20 +1492,23 @@ static int rtR0DbgKrnlDarwinOpenInMemory(PRTDBGKRNLINFO phKrnlInfo)
                     && pHdr->filetype == MH_EXECUTE
                     && pHdr->cputype  == MY_CPU_TYPE)
                 {
+#ifdef DEBUG
+                    printf("checking " PTR_FMT ": %#x %#x %#x\n", PTR_ARG(pHdr), pHdr->magic, pHdr->filetype, pHdr->cputype);
+#endif
                     /* More header validation: */
                     pThis->cLoadCmds  = pHdr->ncmds;
                     pThis->cbLoadCmds = pHdr->sizeofcmds;
                     if (pHdr->ncmds < 4)
-                        LOG_MISMATCH("RTR0DbgInfo: %p: ncmds=%u is too small\n", (void *)pHdr, pThis->cLoadCmds);
+                        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": ncmds=%u is too small\n", PTR_ARG(pHdr), pThis->cLoadCmds);
                     else if (pThis->cLoadCmds > 256)
-                        LOG_MISMATCH("RTR0DbgInfo: %p: ncmds=%u is too big\n", (void *)pHdr, pThis->cLoadCmds);
+                        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": ncmds=%u is too big\n", PTR_ARG(pHdr), pThis->cLoadCmds);
                     else if (pThis->cbLoadCmds <= pThis->cLoadCmds * sizeof(load_command_t))
-                        LOG_MISMATCH("RTR0DbgInfo: %p: sizeofcmds=%u is too small for ncmds=%u\n",
-                                     (void *)pHdr, pThis->cbLoadCmds, pThis->cLoadCmds);
+                        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": sizeofcmds=%u is too small for ncmds=%u\n",
+                                     PTR_ARG(pHdr), pThis->cbLoadCmds, pThis->cLoadCmds);
                     else if (pThis->cbLoadCmds >= _1M)
-                        LOG_MISMATCH("RTR0DbgInfo: %p: sizeofcmds=%u is too big\n", (void *)pHdr, pThis->cbLoadCmds);
+                        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": sizeofcmds=%u is too big\n", PTR_ARG(pHdr), pThis->cbLoadCmds);
                     else if (pHdr->flags & ~MH_VALID_FLAGS)
-                        LOG_MISMATCH("RTR0DbgInfo: %p: invalid flags=%#x\n", (void *)pHdr, pHdr->flags);
+                        LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": invalid flags=%#x\n", PTR_ARG(pHdr), pHdr->flags);
                     /*
                      * Check that we can safely read the load commands, then parse & validate them.
                      */
@@ -1376,20 +1524,29 @@ static int rtR0DbgKrnlDarwinOpenInMemory(PRTDBGKRNLINFO phKrnlInfo)
                              *        mach-o header and load commands and all that. */
                             pThis->offLoad = uCur - pThis->uTextSegLinkAddr;
 
-                            /* Check that the kernel symbol is in the text segment: */
-                            uintptr_t const offSomeKernAddr = uSomeKernelAddr - uCur;
-                            if (offSomeKernAddr >= pThis->cbTextSeg)
-                                LOG_MISMATCH("RTR0DbgInfo: %p: Our symbol at %zx (off %zx) isn't within the text segment (size %#zx)\n",
-                                             (void *)pHdr, uSomeKernelAddr, offSomeKernAddr, pThis->cbTextSeg);
+                            /* Check that the kernel symbol is in the text segment.  On
+                               a 14.7.5 ARM kernel, it actually isn't in the __TEXT segment but in
+                               the __TEXT_EXEC segment, so this check is a little more complicated
+                               now (can't use pThis->cbTextSeg)... */
+                            uint32_t iSegSomeKernAddr = 0;
+                            while (   iSegSomeKernAddr < pThis->cSegments
+                                   &&    uSomeKernelAddr - pThis->apSegments[iSegSomeKernAddr]->vmaddr
+                                      >= pThis->apSegments[iSegSomeKernAddr]->vmsize)
+                                iSegSomeKernAddr++;
+                            if (   iSegSomeKernAddr >= pThis->cSegments
+                                || !(pThis->apSegments[iSegSomeKernAddr]->maxprot & VM_PROT_EXECUTE))
+                                LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": Our symbol at " PTR_FMT " (off %zx) in an executable segment (%#x/%#x)\n",
+                                             PTR_ARG(pHdr), PTR_ARG(uSomeKernelAddr), uSomeKernelAddr - uCur,
+                                             iSegSomeKernAddr, pThis->cSegments);
                             /*
                              * Parse the symbol+string tables.
                              */
                             else if (pThis->uSymTabLinkAddr == 0)
-                                LOG_MISMATCH("RTR0DbgInfo: %p: No symbol table VA (off %#x L %#x)\n",
-                                             (void *)pHdr, pThis->offSyms, pThis->cSyms);
+                                LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": No symbol table VA (off %#x L %#x)\n",
+                                             PTR_ARG(pHdr), pThis->offSyms, pThis->cSyms);
                             else if (pThis->uStrTabLinkAddr == 0)
-                                LOG_MISMATCH("RTR0DbgInfo: %p: No string table VA (off %#x LB %#x)\n",
-                                             (void *)pHdr, pThis->offSyms, pThis->cbStrTab);
+                                LOG_MISMATCH("RTR0DbgInfo: " PTR_FMT ": No string table VA (off %#x LB %#x)\n",
+                                             PTR_ARG(pHdr), pThis->offSyms, pThis->cbStrTab);
                             else if (   rtR0DbgKrnlDarwinIsRangePresent(pThis->uStrTabLinkAddr + pThis->offLoad,
                                                                         pThis->cbStrTab, "string table", pHdr)
                                      && rtR0DbgKrnlDarwinIsRangePresent(pThis->uSymTabLinkAddr + pThis->offLoad,
@@ -1411,15 +1568,28 @@ static int rtR0DbgKrnlDarwinOpenInMemory(PRTDBGKRNLINFO phKrnlInfo)
                                         rtR0DbgKrnlDarwinLoadDone(pThis);
                                         if (RT_SUCCESS(rc))
                                             return rtR0DbgKrnlDarwinSuccess(phKrnlInfo, pThis, "in-memory");
+#ifdef DEBUG
+                                        printf("rtR0DbgKrnlDarwinCheckStandardSymbols failed for for " PTR_FMT ": %d\n", PTR_ARG(pHdr), rc);
+#endif
                                     }
+#ifdef DEBUG
+                                    else
+                                        printf("rtR0DbgKrnlDarwinInitLoadDisplacements failed for for " PTR_FMT ": %d\n", PTR_ARG(pHdr), rc);
+#endif
                                 }
                             }
+#ifdef DEBUG
+                            else
+                                printf("string/sym table not present for " PTR_FMT "\n", PTR_ARG(pHdr));
+#endif
                         }
 
                         RT_ZERO(pThis->apSections);
                         RT_ZERO(pThis->apSegments);
                         pThis->pLoadCmds = NULL;
                     }
+                    else
+                        printf("load commands not present for " PTR_FMT " (try: nvram boot-args='kallsyms=1')\n", PTR_ARG(pHdr));
                 }
             }
         }
@@ -1441,12 +1611,30 @@ RTR0DECL(int) RTR0DbgKrnlInfoOpen(PRTDBGKRNLINFO phKrnlInfo, uint32_t fFlags)
     AssertReturn(!fFlags, VERR_INVALID_PARAMETER);
 
 #ifdef IN_RING0
+# if defined(RT_ARCH_ARM64)
+    /*
+     * Setup g_cAddressWidth, ASSUMING that kernel address in the negative address space.
+     */
+    uint64_t uTcrEl1 = 0;
+    __asm__ __volatile__("mrs %[uTcrEl1], TCR_EL1\n\t" : [uTcrEl1] "=r" (uTcrEl1));
+    g_cAddressWidth = 64 - (unsigned)((uTcrEl1 >> 16) & 0x3f);
+    /*printf("RTR0DbgKrnlInfoOpen: g_cAddressWidth=%d (%#lx)\n", g_cAddressWidth, (unsigned long)uTcrEl1);*/
+    if (g_cAddressWidth >= 55 || g_cAddressWidth < 40)
+    {
+        printf("Warning! RTR0DbgKrnlInfoOpen: Bogus TCR_EL1.T1SZ value: %#x (%#lx)\n",
+               (unsigned)((uTcrEl1 >> 16) & 0x3f), (unsigned long)uTcrEl1);
+        g_cAddressWidth = 48;
+    }
+#endif
+
     /*
      * Try see if we can use the kernel memory directly.  This depends on not
      * having the __LINKEDIT segment jettisoned or swapped out.  For older
      * kernels this is typically the case, unless kallsyms=1 is in boot-args.
      */
+    //printf("Calling rtR0DbgKrnlDarwinOpenInMemory...\n");
     int rc = rtR0DbgKrnlDarwinOpenInMemory(phKrnlInfo);
+    //printf("rtR0DbgKrnlDarwinOpenInMemory returned %d\n", rc);
     if (RT_SUCCESS(rc))
     {
         Log(("RTR0DbgKrnlInfoOpen: Using in-memory kernel.\n"));
@@ -1474,6 +1662,34 @@ RTR0DECL(int) RTR0DbgKrnlInfoOpen(PRTDBGKRNLINFO phKrnlInfo, uint32_t fFlags)
     {
 #ifdef IN_RING3
         { g_pszTestKernel, VERR_WRONG_ORDER },
+#endif
+#if defined(RT_ARCH_ARM64)
+        { "/System/Library/Kernels/kernel.release.t6000", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t6020", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t6030", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t6031", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t8103", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t8112", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.t8122", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.release.vmapple", VERR_WRONG_ORDER },
+
+        { "/System/Library/Kernels/kernel.development.t6000", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t6020", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t6030", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t6031", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t8103", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t8112", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.t8122", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.development.vmapple", VERR_WRONG_ORDER },
+
+        { "/System/Library/Kernels/kernel.debug.t6000", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t6020", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t6030", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t6031", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t8103", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t8112", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.t8122", VERR_WRONG_ORDER },
+        { "/System/Library/Kernels/kernel.debug.vmapple", VERR_WRONG_ORDER },
 #endif
         { "/System/Library/Kernels/kernel", VERR_WRONG_ORDER },
         { "/System/Library/Kernels/kernel.development", VERR_WRONG_ORDER },
@@ -1566,7 +1782,7 @@ RTR0DECL(int) RTR0DbgKrnlInfoQuerySymbol(RTDBGKRNLINFO hKrnlInfo, const char *ps
     AssertPtrNullReturn(ppvSymbol, VERR_INVALID_PARAMETER);
     AssertReturn(!pszModule, VERR_MODULE_NOT_FOUND);
 
-    uintptr_t uValue = rtR0DbgKrnlDarwinLookup(pThis, pszSymbol);
+    uintptr_t uValue = rtR0DbgKrnlDarwinLookup(pThis, pszSymbol, false /*fInternal*/);
     if (ppvSymbol)
         *ppvSymbol = (void *)uValue;
     if (uValue)

@@ -44,6 +44,8 @@
 
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # include <iprt/asm-amd64-x86.h>
+#else
+# include <iprt/thread.h>
 #endif
 #include <iprt/cpuset.h>
 #include <iprt/err.h>
@@ -205,6 +207,12 @@ static void rtmpOnAllDarwinWrapper(void *pvArg)
     IPRT_DARWIN_SAVE_EFL_AC();
     pArgs->pfnWorker(cpu_number(), pArgs->pvUser1, pArgs->pvUser2);
     IPRT_DARWIN_RESTORE_EFL_AC();
+
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    /* Wake up the thread calling RTMpOnAll if we're the last CPU out of here: */
+    if (ASMAtomicDecU32(&pArgs->cCpusLeftSynch) == 0)
+        thread_wakeup((event_t)&pArgs->cCpusLeftSynch);
+#endif
 }
 
 
@@ -213,13 +221,30 @@ RTDECL(int) RTMpOnAll(PFNRTMPWORKER pfnWorker, void *pvUser1, void *pvUser2)
     RT_ASSERT_INTS_ON();
     IPRT_DARWIN_SAVE_EFL_AC();
 
+    /** @todo neither of the mp_rendezvous_no_intrs nor the cpu_broadcast_xcall
+     *        functions are really thread safe. We should at least track our own
+     *        arguments here as these could easily be overwritten if there are
+     *        concurrent calls to any of these types of functions... */
     RTMPARGS Args;
     Args.pfnWorker = pfnWorker;
     Args.pvUser1 = pvUser1;
     Args.pvUser2 = pvUser2;
     Args.idCpu = NIL_RTCPUID;
     Args.cHits = 0;
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     mp_rendezvous_no_intrs(rtmpOnAllDarwinWrapper, &Args);
+
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    Args.cCpusLeftSynch = 0;
+    if (g_pfnR0DarwinCpuBroadcastXCall)
+        g_pfnR0DarwinCpuBroadcastXCall(&Args.cCpusLeftSynch, TRUE /*fCallSelf*/, rtmpOnAllDarwinWrapper, &Args);
+    else
+        return VERR_NOT_IMPLEMENTED;
+
+#else
+# error "port me"
+#endif
 
     IPRT_DARWIN_RESTORE_EFL_AC();
     return VINF_SUCCESS;
@@ -236,12 +261,20 @@ static void rtmpOnOthersDarwinWrapper(void *pvArg)
 {
     PRTMPARGS pArgs = (PRTMPARGS)pvArg;
     RTCPUID idCpu = cpu_number();
+#if !defined(RT_ARCH_ARM64) && !defined(RT_ARCH_ARM32) /* cpu_broadcast_xcall filters for us */
     if (pArgs->idCpu != idCpu)
+#endif
     {
         IPRT_DARWIN_SAVE_EFL_AC();
         pArgs->pfnWorker(idCpu, pArgs->pvUser1, pArgs->pvUser2);
         IPRT_DARWIN_RESTORE_EFL_AC();
     }
+
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    /* Wake up the thread calling RTMpOnOthers if we're the last CPU out of here: */
+    if (ASMAtomicDecU32(&pArgs->cCpusLeftSynch) == 0)
+        thread_wakeup((event_t)&pArgs->cCpusLeftSynch);
+#endif
 }
 
 
@@ -256,7 +289,20 @@ RTDECL(int) RTMpOnOthers(PFNRTMPWORKER pfnWorker, void *pvUser1, void *pvUser2)
     Args.pvUser2 = pvUser2;
     Args.idCpu = RTMpCpuId();
     Args.cHits = 0;
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     mp_rendezvous_no_intrs(rtmpOnOthersDarwinWrapper, &Args);
+
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    Args.cCpusLeftSynch = 0;
+    if (g_pfnR0DarwinCpuBroadcastXCall)
+        g_pfnR0DarwinCpuBroadcastXCall(&Args.cCpusLeftSynch, FALSE /*fCallSelf*/, rtmpOnOthersDarwinWrapper, &Args);
+    else
+        return VERR_NOT_IMPLEMENTED;
+
+#else
+# error "port me"
+#endif
 
     IPRT_DARWIN_RESTORE_EFL_AC();
     return VINF_SUCCESS;
@@ -280,6 +326,11 @@ static void rtmpOnSpecificDarwinWrapper(void *pvArg)
         ASMAtomicIncU32(&pArgs->cHits);
         IPRT_DARWIN_RESTORE_EFL_AC();
     }
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    /* Wake up the thread calling RTMpOnSpecific if we're the last CPU out of here: */
+    if (ASMAtomicDecU32(&pArgs->cCpusLeftSynch) == 0)
+        thread_wakeup((event_t)&pArgs->cCpusLeftSynch);
+#endif
 }
 
 
@@ -294,7 +345,29 @@ RTDECL(int) RTMpOnSpecific(RTCPUID idCpu, PFNRTMPWORKER pfnWorker, void *pvUser1
     Args.pvUser2 = pvUser2;
     Args.idCpu = idCpu;
     Args.cHits = 0;
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     mp_rendezvous_no_intrs(rtmpOnSpecificDarwinWrapper, &Args);
+
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    /* It looks like cpu_xcall doesn't provide any way of synchronizing, so
+       just use cpu_broadcast_xcall for the time being. */
+#if 0
+    if (g_pfnR0DarwinCpuXCall)
+        g_pfnR0DarwinCpuXCall(idCpu, rtmpOnSpecificDarwinWrapper, &Args);
+    else
+#endif
+    if (g_pfnR0DarwinCpuBroadcastXCall)
+    {
+        Args.cCpusLeftSynch = 0;
+        g_pfnR0DarwinCpuBroadcastXCall(&Args.cCpusLeftSynch, TRUE /*fCallSelf*/, rtmpOnSpecificDarwinWrapper, &Args);
+    }
+    else
+        return VERR_NOT_IMPLEMENTED;
+
+#else
+# error "port me"
+#endif
 
     IPRT_DARWIN_RESTORE_EFL_AC();
     return Args.cHits == 1

@@ -76,6 +76,10 @@ typedef struct RTMPARGS
 #ifdef RT_OS_LINUX
     PRTCPUSET   pWorkerSet;
 #endif
+#if defined(RT_OS_DARWIN) && (defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32))
+    /** This is for use as the xcall synch parameter. */
+    uint32_t    cCpusLeftSynch;
+#endif
 } RTMPARGS;
 /** Pointer to a RTMpOn* argument packet. */
 typedef RTMPARGS *PRTMPARGS;

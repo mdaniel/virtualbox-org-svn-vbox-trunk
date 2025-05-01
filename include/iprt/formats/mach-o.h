@@ -44,6 +44,10 @@
 #include <iprt/assertcompile.h>
 
 #ifndef CPU_ARCH_MASK
+# define IPRT_MACHO_NEED_CPU_DEFINES
+#endif
+
+#ifdef IPRT_MACHO_NEED_CPU_DEFINES
 
 /* cputype */
 #define CPU_ARCH_MASK               INT32_C(0xff000000)
@@ -158,8 +162,13 @@
 #define CPU_SUBTYPE_ARM64_ALL       INT32_C(0)
 #define CPU_SUBTYPE_ARM64_V8        INT32_C(1)
 #define CPU_SUBTYPE_ARM64E          INT32_C(2)
-#define CPU_SUBTYPE_ARM64_PTR_AUTH_MASK         UINT32_C(0x0f000000)
-#define CPU_SUBTYPE_ARM64_PTR_AUTH_VERSION(a)   ( ((a) & CPU_SUBTYPE_ARM64_PTR_AUTH_MASK) >> 24 )
+#endif /* IPRT_MACHO_NEED_CPU_DEFINES */
+#define CPU_SUBTYPE_ARM64E_PTR_AUTH_MASK                UINT32_C(0x0f000000)
+#define CPU_SUBTYPE_ARM64E_PTR_AUTH_VERSION(a_uSubType) ( ((a_uSubType) & CPU_SUBTYPE_ARM64E_PTR_AUTH_MASK) >> 24 )
+#define CPU_SUBTYPE_ARM64E_VERSIONED_PTRAUTH_ABI        RT_BIT_32(29)
+#define CPU_SUBTYPE_ARM64E_KERNEL_PTRAUTH_ABI           RT_BIT_32(30)
+#define CPU_SUBTYPE_ARM64E_PTRAUTH_ABI                  RT_BIT_32(31) /**< AKA CPU_SUBTYPE_PTRAUTH_ABI */
+#ifdef IPRT_MACHO_NEED_CPU_DEFINES
 
 #define CPU_SUBTYPE_ARM64_32_ALL    INT32_C(0)
 #define CPU_SUBTYPE_ARM64_32_V8     INT32_C(1)
@@ -189,10 +198,10 @@
 #define CPU_SUBTYPE_POWERPC_SCVger  INT32_C(11)
 #define CPU_SUBTYPE_POWERPC_970     INT32_C(100)
 
-#define CPU_SUBTYPE_MASK            UINT32_C(0xff000000)
+#define CPU_SUBTYPE_MASK            UINT32_C(0xff000000)        /**< Architecture specific bits. */
 #define CPU_SUBTYPE_LIB64           UINT32_C(0x80000000)
 
-#endif /* !CPU_ARCH_MASK */
+#endif /* IPRT_MACHO_NEED_CPU_DEFINES */
 
 
 typedef struct fat_header
@@ -363,6 +372,10 @@ typedef struct load_command
 #define LC_VERSION_MIN_WATCHOS      UINT32_C(0x30)
 #define LC_NOTE                     UINT32_C(0x31)
 #define LC_BUILD_VERSION            UINT32_C(0x32)
+#define LC_DYLD_EXPORTS_TRIE       (UINT32_C(0x33) | LC_REQ_DYLD)
+#define LC_DYLD_CHAINED_FIXUPS     (UINT32_C(0x34) | LC_REQ_DYLD)
+#define LC_FILESET_ENTRY           (UINT32_C(0x35) | LC_REQ_DYLD)
+#define LC_ATOM_INFO                UINT32_C(0x36)
 
 
 typedef struct lc_str
@@ -720,17 +733,17 @@ typedef struct macho_nlist_64
     uint64_t            n_value;
 } macho_nlist_64_t;
 
-#define MACHO_N_EXT                 UINT8_C(0x01)
-#define MACHO_N_PEXT                UINT8_C(0x10)
+#define MACHO_N_EXT                 UINT8_C(0x01) /**< bit 0: external symbol*/
+#define MACHO_N_PEXT                UINT8_C(0x10) /**< bit 4: priate external (hidden) */
 
-#define MACHO_N_TYPE                UINT8_C(0x0e)
+#define MACHO_N_TYPE                UINT8_C(0x0e) /**< bit 1, 2, 3: type (UNDF, ABS, INDR, PBUD, SECT)*/
 #define MACHO_N_UNDF                UINT8_C(0x00)
 #define MACHO_N_ABS                 UINT8_C(0x02)
 #define MACHO_N_INDR                UINT8_C(0x0a)
 #define MACHO_N_PBUD                UINT8_C(0x0c)
 #define MACHO_N_SECT                UINT8_C(0x0e)
 
-#define MACHO_N_STAB                UINT8_C(0xe0)
+#define MACHO_N_STAB                UINT8_C(0xe0) /* bit 5, 6, 7: set if symbolic debugging entry. */
 #define MACHO_N_GSYM                UINT8_C(0x20)
 #define MACHO_N_FNAME               UINT8_C(0x22)
 #define MACHO_N_FUN                 UINT8_C(0x24)

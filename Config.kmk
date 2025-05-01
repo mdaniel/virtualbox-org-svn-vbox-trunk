@@ -5696,13 +5696,15 @@ ifeq ($(VBOX_LDR_FMT),macho)
  	$(VBOX_GCC_fno-stack-protector) $(VBOX_GCC_std)
  TEMPLATE_VBoxR0_CXXFLAGS.amd64     = -m64 -msoft-float -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-red-zone -mno-sse3 -mno-sse4 -mno-sse4.1 -mno-sse4.2  -mno-sse4a -fno-unwind-tables
  TEMPLATE_VBoxR0_CXXFLAGS.x86       = -m32 -msoft-float -mno-sse -mno-mmx -mno-sse2 -mno-3dnow
- TEMPLATE_VBoxR0_CXXFLAGS.arm64     = -m64 -target arm64e-apple-macos11.0 # Assembly fixup issues w/o the -target bit. Why?
+ TEMPLATE_VBoxR0_CXXFLAGS.arm64     = -m64 -Wno-gcc-compat
  TEMPLATE_VBoxR0_CFLAGS             = $(VBOX_DARWIN_DEF_SDK_CFLAGS)   -nostdinc -g $(VBOX_GCC_pipe) $(VBOX_GCC_WERR) $(VBOX_GCC_PEDANTIC_C)   $(VBOX_GCC_Wno-variadic-macros) \
  	-fno-common -static -fno-exceptions $(VBOX_GCC_R0_OPT) $(VBOX_GCC_R0_FP) -fno-strict-aliasing \
  	$(VBOX_GCC_fno-stack-protector)
  TEMPLATE_VBoxR0_CFLAGS.amd64       = -m64 -msoft-float -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-red-zone -mno-sse3 -mno-sse4 -mno-sse4.1 -mno-sse4.2  -mno-sse4a -fno-unwind-tables
  TEMPLATE_VBoxR0_CFLAGS.x86         = -m32 -msoft-float -mno-sse -mno-mmx -mno-sse2 -mno-3dnow
- TEMPLATE_VBoxR0_CFLAGS.arm64       = -m64 -target arm64e-apple-macos11.0
+ TEMPLATE_VBoxR0_CFLAGS.arm64       = -m64 -Wno-gcc-compat
+ TEMPLATE_VBoxR0_CXXFLAGS.arm64    += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN) # Assembly fixup issues w/o the -target bit. Why?
+ TEMPLATE_VBoxR0_CFLAGS.arm64      += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN)
  TEMPLATE_VBoxR0_LDFLAGS            = $(VBOX_DARWIN_DEF_SDK_LDFLAGS) -nostdlib
  TEMPLATE_VBoxR0_LDFLAGS.amd64      = -m64 -static
  TEMPLATE_VBoxR0_LDFLAGS.arm64      = -m64 -static
@@ -5992,7 +5994,7 @@ ifeq ($(KBUILD_TARGET),darwin)
   # -Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions -Wdeprecated-declarations -Winvalid-offsetof -Wno-sign-conversion
   TEMPLATE_VBoxR0Drv_CXXFLAGS.amd64    = -m64 -msoft-float -mno-red-zone
   TEMPLATE_VBoxR0Drv_CXXFLAGS.x86      = -m32 -msoft-float
-  TEMPLATE_VBoxR0Drv_CXXFLAGS.arm64    = -m64 -fno-sanitize=vptr -target arm64e-apple-macos11.0
+  TEMPLATE_VBoxR0Drv_CXXFLAGS.arm64    = -m64 -fno-sanitize=vptr -Wno-gcc-compat
   TEMPLATE_VBoxR0Drv_CFLAGS            = $(VBOX_DARWIN_DEF_SDK_CFLAGS) -mkernel \
   	-g $(VBOX_GCC_pipe) $(VBOX_GCC_PEDANTIC_C) -Wno-long-long $(VBOX_GCC_fdiagnostics-show-option) \
   	-fno-common -nostdinc -fno-builtin $(VBOX_GCC_fvisibility-inlines-hidden) $(VBOX_GCC_fvisibility-hidden) \
@@ -6002,16 +6004,22 @@ ifeq ($(KBUILD_TARGET),darwin)
   	$(VBOX_GCC_R0_OPT) $(VBOX_GCC_R0_FP) -fasm-blocks -fno-strict-aliasing
   TEMPLATE_VBoxR0Drv_CFLAGS.amd64      = -m64 -msoft-float -mno-red-zone
   TEMPLATE_VBoxR0Drv_CFLAGS.x86        = -m32 -msoft-float
-  TEMPLATE_VBoxR0Drv_CFLAGS.arm64      = -m64 -fno-sanitize=vptr -target arm64e-apple-macos11.0
+  TEMPLATE_VBoxR0Drv_CFLAGS.arm64      = -m64 -fno-sanitize=vptr -Wno-gcc-compat -Wno-gnu-statement-expression-from-macro-expansion
   if 1
-   TEMPLATE_VBoxR0Drv_CFLAGS          += $(VBOX_GCC_WERR)
-   TEMPLATE_VBoxR0Drv_CXXFLAGS        += $(VBOX_GCC_WERR)
+   TEMPLATE_VBoxR0Drv_CFLAGS          += $(VBOX_GCC_WERR) -Wno-sign-conversion
+   TEMPLATE_VBoxR0Drv_CXXFLAGS        += $(VBOX_GCC_WERR) -Wno-sign-conversion
   endif
   TEMPLATE_VBoxR0Drv_LDFLAGS           = $(filter-out $(VBOX_DARWIN_NO_COMPACT_LINKEDIT),$(VBOX_DARWIN_DEF_SDK_LDFLAGS)) \
   	-nostdlib -stdlib=libc++ -Wl,-kext -Wl,-keep_private_externs
   TEMPLATE_VBoxR0Drv_LDFLAGS.amd64     = -m64
   TEMPLATE_VBoxR0Drv_LDFLAGS.arm64     = -m64
   TEMPLATE_VBoxR0Drv_LDFLAGS.x86       = -m32
+  if 1 # arm64 w/ ptrauth.
+   TEMPLATE_VBoxR0Drv_CXXFLAGS.arm64  += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN)
+   TEMPLATE_VBoxR0Drv_CFLAGS.arm64    += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN)
+   TEMPLATE_VBoxR0Drv_ASFLAGS.arm64   += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN) -mkernel
+   TEMPLATE_VBoxR0Drv_LDFLAGS.arm64   += -target arm64e-apple-macos$(VBOX_DEF_MACOSX_VERSION_MIN)
+  endif
   TEMPLATE_VBoxR0Drv_LATE_LIBS         = kmodc++ kmod cc_kext
  endif
 endif

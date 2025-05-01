@@ -65,9 +65,6 @@
 ; Also was being used by old Sun [xVM] / innotek installations.
 !define REGISTRY_VAL_ORG_MOUSE_PATH "MousePath"
 
-; Needed for InstallLib macro: Install libraries in every case.
-!define LIBRARY_IGNORE_VERSION
-
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey "FileVersion"       "$%VBOX_VERSION_STRING%"
 VIAddVersionKey "ProductName"       "${PRODUCT_NAME}"
@@ -108,8 +105,12 @@ ${Using:StrFunc} StrStrAdv
   !include "servicepack.nsh"  ; Function "GetServicePack".
 !endif
 !include "winver.nsh"         ; Function for determining Windows version.
-!define REPLACEDLL_NOREGISTER ; Replace in use DLL function.
-!include "ReplaceDLL.nsh"
+
+; Needed for the InstallLib macro (defined in NSIS' Library.nsh):
+;
+; Make sure we always replace DLLs, no matter if the version is the same.
+; This also is needed for supporting downgrades.
+!define LIBRARY_IGNORE_VERSION
 
 !if $%KBUILD_TARGET_ARCH% == "amd64"
   !include "x64.nsh"
@@ -737,7 +738,7 @@ install:
     osselswitch_case_vista_and_later:
       ; Use VBoxCredProv on Vista and up.
       ${LogVerbose} "Installing VirtualBox credential provider ..."
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxCredProv.dll" "$g_strSystemDir\VBoxCredProv.dll" "$INSTDIR"
+      !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxCredProv.dll" "$g_strSystemDir\VBoxCredProv.dll" "$INSTDIR"
       WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv" ; adding to (default) key
       WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv"                       ; adding to (Default) key
       WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}\InprocServer32" "" "VBoxCredProv.dll"    ; adding to (Default) key
@@ -748,7 +749,7 @@ install:
     osselswitch_case_nt4:
 !endif
       ${LogVerbose} "Installing VirtualBox GINA ..."
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxGINA.dll" "$g_strSystemDir\VBoxGINA.dll" "$INSTDIR"
+      !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxGINA.dll" "$g_strSystemDir\VBoxGINA.dll" "$INSTDIR"
       WriteRegStr HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon" "GinaDLL" "VBoxGINA.dll"
       ; Add Windows notification package callbacks for VBoxGINA
       WriteRegStr   HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\Notify\VBoxGINA" "DLLName" "VBoxGINA.dll"

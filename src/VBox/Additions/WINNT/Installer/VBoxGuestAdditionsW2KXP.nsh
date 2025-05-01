@@ -499,7 +499,7 @@ Function W2K_CallbackInstall
 !endif
 
   ; The VBoxTray hook DLL also goes to the system directory; it might be locked.
-  !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxHook.dll" "$g_strSystemDir\VBoxHook.dll" "$INSTDIR"
+  !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxHook.dll" "$g_strSystemDir\VBoxHook.dll" "$INSTDIR"
   AccessControl::GrantOnFile "$g_strSystemDir\VBoxHook.dll" "(BU)" "GenericRead"
 
   ${LogVerbose} "Installing drivers ..."
@@ -575,20 +575,20 @@ Function W2K_CallbackInstall
       ${OrIf} $g_strWinVersion == "XP"
       ${OrIf} $g_strWinVersion == "2003"
       ${OrIf} $g_strWinVersion == "7"
-        !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+        !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
       ${Else}
-        !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+        !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
       ${EndIf}
     !else
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+      !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
     !endif
     AccessControl::GrantOnFile "$g_strSystemDir\drivers\VBoxSF.dll" "(BU)" "GenericRead"
 
-    !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll" "$g_strSystemDir\VBoxMRXNP.dll" "$INSTDIR"
+    !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll" "$g_strSystemDir\VBoxMRXNP.dll" "$INSTDIR"
     AccessControl::GrantOnFile "$g_strSystemDir\VBoxMRXNP.dll" "(BU)" "GenericRead"
     !if $%KBUILD_TARGET_ARCH% == "amd64" ; Note: Does not exist for arm64.
       ; Only amd64 installer: Copy the x86 DLL for 32 bit applications.
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll" "$g_strSysWow64\VBoxMRXNP.dll" "$INSTDIR"
+      !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll" "$g_strSysWow64\VBoxMRXNP.dll" "$INSTDIR"
       AccessControl::GrantOnFile "$g_strSysWow64\VBoxMRXNP.dll" "(BU)" "GenericRead"
     !endif
 

@@ -47,6 +47,8 @@
 #include <iprt/asm.h>
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <iprt/asm-arm.h>
 #endif
 #include <iprt/err.h>
 #include <iprt/list.h>
@@ -246,7 +248,9 @@ RTDECL(int)  RTSemEventSignal(RTSEMEVENT hEventSem)
     rtR0SemEventDarwinRelease(pThis);
 
     RT_ASSERT_PREEMPT_CPUID();
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     AssertMsg((fSavedEfl & X86_EFL_IF) == (ASMGetFlags() & X86_EFL_IF), ("fSavedEfl=%#x cur=%#x\n",(uint32_t)fSavedEfl, ASMGetFlags()));
+#endif
     IPRT_DARWIN_RESTORE_EFL_AC();
     return VINF_SUCCESS;
 }

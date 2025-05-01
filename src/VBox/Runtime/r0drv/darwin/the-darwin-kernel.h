@@ -132,12 +132,19 @@
 /** @name Macros for preserving EFLAGS.AC (despair / paranoid)
  * @remarks Unlike linux, we have to restore it unconditionally on darwin.
  * @{ */
-#include <iprt/asm-amd64-x86.h>
-#include <iprt/x86.h>
-#define IPRT_DARWIN_SAVE_EFL_AC()                       RTCCUINTREG const fSavedEfl = ASMGetFlags();
-#define IPRT_DARWIN_RESTORE_EFL_AC()                    ASMSetFlags(fSavedEfl)
-#define IPRT_DARWIN_RESTORE_EFL_ONLY_AC()               ASMChangeFlags(~X86_EFL_AC, fSavedEfl & X86_EFL_AC)
-#define IPRT_DARWIN_RESTORE_EFL_ONLY_AC_EX(a_fSavedEfl) ASMChangeFlags(~X86_EFL_AC, (a_fSavedEfl) & X86_EFL_AC)
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+# include <iprt/x86.h>
+# define IPRT_DARWIN_SAVE_EFL_AC()                       RTCCUINTREG const fSavedEfl = ASMGetFlags();
+# define IPRT_DARWIN_RESTORE_EFL_AC()                    ASMSetFlags(fSavedEfl)
+# define IPRT_DARWIN_RESTORE_EFL_ONLY_AC()               ASMChangeFlags(~X86_EFL_AC, fSavedEfl & X86_EFL_AC)
+# define IPRT_DARWIN_RESTORE_EFL_ONLY_AC_EX(a_fSavedEfl) ASMChangeFlags(~X86_EFL_AC, (a_fSavedEfl) & X86_EFL_AC)
+#else
+# define IPRT_DARWIN_SAVE_EFL_AC()                       ((void)0)
+# define IPRT_DARWIN_RESTORE_EFL_AC()                    ((void)0)
+# define IPRT_DARWIN_RESTORE_EFL_ONLY_AC()               ((void)0)
+# define IPRT_DARWIN_RESTORE_EFL_ONLY_AC_EX(a_fSavedEfl) ((void)0)
+#endif
 /** @} */
 
 
@@ -162,13 +169,27 @@ extern ppnum_t pmap_find_phys(pmap_t, addr64_t);
 extern kern_return_t vm_map_wire(vm_map_t, vm_map_offset_t, vm_map_offset_t, vm_prot_t, boolean_t);
 extern kern_return_t vm_map_unwire(vm_map_t, vm_map_offset_t, vm_map_offset_t, boolean_t);
 
-/* mach/i386/thread_act.h */
+/* mach/thread_act.defs / mach/i386/thread_act.h */
 extern kern_return_t thread_terminate(thread_t);
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /* osfmk/i386/mp.h */
 extern void mp_rendezvous(void (*)(void *), void (*)(void *), void (*)(void *), void *);
 extern void mp_rendezvous_no_intrs(void (*)(void *), void *);
 
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+/* mach/arm/machine_routines.h */
+extern kern_return_t cpu_xcall(int, void (*)(void *), void *);
+extern kern_return_t cpu_immediate_xcall(int, void (*)(void *), void *);
+extern unsigned int  cpu_broadcast_xcall(uint32_t *, boolean_t, void (*)(void *), void *);
+extern unsigned int  cpu_broadcast_xcall_simple(boolean_t, void (*)(void *), void *);
+typedef kern_return_t (*PFN_DARWIN_CPU_XCALL_T)(int, void (*)(void *), void *);
+typedef kern_return_t (*PFN_DARWIN_CPU_IMMEDIATE_XCALL_T)(int, void (*)(void *), void *);
+typedef unsigned int  (*PFN_DARWIN_CPU_BROADCAST_XCALL_T)(uint32_t *, boolean_t, void (*)(void *), void *);
+typedef unsigned int  (*PFN_DARWIN_CPU_BROADCAST_XCALL_SIMPLE_T)(boolean_t, void (*)(void *), void *);
+#endif
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /* osfmk/i386/cpu_data.h */
 struct my_cpu_data_x86
 {
@@ -192,6 +213,7 @@ struct my_cpu_data_x86
     int                     cpu_threadtype;
     int                     cpu_running;
 };
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
 /* osfmk/i386/cpu_number.h */
 extern int cpu_number(void);
@@ -221,6 +243,14 @@ extern DECL_HIDDEN_DATA(PFNR0DARWINCPUINTERRUPT)     g_pfnR0DarwinCpuInterrupt;
 #ifdef DEBUG /* Used once for debugging memory issues (see #9466). */
 typedef kern_return_t (*PFNR0DARWINVMFAULTEXTERNAL)(vm_map_t, vm_map_offset_t, vm_prot_t, boolean_t, int, pmap_t, vm_map_offset_t);
 extern DECL_HIDDEN_DATA(PFNR0DARWINVMFAULTEXTERNAL) g_pfnR0DarwinVmFaultExternal;
+#endif
+
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+extern DECL_HIDDEN_DATA(PFN_DARWIN_CPU_XCALL_T)            g_pfnR0DarwinCpuXCall;
+extern DECL_HIDDEN_DATA(PFN_DARWIN_CPU_BROADCAST_XCALL_T)  g_pfnR0DarwinCpuBroadcastXCall;
+typedef int (*PFN_DARWIN_CPU_NUMBER_T)(void); /* private API for arm */
+extern DECL_HIDDEN_DATA(PFN_DARWIN_CPU_NUMBER_T)           g_pfnR0DarwinCpuNumber;
+# define cpu_number()                                      (g_pfnR0DarwinCpuNumber())
 #endif
 
 /* threadpreempt-r0drv-darwin.cpp */

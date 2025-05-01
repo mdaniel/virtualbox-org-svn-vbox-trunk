@@ -45,6 +45,8 @@
 
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # include <iprt/asm-amd64-x86.h>
+#else
+# include <iprt/thread.h>
 #endif
 #include <iprt/errcore.h>
 
@@ -94,6 +96,9 @@ RTR0DECL(bool) RTR0MemKernelIsValidAddr(void *pv)
 
 #elif defined(RT_ARCH_AMD64)
     return (uintptr_t)pv >= UINT64_C(0xffff800000000000);
+
+#elif defined(RT_ARCH_ARM64)
+    return (uintptr_t)pv >= UINT64_C(0xfff0000000000000); /** @todo get the actual size. this is the max. */
 
 #else
 # error "PORTME"

@@ -47,6 +47,14 @@
 #include "internal/initterm.h"
 
 
+/*********************************************************************************************************************************
+*   Internal Functions                                                                                                           *
+*********************************************************************************************************************************/
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+static int rtR0DarwinFallbackCpuNumber(void);
+#endif
+
+
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
@@ -61,6 +69,24 @@ DECL_HIDDEN_DATA(PFNR0DARWINCPUINTERRUPT)       g_pfnR0DarwinCpuInterrupt = NULL
 /** Pointer to the vm_fault_external function - used once for debugging @bugref{9466}. */
 DECL_HIDDEN_DATA(PFNR0DARWINVMFAULTEXTERNAL)    g_pfnR0DarwinVmFaultExternal = NULL;
 #endif
+
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+/** Pointer to cpu_xcall (private arm API).  */
+DECL_HIDDEN_DATA(PFN_DARWIN_CPU_XCALL_T)            g_pfnR0DarwinCpuXCall = NULL;
+/** Pointer to cpu_broadcast_xcall (private arm API).  */
+DECL_HIDDEN_DATA(PFN_DARWIN_CPU_BROADCAST_XCALL_T)  g_pfnR0DarwinCpuBroadcastXCall = NULL;
+/** Pointer to cpu_number (private API on arm).  */
+DECL_HIDDEN_DATA(PFN_DARWIN_CPU_NUMBER_T)           g_pfnR0DarwinCpuNumber = rtR0DarwinFallbackCpuNumber;
+
+/**
+ * Fallback for g_pfnR0DarwinCpuNumber, just so we won't crash if it isn't found.
+ */
+static int rtR0DarwinFallbackCpuNumber(void)
+{
+    return 0;
+}
+#endif /* RT_ARCH_ARM64 || RT_ARCH_ARM32 */
+
 
 
 DECLHIDDEN(int) rtR0InitNative(void)
@@ -86,14 +112,27 @@ DECLHIDDEN(int) rtR0InitNative(void)
         rc = RTR0DbgKrnlInfoOpen(&hKrnlInfo, 0 /*fFlags*/);
         if (RT_SUCCESS(rc))
         {
-            RTR0DbgKrnlInfoQuerySymbol(hKrnlInfo, NULL, "ast_pending",   (void **)&g_pfnR0DarwinAstPending);
-            printf("ast_pending=%p\n", (void *)(uintptr_t)g_pfnR0DarwinAstPending);
-            RTR0DbgKrnlInfoQuerySymbol(hKrnlInfo, NULL, "cpu_interrupt", (void **)&g_pfnR0DarwinCpuInterrupt);
-            printf("cpu_interrupt=%p\n", (void *)(uintptr_t)g_pfnR0DarwinCpuInterrupt);
+#define GET_FUNCTION(a_VarType, a_VarName, a_szSymbol) do { \
+                PFNRT pfn = RTR0DbgKrnlInfoGetFunction(hKrnlInfo, NULL, a_szSymbol); \
+                printf("rtR0InitNative: " a_szSymbol "=%llx\n", (unsigned long long)(uintptr_t)pfn); \
+                if (pfn != NULL) \
+                    a_VarName = (a_VarType)pfn; \
+            } while (0)
+
+            GET_FUNCTION(PFNR0DARWINASTPENDING,             g_pfnR0DarwinAstPending,        "ast_pending");
+            GET_FUNCTION(PFNR0DARWINCPUINTERRUPT,           g_pfnR0DarwinCpuInterrupt,      "cpu_interrupt");
 #ifdef DEBUG
-            RTR0DbgKrnlInfoQuerySymbol(hKrnlInfo, NULL, "vm_fault_external", (void **)&g_pfnR0DarwinVmFaultExternal);
-            printf("vm_fault_external=%p\n", (void *)(uintptr_t)g_pfnR0DarwinVmFaultExternal);
+            GET_FUNCTION(PFNR0DARWINVMFAULTEXTERNAL,        g_pfnR0DarwinVmFaultExternal,   "vm_fault_external");
 #endif
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+            GET_FUNCTION(PFN_DARWIN_CPU_XCALL_T,            g_pfnR0DarwinCpuXCall,          "cpu_xcall");
+            GET_FUNCTION(PFN_DARWIN_CPU_BROADCAST_XCALL_T,  g_pfnR0DarwinCpuBroadcastXCall, "cpu_broadcast_xcall");
+            GET_FUNCTION(PFN_DARWIN_CPU_NUMBER_T,           g_pfnR0DarwinCpuNumber,         "cpu_number");
+            if (!g_pfnR0DarwinCpuNumber)
+                g_pfnR0DarwinCpuNumber = rtR0DarwinFallbackCpuNumber;
+#endif
+
+#undef GET_FUNCTION
             RTR0DbgKrnlInfoRelease(hKrnlInfo);
         }
         if (RT_FAILURE(rc))

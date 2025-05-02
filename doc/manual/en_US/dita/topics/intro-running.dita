@@ -8,7 +8,7 @@
     <ul>
       <li>Open the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and then double-click the VM's name.</li>
       <li>
-        <p>Select the VM's name in the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and then click <b outputclass="bold">Start</b>.</p>
+        <p>Select the VM's name in the <uicontrol>Machines</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and then click <b outputclass="bold">Start</b>.</p>
       </li>
       <li>
         <p>Go to the <filepath>VirtualBox VMs</filepath> folder in your system user's home directory. Find the subdirectory of the machine you want to start and double-click the machine settings file. This file has a <filepath>.vbox</filepath> file extension.</p>

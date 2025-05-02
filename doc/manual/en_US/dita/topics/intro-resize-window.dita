@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="intro-resize-window">
-  <title>Resizing the Machine's Window</title>
+  <title>Resizing the VM's Window</title>
   
   <body>
     <p>You can resize the VM's window while that VM is running. When you do, the window is scaled as follows: </p>

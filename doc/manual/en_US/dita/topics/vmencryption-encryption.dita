@@ -4,8 +4,7 @@
   <title>Encrypting a VM</title>
   
   <body>
-    <p>Encrypting a VM can be done either using <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> or the
-        <userinput>VBoxManage</userinput>. To encrypt an unencrypted VM with <userinput>VBoxManage</userinput>, use: </p>
+    <p>To encrypt an unencrypted VM with <userinput>VBoxManage</userinput>, use: </p>
     <pre xml:space="preserve">VBoxManage encryptvm <varname>uuid</varname>|<varname>vmname</varname> setencryption --new-password <varname>filename</varname>|- \
 --cipher <varname>cipher-ID</varname> --new-password-id <varname>ID</varname>
                   </pre>

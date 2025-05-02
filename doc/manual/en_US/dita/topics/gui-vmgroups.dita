@@ -13,13 +13,14 @@
             <p>Drag a VM on top of another VM.</p>
           </li>
           <li>
-            <p>Select multiple VMs and select <uicontrol>Move to Group</uicontrol>, <uicontrol>New Group</uicontrol> from the right-click menu.</p>
+            <p>Select multiple VMs and choose <uicontrol>Move to Group</uicontrol>, <uicontrol>New Group</uicontrol> from the right-click menu.</p>
           </li>
         </ul>
       </li>
       <li>
-        <p>To rename the new group, right-click on the group's name and choose <uicontrol>Rename Group</uicontrol></p>
+        <p>A default name is assigned to new groups, following the format <uicontrol>New Group &lt;Number></uicontrol>. To rename the new group, right-click on the group's name and choose <uicontrol>Rename Group</uicontrol>. Type the new name, and then press Enter.</p>
       </li>
+      <li>To remove a VM from a group, right-click the VM and choose <uicontrol>Move to Group</uicontrol>, <uicontrol>No Group</uicontrol>.</li>
       <li>
         <p>Create and manage a group using the command line. Do one of the following:</p>
         <ul>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="pausing-a-virtual-machine">
+    <title>Pausing a VM</title>
+    <body>
+        <p>Pausing a VM suspends all the processes running on the VM.</p>
+        <p>To pause a VM:<ol>
+                <li>
+                    <p>Open the <uicontrol>Machines</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and select the running VM you want to pause.</p>
+                </li>
+                <li>
+                    <p>Right-click the VM name, or open the <uicontrol>Machine</uicontrol> menu, and choose <uicontrol>Pause</uicontrol>.</p>
+                </li>
+            </ol>To start a paused VM running again:<ol>
+                <li>
+                    <p>Open the <uicontrol>Machines</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and select the paused VM.</p>
+                </li>
+                <li>
+                    <p>Right-click the VM name, or open the <uicontrol>Machine</uicontrol> menu, and choose <uicontrol>Pause</uicontrol>.</p>
+                    <p>The VM starts running again.</p>
+                </li>
+            </ol></p>
+    </body>
+</topic>

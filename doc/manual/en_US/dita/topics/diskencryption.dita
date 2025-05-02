@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="diskencryption">
-  <title>Encryption of Disk Images</title>
+  <title><?oxy_comment_start author="Mhari Duncan" timestamp="20250501T152249+0100" comment="Move to storage? Or to security?"?>Encryption of Disk Images<?oxy_comment_end?></title>
   
   <body>
     <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to transparently encrypt the data stored in

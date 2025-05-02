@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="resetting-a-vm">
+    <title>Resetting a VM</title>
+    <body>
+        <p>Resetting a VM is the equivalent of choosing the reset or restart option in the OS. It does not reset to factory settings or other known state, it restarts the guest OS.</p>
+        <p>To reset a VM<ol>
+                <li>
+                    <p>Open the <uicontrol>Machines</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, and select the running VM you want to reset.</p>
+                </li>
+                <li>
+                    <p>Right-click the VM name, or open the <uicontrol>Machine</uicontrol> menu, and choose <uicontrol>Reset</uicontrol>.</p>
+                </li>
+                <li>
+                    <p>Click <uicontrol>Reset</uicontrol> to confirm. Note that you will lose unsaved data.</p>
+                </li>
+            </ol></p>
+    </body>
+</topic>

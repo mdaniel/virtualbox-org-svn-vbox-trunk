@@ -14,7 +14,7 @@
       <dlentry>
         <dt>Workaround</dt>
         <dd>
-          <p>Solaris 11.1 SRU 20.5 and later includes a kernel tunable parameter,user_reserve_hint_pct, which can be set to allow system administrators to specify a reserve of free memory for applications by restricting growth of the ZFS ARC cache. See the Oracle Solaris 11.4 TunableParameters Reference Manual(<xref href="https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/tuning/user_reserve_hint_pct-zfs-parameter.html" format="html" scope="external">https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/tuning/user_reserve_hint_pct-zfs-parameter.html</xref>) and Document 1663862.1, Memory Management Between ZFS and Applicationsin Oracle Solaris 11.x, in My Oracle Support (MOS) for further information and guidance on tuning this parameter.</p>
+          <p>Solaris 11.1 SRU 20.5 and later includes a kernel tunable parameter,user_reserve_hint_pct, which can be set to allow system administrators to specify a reserve of free memory for applications by restricting growth of the ZFS ARC cache. See the Oracle Solaris 11.4 TunableParameters Reference Manual(<xref href="https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/tuning/user_reserve_hint_pct-zfs-parameter.html" format="html" scope="external">https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/tuning/user_reserve_hint_pct-zfs-parameter.html</xref>) and Document 1663862.1, Memory Management Between ZFS and Applications in Oracle Solaris 11.x, in My Oracle Support (MOS) for further information and guidance on tuning this parameter.</p>
         </dd>
       </dlentry>
     </dl>

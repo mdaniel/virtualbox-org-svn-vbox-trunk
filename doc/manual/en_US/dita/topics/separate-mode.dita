@@ -8,12 +8,11 @@
     <p>Separate mode has some security advantages, compared to using the <userinput>VBoxHeadless</userinput> front end.</p>
     <section id="vbox-headless-separate-mode-using">
       <title>Using Separate Mode</title>
-      <!-- Any pre-configuration/activation steps required? -->
       <p>The following list describes some typical operations in separate mode.</p>
       <ul>
         <li>
-          <p>To <b>start</b> a virtual machine in separate mode:</p>
-          <p>Right-click the VM name in the machine list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> and select <b>Detachable Start</b> in the <b>Start</b> submenu.</p>
+          <p>To start a virtual machine in separate mode:</p>
+          <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, click <uicontrol>Machines</uicontrol> and select the machine you want to start. Choose <uicontrol>Start with detachable GUI</uicontrol> from the <uicontrol>Start</uicontrol> options on the toolbar or right-click menu.</p>
         </li>
         <li>
           <p>To <b>detach</b> from a virtual machine in separate mode:</p>
@@ -21,7 +20,7 @@
         </li>
         <li>
           <p>To <b>attach</b> to a virtual machine in separate mode:</p>
-          <p>Right-click the VM name in the machine list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> and select <b>Show</b>.</p>
+          <p>Select the VM name in the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> and then click <b>Show</b>.</p>
         </li>
         <li>
           <p>To <b>stop</b> a virtual machine that is running in separate mode:</p>

@@ -489,7 +489,7 @@ AssertCompileSize(GITSCMD, GITS_CMD_SIZE);
 
 /** @name GITS command: MAPC.
  * @{ */
-/** MAPC DW0: Command Id. */
+/** MAPC DW0: Command ID. */
 #define GITS_BF_CMD_MAPC_DW0_CMD_ID_SHIFT                       0
 #define GITS_BF_CMD_MAPC_DW0_CMD_ID_MASK                        UINT64_C(0x00000000000000ff)
 /** MAPC DW0: Reserved (bits 63:8). */
@@ -520,9 +520,48 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPC_DW2_, UINT64_C(0), UINT64_MAX,
 #define GITS_BF_CMD_MAPC_DW3_RSVD_63_0_MASK                     UINT64_MAX
 /** @} */
 
+/** @name GITS command: MAPD.
+ * @{ */
+/** MAPD DW0: Command ID. */
+#define GITS_BF_CMD_MAPD_DW0_CMD_ID_SHIFT                       0
+#define GITS_BF_CMD_MAPD_DW0_CMD_ID_MASK                        UINT64_C(0x00000000000000ff)
+/** MAPD DW0: Reserved (bits 31:8). */
+#define GITS_BF_CMD_MAPD_DW0_RSVD_31_8_SHIFT                    8
+#define GITS_BF_CMD_MAPD_DW0_RSVD_31_8_MASK                     UINT64_C(0x00000000ffffff00)
+/** MAPD DW0: Device ID. */
+#define GITS_BF_CMD_MAPD_DW0_DEV_ID_SHIFT                       32
+#define GITS_BF_CMD_MAPD_DW0_DEV_ID_MASK                        UINT64_C(0xffffffff00000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPD_DW0_, UINT64_C(0), UINT64_MAX,
+                            (CMD_ID, RSVD_31_8, DEV_ID));
+
+/** MAPD DW1: Size. */
+#define GITS_BF_CMD_MAPD_DW1_SIZE_SHIFT                         0
+#define GITS_BF_CMD_MAPD_DW1_SIZE_MASK                          UINT64_C(0x000000000000001f)
+/** MAPD DW1: Reserved (bits 63:5). */
+#define GITS_BF_CMD_MAPD_DW1_RSVD_63_5_SHIFT                    5
+#define GITS_BF_CMD_MAPD_DW1_RSVD_63_5_MASK                     UINT64_C(0xffffffffffffffe0)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPD_DW1_, UINT64_C(0), UINT64_MAX,
+                            (SIZE, RSVD_63_5));
+
+/** MAPD: DW2: Reserved (bits 7:0). */
+#define GITS_BF_CMD_MAPD_DW2_RSVD_7_0_SHIFT                     0
+#define GITS_BF_CMD_MAPD_DW2_RSVD_7_0_MASK                      UINT64_C(0x00000000000000ff)
+/** MAPD: DW2: ITT address. */
+#define GITS_BF_CMD_MAPD_DW2_ITT_ADDR_SHIFT                     8
+#define GITS_BF_CMD_MAPD_DW2_ITT_ADDR_MASK                      UINT64_C(0x000fffffffffff00)
+/** MAPD: DW2: Reserved (bits 62:52). */
+#define GITS_BF_CMD_MAPD_DW2_RSVD_62_52_SHIFT                   52
+#define GITS_BF_CMD_MAPD_DW2_RSVD_62_52_MASK                    UINT64_C(0x7ff0000000000000)
+/** MAPD: DW2: Valid. */
+#define GITS_BF_CMD_MAPD_DW2_VALID_SHIFT                        63
+#define GITS_BF_CMD_MAPD_DW2_VALID_MASK                         UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPD_DW2_, UINT64_C(0), UINT64_MAX,
+                            (RSVD_7_0, ITT_ADDR, RSVD_62_52, VALID));
+/** @} */
+
 /** @name GITS command: INVALL.
  * @{ */
-/** INVALL DW0: Command Id. */
+/** INVALL DW0: Command ID. */
 #define GITS_BF_CMD_INVALL_DW0_CMD_ID_SHIFT                     0
 #define GITS_BF_CMD_INVALL_DW0_CMD_ID_MASK                      UINT64_C(0x00000000000000ff)
 /** INVALL DW0: Reserved (bits 63:8). */

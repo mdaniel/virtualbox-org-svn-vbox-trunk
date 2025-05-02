@@ -64,6 +64,7 @@ static const char *const g_apszGitsDiagDesc[] =
     GITSDIAG_DESC(CmdQueue_Basic_Invalid_PhysAddr),
     GITSDIAG_DESC(CmdQueue_Cmd_Invall_Icid_Overflow),
     GITSDIAG_DESC(CmdQueue_Cmd_Mapc_Icid_Overflow),
+    GITSDIAG_DESC(CmdQueue_Cmd_Mapd_Size_Overflow),
     /* kGitsDiag_End */
 };
 AssertCompile(RT_ELEMENTS(g_apszGitsDiagDesc) == kGitsDiag_End);
@@ -556,6 +557,15 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
 }
 
 
+static int gitsR3WriteDeviceTableEntry(PPDMDEVINS pDevIns, RTGCPHYS GCPhysDevTable, uint32_t uDevId, uint64_t uDte)
+{
+    RTGCPHYS const offDte = GITS_DTE_SIZE * uDevId;
+    int rc = PDMDevHlpPhysWriteMeta(pDevIns, GCPhysDevTable + offDte, (const void *)uDte, sizeof(uDte));
+    AssertRC(rc);
+    return rc;
+}
+
+
 DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf)
 {
     Log4Func(("cbBuf=%RU32\n", cbBuf));
@@ -644,6 +654,42 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                                 gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
                                                      false /* fStall */);
                             STAM_COUNTER_INC(&pGitsDev->StatCmdMapc);
+                            break;
+                        }
+
+                        case GITS_CMD_ID_MAPD:
+                        {
+                            /* Map device ID to an interrupt translation table. */
+                            uint32_t const uDevId     = RT_BF_GET(pCmd->au64[0].u, GITS_BF_CMD_MAPD_DW0_DEV_ID);
+                            uint8_t const  cDevIdBits = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPD_DW1_SIZE);
+                            bool const     fValid     = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPD_DW2_VALID);
+                            RTGCPHYS const GCPhysItt  = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPD_DW2_ITT_ADDR);
+                            if (fValid)
+                            {
+                                /* We support 32-bits of device ID and hence it cannot be out of range (asserted below). */
+                                Assert(sizeof(uDevId) * 8 >= RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_DEV_BITS) + 1);
+
+                                /* Check that size is within the supported event ID range. */
+                                uint8_t const cEventIdBits = RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_ID_BITS) + 1;
+                                if (cDevIdBits <= cEventIdBits)
+                                {
+                                    uint64_t const uDte = RT_BF_MAKE(GITS_BF_DTE_VALID,     1)
+                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_ADDR,  GCPhysItt)
+                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_RANGE, cDevIdBits);
+                                    AssertCompile(sizeof(uDte) == GITS_DTE_SIZE);
+                                    rc = gitsR3WriteDeviceTableEntry(pDevIns, GCPhysItt, uDevId, uDte);
+                                    AssertRC(rc);
+                                }
+                                else
+                                    gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Mapd_Size_Overflow,
+                                                         false /* fStall */);
+                            }
+                            else
+                            {
+                                uint64_t const uDte = 0;
+                                rc = gitsR3WriteDeviceTableEntry(pDevIns, GCPhysItt, uDevId, uDte);
+                            }
+                            STAM_COUNTER_INC(&pGitsDev->StatCmdMapd);
                             break;
                         }
 

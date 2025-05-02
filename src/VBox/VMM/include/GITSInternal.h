@@ -46,9 +46,9 @@
 /** @name GITS Device Table Entry (DTE).
  *  @{ */
 #define GITS_BF_DTE_ITT_RANGE_SHIFT                 0
-#define GITS_BF_DTE_ITT_RANGE_MASK                  UINT64_C(0x000000000000000f)
-#define GITS_BF_DTE_RSVD_11_4_SHIFT                 4
-#define GITS_BF_DTE_RSVD_11_4_MASK                  UINT64_C(0x0000000000000ff0)
+#define GITS_BF_DTE_ITT_RANGE_MASK                  UINT64_C(0x000000000000001f)
+#define GITS_BF_DTE_RSVD_11_5_SHIFT                 5
+#define GITS_BF_DTE_RSVD_11_5_MASK                  UINT64_C(0x0000000000000fe0)
 #define GITS_BF_DTE_ITT_ADDR_SHIFT                  12
 #define GITS_BF_DTE_ITT_ADDR_MASK                   UINT64_C(0x000ffffffffff000)
 #define GITS_BF_DTE_RSVD_62_52_SHIFT                52
@@ -56,7 +56,7 @@
 #define GITS_BF_DTE_VALID_SHIFT                     63
 #define GITS_BF_DTE_VALID_MASK                      UINT64_C(0x8000000000000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_DTE_, UINT64_C(0), UINT64_MAX,
-                            (ITT_RANGE, RSVD_11_4, ITT_ADDR, RSVD_62_52, VALID));
+                            (ITT_RANGE, RSVD_11_5, ITT_ADDR, RSVD_62_52, VALID));
 #define GITS_DTE_VALID_MASK                         (UINT64_MAX & ~(GITS_BF_DTE_RSVD_11_4_MASK | GITS_BF_DTE_RSVD_62_52_MASK));
 /** GITS DTE: Size of the DTE in bytes. */
 #define GITS_DTE_SIZE                               8
@@ -112,6 +112,7 @@ typedef enum GITSDIAG
     /* Command queue: command errors. */
     kGitsDiag_CmdQueue_Cmd_Invall_Icid_Overflow,
     kGitsDiag_CmdQueue_Cmd_Mapc_Icid_Overflow,
+    kGitsDiag_CmdQueue_Cmd_Mapd_Size_Overflow,
 
     /* Member for determining array index limit. */
     kGitsDiag_End,
@@ -178,6 +179,7 @@ typedef struct GITSDEV
     /** @name Statistics.
      * @{ */
 #ifdef VBOX_WITH_STATISTICS
+    STAMCOUNTER             StatCmdMapd;
     STAMCOUNTER             StatCmdMapc;
     STAMCOUNTER             StatCmdSync;
     STAMCOUNTER             StatCmdInvall;

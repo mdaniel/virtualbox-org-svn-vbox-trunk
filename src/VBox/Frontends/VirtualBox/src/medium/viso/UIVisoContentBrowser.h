@@ -62,6 +62,7 @@ signals:
 
     void sigTableSelectionChanged(bool fIsSelectionEmpty);
     void sigISOContentImportedOrRemoved(bool fImportedr);
+    void sigVolumeIdParsed(const QString &strVoludId);
 
 public:
 

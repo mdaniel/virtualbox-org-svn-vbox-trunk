@@ -134,6 +134,7 @@ private slots:
     void sltISOContentImportedOrRemoved(bool fImported);
     void sltSettingsChanged();
     void sltPanelContainerHidden();
+    void sltVisoVolumeIdParsed(const QString &strVolumeId);
 
 private:
 

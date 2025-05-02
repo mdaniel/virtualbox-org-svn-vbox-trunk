@@ -48,7 +48,11 @@
 
 RTDECL(void) RTSortShell(void *pvArray, size_t cElements, size_t cbElement, PFNRTSORTCMP pfnCmp, void *pvUser)
 {
+#ifdef IN_RING3
+    Assert(cbElement <= _32K);
+#else
     Assert(cbElement <= 128);
+#endif
 
     /* Anything worth sorting? */
     if (cElements < 2)

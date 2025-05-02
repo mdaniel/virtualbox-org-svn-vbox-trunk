@@ -115,12 +115,15 @@ static PARTNUMINFO const g_aPartNumDbApple[] =
     { 0x025,    kCpumMicroarch_Apple_M1,            "Apple M1 Pro",         "Apple M1 Pro (Firestorm)",     kCpumCoreType_Performance },
     { 0x028,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Icestorm)",      kCpumCoreType_Efficiency  },
     { 0x029,    kCpumMicroarch_Apple_M1,            "Apple M1 Max",         "Apple M1 Max (Firestorm)",     kCpumCoreType_Performance },
+    /** @todo some sources lists 0x30/31 as plain m2...   */
     { 0x032,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Blizzard)",          kCpumCoreType_Efficiency  },
     { 0x033,    kCpumMicroarch_Apple_M2,            "Apple M2",             "Apple M2 (Avalanche)",         kCpumCoreType_Performance },
     { 0x034,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Blizzard)",      kCpumCoreType_Efficiency  },
     { 0x035,    kCpumMicroarch_Apple_M2,            "Apple M2 Pro",         "Apple M2 Pro (Avalanche)",     kCpumCoreType_Performance },
     { 0x038,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Blizzard)",      kCpumCoreType_Efficiency  },
     { 0x039,    kCpumMicroarch_Apple_M2,            "Apple M2 Max",         "Apple M2 Max (Avalanche)",     kCpumCoreType_Performance },
+    { 0x048,    kCpumMicroarch_Apple_M3,            "Apple M3 Max",         "Apple M3 Max (Sawtooth)",      kCpumCoreType_Efficiency  }, /** @todo code names */
+    { 0x049,    kCpumMicroarch_Apple_M3,            "Apple M3 Max",         "Apple M3 Max (Everest)",       kCpumCoreType_Performance }, /** @todo code names */
 };
 
 /** Ampere CPU info by part number. */
@@ -320,22 +323,27 @@ static int populateSystemRegisters(void)
         /*
          * Get the registers for online each CPU in the system, sorting them.
          */
-        RTCPUSET  OnlineSet;
-        int const idxLast = RTCpuSetLastIndex(RTMpGetOnlineSet(&OnlineSet));
-        for (int idxCpu = 0, iVar = 0; idxCpu <= idxLast; idxCpu++)
-            if (RTCpuSetIsMemberByIndex(&OnlineSet, idxCpu))
+        for (int idxCpu = 0, iVar = 0; idxCpu < RTCPUSET_MAX_CPUS; idxCpu++)
+            if (RTMpIsCpuOnline(idxCpu))
             {
                 RTCPUID const idCpu         = RTMpCpuIdFromSetIndex(idxCpu);
-                uint32_t      cRegAvailable = 0;
-                g_aVariations[iVar].cSysRegVals = 0;
-                rc = SUPR3ArmQuerySysRegs(idCpu,
-                                          SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL | SUP_ARM_SYS_REG_F_EXTENDED,
-                                          RT_ELEMENTS(g_aVariations[iVar].aSysRegVals),
-                                          &g_aVariations[iVar].cSysRegVals,
-                                          &cRegAvailable,
-                                          g_aVariations[iVar].aSysRegVals);
-                vbCpuRepDebug("SUPR3ArmQuerySysRegs(%u/%u) -> %Rrc (%u/%u regs)\n",
-                              idCpu, idxCpu, rc, g_aVariations[iVar].cSysRegVals, cRegAvailable);
+                uint32_t      cTries        = 0; /* Kludge for M3 Max / 14.7.5. Takes anywhere from 44 to at least 144 tries. */
+                uint32_t      cRegAvailable;
+                do
+                {
+                    cRegAvailable                   = 0;
+                    g_aVariations[iVar].cSysRegVals = 0;
+                    rc = SUPR3ArmQuerySysRegs(idCpu,
+                                              SUP_ARM_SYS_REG_F_INC_ZERO_REG_VAL | SUP_ARM_SYS_REG_F_EXTENDED,
+                                              RT_ELEMENTS(g_aVariations[iVar].aSysRegVals),
+                                              &g_aVariations[iVar].cSysRegVals,
+                                              &cRegAvailable,
+                                              g_aVariations[iVar].aSysRegVals);
+                } while (rc == VERR_CPU_OFFLINE && ++cTries < 512);
+                vbCpuRepDebug("SUPR3ArmQuerySysRegs(%u/%u) -> %Rrc (%u/%u regs - %u retries)\n",
+                              idCpu, idxCpu, rc, g_aVariations[iVar].cSysRegVals, cRegAvailable, cTries);
+                if (rc == VERR_CPU_OFFLINE)
+                    continue;
                 if (RT_FAILURE(rc))
                     return RTMsgErrorRc(rc, "SUPR3ArmQuerySysRegs failed: %Rrc", rc);
                 if (cRegAvailable > g_aVariations[iVar].cSysRegVals)
@@ -390,6 +398,7 @@ static int populateSystemRegisters(void)
                 }
                 g_cCores += 1;
             }
+
         vbCpuRepDebug("Detected %u variants across %u online CPUs\n", g_cVariations, g_cCores);
 
         /*

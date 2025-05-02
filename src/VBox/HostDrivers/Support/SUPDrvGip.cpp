@@ -1489,8 +1489,8 @@ static void supdrvGipMpEventOnlineOrInitOnCpu(PSUPDRVDEVEXT pDevExt, RTCPUID idC
     /*
      * Update the globals.
      */
-    ASMAtomicWriteU16(&pGip->cPresentCpus,  RTMpGetPresentCount());
-    ASMAtomicWriteU16(&pGip->cOnlineCpus,   RTMpGetOnlineCount());
+    ASMAtomicWriteU16(&pGip->cPresentCpus,  (uint16_t)RTMpGetPresentCount());
+    ASMAtomicWriteU16(&pGip->cOnlineCpus,   (uint16_t)RTMpGetOnlineCount());
     iCpuSet = RTMpCpuIdToSetIndex(idCpu);
     if (iCpuSet >= 0)
     {
@@ -1508,12 +1508,12 @@ static void supdrvGipMpEventOnlineOrInitOnCpu(PSUPDRVDEVEXT pDevExt, RTCPUID idC
     supdrvGipInitCpu(pGip, &pGip->aCPUs[i], u64NanoTS, pGip->u64CpuHz);
 
     idApic = supdrvGipGetApicIdSlow();
-    ASMAtomicWriteU16(&pGip->aCPUs[i].idApic,  idApic);
+    ASMAtomicWriteU16(&pGip->aCPUs[i].idApic,  (uint16_t)idApic);
     ASMAtomicWriteS16(&pGip->aCPUs[i].iCpuSet, (int16_t)iCpuSet);
     ASMAtomicWriteSize(&pGip->aCPUs[i].idCpu,  idCpu);
 
     pGip->aCPUs[i].iCpuGroup = 0;
-    pGip->aCPUs[i].iCpuGroupMember = iCpuSet;
+    pGip->aCPUs[i].iCpuGroupMember = (uint16_t)iCpuSet;
 #ifdef RT_OS_WINDOWS
     supdrvOSGipInitGroupBitsForCpu(pDevExt, pGip, &pGip->aCPUs[i]);
 #endif
@@ -1522,12 +1522,12 @@ static void supdrvGipMpEventOnlineOrInitOnCpu(PSUPDRVDEVEXT pDevExt, RTCPUID idC
      * Update the APIC ID and CPU set index mappings.
      */
     if (idApic < RT_ELEMENTS(pGip->aiCpuFromApicId))
-        ASMAtomicWriteU16(&pGip->aiCpuFromApicId[idApic],     i);
+        ASMAtomicWriteU16(&pGip->aiCpuFromApicId[idApic], (uint16_t)i);
     else
         LogRelMax(64, ("supdrvGipMpEventOnlineOrInitOnCpu: idApic=%#x is out of bounds (%#zx, i=%u, iCpuSet=%d)\n",
                        idApic, RT_ELEMENTS(pGip->aiCpuFromApicId), i, iCpuSet));
     if ((unsigned)iCpuSet < RT_ELEMENTS(pGip->aiCpuFromCpuSetIdx))
-        ASMAtomicWriteU16(&pGip->aiCpuFromCpuSetIdx[iCpuSet], i);
+        ASMAtomicWriteU16(&pGip->aiCpuFromCpuSetIdx[iCpuSet], (uint16_t)i);
     else
         LogRelMax(64, ("supdrvGipMpEventOnlineOrInitOnCpu: iCpuSet=%d is out of bounds (%#zx, i=%u, idApic=%d)\n",
                        iCpuSet, RT_ELEMENTS(pGip->aiCpuFromApicId), i, idApic));
@@ -2004,9 +2004,9 @@ static int supdrvGipInit(PSUPDRVDEVEXT pDevExt, PSUPGLOBALINFOPAGE pGip, RTHCPHY
     RTCpuSetEmpty(&pGip->OnlineCpuSet);
     RTCpuSetEmpty(&pGip->PresentCpuSet);
     RTMpGetSet(&pGip->PossibleCpuSet);
-    pGip->cOnlineCpus             = RTMpGetOnlineCount();
-    pGip->cPresentCpus            = RTMpGetPresentCount();
-    pGip->cPossibleCpus           = RTMpGetCount();
+    pGip->cOnlineCpus             = (uint16_t)RTMpGetOnlineCount();
+    pGip->cPresentCpus            = (uint16_t)RTMpGetPresentCount();
+    pGip->cPossibleCpus           = (uint16_t)RTMpGetCount();
     pGip->cPossibleCpuGroups      = 1;
     pGip->idCpuMax                = RTMpGetMaxCpuId();
     for (i = 0; i < RT_ELEMENTS(pGip->aiCpuFromApicId); i++)
@@ -2655,7 +2655,7 @@ static void supdrvGipUpdate(PSUPDRVDEVEXT pDevExt, uint64_t u64NanoTS, uint64_t 
  * @remarks Can be called with interrupts disabled!
  */
 static void supdrvGipUpdatePerCpu(PSUPDRVDEVEXT pDevExt, uint64_t u64NanoTS, uint64_t u64TSC,
-                                  RTCPUID idCpu, uint8_t idApic, uint64_t iTick)
+                                  RTCPUID idCpu, uint32_t idApic, uint64_t iTick)
 {
     uint32_t iCpu;
     PSUPGLOBALINFOPAGE pGip = pDevExt->pGip;
@@ -2674,7 +2674,7 @@ static void supdrvGipUpdatePerCpu(PSUPDRVDEVEXT pDevExt, uint64_t u64NanoTS, uin
             supdrvGipMpEventOnlineOrInitOnCpu(pDevExt, idCpu);
     }
 
-    iCpu = pGip->aiCpuFromApicId[idApic];
+    iCpu = idApic < RT_ELEMENTS(pGip->aiCpuFromApicId) ? pGip->aiCpuFromApicId[idApic] : UINT32_MAX;
     if (RT_LIKELY(iCpu < pGip->cCpus))
     {
         PSUPGIPCPU pGipCpu = &pGip->aCPUs[iCpu];
@@ -5036,7 +5036,7 @@ int VBOXCALL supdrvIOCtl_TscRead(PSUPDRVDEVEXT pDevExt, PSUPDRVSESSION pSession,
             {
                 /* This really shouldn't happen. */
                 AssertMsgFailed(("idCpu=%#x iCpuSet=%#x (%d)\n", RTMpCpuId(), iCpuSet, iCpuSet));
-                pReq->u.Out.idApic = supdrvGipGetApicIdSlow();
+                pReq->u.Out.idApic = (uint16_t)supdrvGipGetApicIdSlow(); /** @todo idApic should be 32-bit... */
                 pReq->u.Out.u64AdjustedTsc = ASMReadTSC();
                 ASMSetFlags(fEFlags);
                 rc = VERR_INTERNAL_ERROR_5; /** @todo change to warning. */
@@ -5056,7 +5056,7 @@ int VBOXCALL supdrvIOCtl_TscRead(PSUPDRVDEVEXT pDevExt, PSUPDRVSESSION pSession,
                       && (iGipCpu = pGip->aiCpuFromCpuSetIdx[iCpuSet]) < pGip->cCpus ))
             pReq->u.Out.idApic = pGip->aCPUs[iGipCpu].idApic;
         else
-            pReq->u.Out.idApic = supdrvGipGetApicIdSlow();
+            pReq->u.Out.idApic = (uint16_t)supdrvGipGetApicIdSlow(); /** @todo idApic should be 32-bit... */
         pReq->u.Out.u64AdjustedTsc = ASMReadTSC();
         ASMSetFlags(fEFlags);
         rc = VINF_SUCCESS;

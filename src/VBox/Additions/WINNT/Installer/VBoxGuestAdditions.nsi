@@ -94,17 +94,19 @@ VIAddVersionKey "InternalName"      "${PRODUCT_OUTPUT}"
 
 ; String functions.
 !include "StrFunc.nsh"
-${Using:StrFunc} StrStr
-${Using:StrFunc} UnStrStr
-${Using:StrFunc} StrStrAdv
+!ifndef UNINSTALLER_ONLY ; To prevent compiler warnings.
+  ${Using:StrFunc} UnStrStr
+  ${Using:StrFunc} UnStrStrAdv
+!endif
+${Using:StrFunc}   StrStrAdv
+
 ; Provide a custom define for ${UnStrStr} so that we can make use of it in
 ; macro function which are (also) being used in the uninstaller (functions must begin with ".un").
 !define `un.StrStr` `${UnStrStr}`
+!define `un.StrStrAdv` `${UnStrStrAdv}`
 
-!if $%KBUILD_TARGET_ARCH% == "x86" ; Only needed for NT4 SP6 recommendation.
-  !include "servicepack.nsh"  ; Function "GetServicePack".
-!endif
-!include "winver.nsh"         ; Function for determining Windows version.
+; Function for determining the Windows version (and service packs).
+!include "WinVer.nsh"
 
 ; Needed for the InstallLib macro (defined in NSIS' Library.nsh):
 ;
@@ -243,7 +245,7 @@ Var g_strAddVerMaj                      ; Installed Guest Additions: Major versi
 Var g_strAddVerMin                      ; Installed Guest Additions: Minor version.
 Var g_strAddVerBuild                    ; Installed Guest Additions: Build number.
 Var g_strAddVerRev                      ; Installed Guest Additions: SVN revision.
-Var g_strWinVersion                     ; Current Windows version we're running on.
+Var g_strWinVersion                     ; Current Windows version (maj.min.build) we're running on.
 Var g_bLogEnable                        ; Do logging when installing? "true" or "false".
 Var g_bCapDllCache                      ; Capability: Does the (Windows) guest have have a DLL cache which needs to be taken care of?
 Var g_bCapXPDM                          ; Capability: Is the guest able to handle/use our XPDM driver?
@@ -552,6 +554,8 @@ FunctionEnd
 ;;
 ; Extracts all files for the current OS to the specified target directory.
 ;
+; For unsupported OSes (in forced mode) extraction we will ASSUME the latest OS we support.
+;
 ; Input:
 ;   None
 ; Output:
@@ -559,26 +563,32 @@ FunctionEnd
 ;
 Function ExtractFiles
 
-  !insertmacro Common_EmitOSSelectionSwitch
-osselswitch_case_w2k_xp_w2k3:
-  Call W2K_CallbackExtractFiles
-  goto done
-osselswitch_case_vista_and_later:
-  Call W2K_CallbackExtractFiles
-  Call Vista_CallbackExtractFiles
-  goto done
+  ${If}     ${AtLeastWinVista}
+
+force_extract_unsupported_os:
+
+    Call W2K_CallbackExtractFiles
+    Call Vista_CallbackExtractFiles
+    goto extract_common ; Needed for force_extract_unsupported_os label.
 !if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only
-  osselswitch_case_nt4:
+  ${ElseIf} ${AtLeastWin2000}
+    Call W2K_CallbackExtractFiles
+  ${ElseIf} ${AtLeastWinNT4}
     Call NT4_CallbackExtractFiles
-    goto done
 !endif
-osselswitch_case_unsupported:
-  MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
-  Quit
-done:
-    Call Common_ExtractFiles
-    MessageBox MB_OK|MB_ICONINFORMATION $(VBOX_EXTRACTION_COMPLETE) /SD IDOK
+  ${Else}
+    ${If} $g_bForceInstall == "true"
+      Goto force_extract_unsupported_os
+    ${EndIf}
+    MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
     Quit
+  ${EndIf}
+
+extract_common:
+
+  Call Common_ExtractFiles
+  MessageBox MB_OK|MB_ICONINFORMATION $(VBOX_EXTRACTION_COMPLETE) /SD IDOK
+  Quit
 
 FunctionEnd
 !endif ; !UNINSTALLER_ONLY
@@ -605,89 +615,67 @@ Section $(VBOX_COMPONENT_MAIN) SEC01
   SetOverwrite on
 
   Call SetAppMode64
-
-  StrCpy $g_strSystemDir "$SYSDIR"
-
   ${LogVerbose} "Version: $%VBOX_VERSION_STRING% (Rev $%VBOX_SVN_REV%)"
   ${If} $g_strAddVerMaj != ""
     ${LogVerbose} "Previous version: $g_strAddVerMaj.$g_strAddVerMin.$g_strAddVerBuild (Rev $g_strAddVerRev)"
   ${Else}
     ${LogVerbose} "No previous version of ${PRODUCT_NAME} detected"
   ${EndIf}
-!if $%KBUILD_TARGET_ARCH% == "amd64"
-  ${LogVerbose} "Detected OS: Windows $g_strWinVersion (64-bit)"
-!else
-  ${LogVerbose} "Detected OS: Windows $g_strWinVersion (32-bit)"
-!endif
-  ${LogVerbose} "System Directory: $g_strSystemDir"
-
-!ifdef _DEBUG
-  ${LogVerbose} "Installer runs in debug mode"
-!endif
 
   ;
   ; Here starts the main dispatcher (based on guest OS).
+  ; For unsupported OSes (in forced mode) extraction we will ASSUME the latest OS we support.
   ;
-  !insertmacro Common_EmitOSSelectionSwitch
-osselswitch_case_unsupported:
-  ${If} $g_bForceInstall == "true"
-    Goto osselswitch_case_vista_and_later ; Assume newer OS than we know of ...
-  ${EndIf}
-  MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
-  goto exit
+  ${If} ${AtLeastWinVista}
 
-!if $%KBUILD_TARGET_ARCH% == "x86"
-osselswitch_case_nt4:
+force_install_unsupported_os:
 
-  Call GetServicePack
-  Pop $R0 ; Major version.
-  Pop $R1 ; Minor version.
+    Call W2K_CallbackPrepare
+    Call Vista_CallbackPrepare
 
-  ; At least Service Pack 6 installed?
-  ${If} $R0 <> "6"
-    MessageBox MB_YESNO $(VBOX_NT4_NO_SP6) /SD IDYES IDYES +2
-    Quit
-  ${EndIf}
+    Call Common_ExtractFiles
 
-  Call NT4_CallbackPrepare
+    Call W2K_CallbackExtractFiles
+    Call W2K_CallbackInstall
 
-  Call Common_ExtractFiles
+    Call Vista_CallbackExtractFiles
+    Call Vista_CallbackInstall
 
-  Call NT4_CallbackExtractFiles
-  Call NT4_CallbackInstall
-  goto success
+!if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only
+  ${ElseIf} ${AtLeastWin2000}
+
+    Call W2K_CallbackPrepare
+
+    Call Common_ExtractFiles
+
+    Call W2K_CallbackExtractFiles
+    Call W2K_CallbackInstall
+  ${ElseIf} ${AtLeastWinNT4}
+
+    ; At least Service Pack 6 installed?
+    ${IfNot} ${AtLeastServicePack} "6"
+      MessageBox MB_YESNO $(VBOX_NT4_NO_SP6) /SD IDYES IDYES +2
+      Quit
+    ${EndIf}
+
+    Call NT4_CallbackPrepare
+
+    Call Common_ExtractFiles
+
+    Call NT4_CallbackExtractFiles
+    Call NT4_CallbackInstall
+
 !endif ; $%KBUILD_TARGET_ARCH% == "x86"
 
-  ;
-  ; Windows 2000, XP and Windows Server 2003 / XP64.
-  ;
-osselswitch_case_w2k_xp_w2k3:
+  ${Else} ; Unsupported.
 
-  Call W2K_CallbackPrepare
+    ${If} $g_bForceInstall == "true"
+      Goto force_install_unsupported_os
+    ${EndIf}
+    MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
+    goto exit
 
-  Call Common_ExtractFiles
-  Call W2K_CallbackExtractFiles
-  Call W2K_CallbackInstall
-  goto success
-
-  ;
-  ; Windows Vista, Windows 7, Windows 8, Windows 8.1, Windows 10 and related server products.
-  ;
-osselswitch_case_vista_and_later:
-
-  Call W2K_CallbackPrepare
-  Call Vista_CallbackPrepare
-
-  Call Common_ExtractFiles
-
-  Call W2K_CallbackExtractFiles
-  Call W2K_CallbackInstall
-
-  Call Vista_CallbackExtractFiles
-  Call Vista_CallbackInstall
-  goto success
-
-success:
+  ${EndIf} ; OS selection.
 
   ; Write a registry key with version and installation path for later lookup.
   WriteRegStr HKLM "${REGISTRY_KEY_PRODUCT_ROOT}" "Version" "$%VBOX_VERSION_STRING_RAW%"
@@ -711,9 +699,6 @@ Section /o -$(VBOX_COMPONENT_AUTOLOGON) SEC02
 
   Call SetAppMode64
 
-  Call GetWindowsVersion
-  Pop $R0 ; Windows Version
-
   ${LogVerbose} "Installing auto-logon support ..."
 
   ; Another GINA already is installed? Check if this is ours, otherwise let the user decide (unless it's a silent setup)
@@ -731,23 +716,18 @@ Section /o -$(VBOX_COMPONENT_AUTOLOGON) SEC02
 install:
 
   ; Do we need VBoxCredProv or VBoxGINA?
-  !insertmacro Common_EmitOSSelectionSwitch
-    osselswitch_case_unsupported:
-      ${LogVerbose} "Warning: Unsupported OS found, skipping auto-logon installation" ; Do not break guests which aren't supported yet.
-      goto done
-    osselswitch_case_vista_and_later:
-      ; Use VBoxCredProv on Vista and up.
-      ${LogVerbose} "Installing VirtualBox credential provider ..."
-      !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxCredProv.dll" "$g_strSystemDir\VBoxCredProv.dll" "$INSTDIR"
-      WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv" ; adding to (default) key
-      WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv"                       ; adding to (Default) key
-      WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}\InprocServer32" "" "VBoxCredProv.dll"    ; adding to (Default) key
-      WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}\InprocServer32" "ThreadingModel" "Apartment"
-      goto done
-    osselswitch_case_w2k_xp_w2k3:
-!if $%KBUILD_TARGET_ARCH% == "x86"
-    osselswitch_case_nt4:
-!endif
+  ${If} ${AtLeastWinVista}
+
+    ; Use VBoxCredProv on Vista and up.
+    ${LogVerbose} "Installing VirtualBox credential provider ..."
+    !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxCredProv.dll" "$g_strSystemDir\VBoxCredProv.dll" "$INSTDIR"
+    WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv" ; adding to (default) key
+    WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}" "" "VBoxCredProv"                       ; adding to (Default) key
+    WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}\InprocServer32" "" "VBoxCredProv.dll"    ; adding to (Default) key
+    WriteRegStr HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}\InprocServer32" "ThreadingModel" "Apartment"
+
+  ${ElseIf} ${AtLeastWinNT4}
+
       ${LogVerbose} "Installing VirtualBox GINA ..."
       !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxGINA.dll" "$g_strSystemDir\VBoxGINA.dll" "$INSTDIR"
       WriteRegStr HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon" "GinaDLL" "VBoxGINA.dll"
@@ -755,10 +735,14 @@ install:
       WriteRegStr   HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\Notify\VBoxGINA" "DLLName" "VBoxGINA.dll"
       WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\Notify\VBoxGINA" "Impersonate" 0
       WriteRegStr   HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\Notify\VBoxGINA" "StopScreenSaver" "WnpScreenSaverStop"
-      goto done
 
+  ${Else}
 
-  done:
+    ${LogVerbose} "Warning: Unsupported OS found, skipping auto-logon installation" ; Do not break guests which aren't supported yet.
+
+  ${EndIf}
+
+done:
 
 SectionEnd
 
@@ -879,9 +863,8 @@ Function .onSelChange
 
   ${Else} ; WDDM unselected again
 
-    ${If}   $g_strWinVersion != "8"   ; On Windows 8 WDDM is mandatory.
-    ${AndIf} $g_strWinVersion != "8_1" ; ... also on Windows 8.1 / Windows 2012 Server R2.
-    ${AndIf} $g_strWinVersion != "10" ; ... also on Windows 10.
+    ; Since Windows 8 WDDM is mandatory, otherwise deselect on older OSes.
+    ${IfNot} ${AtLeastWin8}
       StrCpy $g_bWithWDDM "false"
     ${EndIf}
 
@@ -991,10 +974,6 @@ Function .onInit
   StrCpy $g_bPostInstallStatus "false"
   StrCpy $g_bInstallTimestampCA "unset" ; Tri-state: "unset", "true" and "false".
 
-  ; We need a special directory set to SysWOW64 because some
-  ; shell operations don't support file redirection (yet).
-  StrCpy $g_strSysWow64 "$WINDIR\SysWOW64"
-
   SetErrorLevel 0
   ClearErrors
 
@@ -1022,28 +1001,9 @@ Function .onInit
     Quit
   ${EndIf}
 
-  ; Retrieve Windows version and store result in $g_strWinVersion.
-  Call GetWindowsVersionEx
-  Pop $g_strWinVersion
-
-  ; Init global variables that depends on the windows version.
-  ${If} $g_strWinVersion == "XP"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${ElseIf} $g_strWinVersion == "2000"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${ElseIf} $g_strWinVersion == "NT4"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${Else}
-    StrCpy $g_strEarlyNTDrvInfix ""
-  ${EndIf}
-
-  ; Retrieve capabilities.
+  Call Common_DetectEnvironment
   Call CheckForCapabilities
 
-  ; Get user Name.
-  AccessControl::GetCurrentUserName
-  Pop $g_strCurUser
-  ${LogVerbose} "Current user: $g_strCurUser"
 
   ; Only extract files? This action can be called even from non-Admin users
   ; and non-compatible architectures.
@@ -1101,11 +1061,9 @@ Function .onInit
   ${If} $g_bWithWDDM == "true" ; D3D / WDDM support.
     !insertmacro SelectSection ${SEC03}
   ${EndIf}
-  ; On Windows 8 / 8.1 / Windows Server 2012 R2 and newer we always select the 3D
+  ; On Windows >= 8 we always select the 3D
   ; section and disable it so that it cannot be deselected again.
-  ${If}   $g_strWinVersion == "8"
-  ${OrIf} $g_strWinVersion == "8_1"
-  ${OrIf} $g_strWinVersion == "10"
+  ${If} ${AtLeastWin8}
     IntOp $0 ${SF_SELECTED} | ${SF_RO}
     SectionSetFlags ${SEC03} $0
   ${EndIf}
@@ -1131,7 +1089,12 @@ Function .onInit
   Call SetAppMode64
 
   Call GetAdditionsVersion
+
+  ; There only are old Sun (xVM) / innotek Guest Additions for Intel (x86 / arm64),
+  ; so we don't need to ship this for arm.
+!if $%KBUILD_TARGET_ARCH% != "arm64"
   Call HandleOldGuestAdditions
+!endif
 
   ; Due to some bug in NSIS the license page won't be displayed if we're in
   ; 64-bit registry view, so as a workaround switch back to 32-bit (Wow6432Node)
@@ -1191,29 +1154,7 @@ Function un.onInit
 
 proceed:
 
-  Call un.SetAppMode64
-
-  ; Set system directory.
-  StrCpy $g_strSystemDir "$SYSDIR"
-
-  ; We need a special directory set to SysWOW64 because some
-  ; shell operations don't support file redirection (yet).
-  StrCpy $g_strSysWow64 "$WINDIR\SysWOW64"
-
-  ; Retrieve Windows version we're running on and store it in $g_strWinVersion.
-  Call un.GetWindowsVersionEx
-  Pop $g_strWinVersion
-
-  ; Init global variables that depends on the windows version.
-  ${If} $g_strWinVersion == "2000"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${ElseIf} $g_strWinVersion == "NT4"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${Else}
-    StrCpy $g_strEarlyNTDrvInfix ""
-  ${EndIf}
-
-  ; Retrieve capabilities
+  Call un.Common_DetectEnvironment
   Call un.CheckForCapabilities
 
 FunctionEnd

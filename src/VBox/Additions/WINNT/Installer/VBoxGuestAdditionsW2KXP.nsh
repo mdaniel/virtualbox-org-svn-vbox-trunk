@@ -26,6 +26,7 @@
 ;
 
 
+!macro W2K_SetVideoResolution un
 ;;
 ; Sets the video resolution specified by $g_iScreenX, $g_iScreenY and $g_iScreenBpp.
 ;
@@ -34,7 +35,7 @@
 ; Output:
 ;   None
 ;
-Function W2K_SetVideoResolution
+Function ${un}W2K_SetVideoResolution
 
   ; NSIS only supports global vars, even in functions -- great.
   Var /GLOBAL i
@@ -68,7 +69,7 @@ Function W2K_SetVideoResolution
     ; Param: "0"        ; IncludeSubString
     ; Param: "2"        ; Loops
     ; Param: "0"        ; CaseSensitive
-    ${StrStrAdv} "$tmppath" "$tmp" "\" ">" ">" "0" "2" "0"
+    ${${un}StrStrAdv} "$tmppath" "$tmp" "\" ">" ">" "0" "2" "0"
     StrCmp $tmppath "" dev_not_found
 
     ; Get device description
@@ -165,7 +166,10 @@ change_res:
   ${LogVerbose} "Custom mode set to $g_iScreenXx$g_iScreenY, $g_iScreenBpp BPP on next restart."
 
 exit:
+
 FunctionEnd
+!macroend
+!insertmacro W2K_SetVideoResolution ""
 
 
 !ifdef VBOX_SIGN_ADDITIONS

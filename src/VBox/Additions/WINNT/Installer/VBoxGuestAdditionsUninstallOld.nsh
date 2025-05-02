@@ -26,11 +26,12 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ; Not needed for arm64.
 !macro Uninstall_WipeInstallationDirectory un
 ;;
 ; Wipes the installation directory (recursively).
 ;
-; Only used for wiping legacy installations (innotek, Sun, Sun xVM).
+; Only used for wiping (Intel-based) legacy installations (innotek, Sun, Sun xVM).
 ;
 ; Input:
 ;   Stack[0]: Installation directory to wipe.
@@ -89,6 +90,7 @@ FunctionEnd
 ; which made it impossible to tell which files belong to which component.
 ;
 ; This also will be run when installing 7.2 Guest Additions to clean things up.
+; Only needed for Intel-based installations (arm64 got introduced in 7.2).
 ;
 ; Input:
 ;   None
@@ -178,8 +180,10 @@ FunctionEnd
 !macroend
 !insertmacro Uninstall_Before7_2 ""
 !endif ; UNINSTALLER_ONLY
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ; Not needed for arm64.
 !macro Uninstall_Sun un
 ;;
 ; Function to clean  up an old Sun (pre-Oracle) installation.
@@ -199,16 +203,16 @@ Function ${un}Uninstall_Sun
   ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Sun VirtualBox Guest Additions" "UninstallString"
   StrCmp $0 "" exit
 
-  ; Extract path
-  Push "$0"       ; String
-  Push "\"        ; SubString
-  Push "<"        ; SearchDirection
-  Push "<"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $1          ; $1 only contains the full path
+  ; Extract path.
+  ; Param "$1"       ; Result string
+  ; Param "$0"       ; String
+  ; Param "\"        ; SubString
+  ; Param "<"        ; SearchDirection
+  ; Param "<"        ; StrInclusionDirection
+  ; Param "0"        ; IncludeSubString
+  ; Param "0"        ; Loops
+  ; Param "0"        ; CaseSensitive
+  ${${un}StrStrAdv} "$1" "$0" "\" "<" "<" "0" "0" "0"
 
   StrCmp $1 "" exit
 
@@ -279,16 +283,15 @@ Function ${un}Uninstall_SunXVM
   StrCmp $0 "" exit
 
   ; Extract path.
-  Push "$0"       ; String
-  Push "\"        ; SubString
-  Push "<"        ; SearchDirection
-  Push "<"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $1          ; $1 only contains the full path
-
+  ; Param "$1"       ; Result string
+  ; Param "$0"       ; String
+  ; Param "\"        ; SubString
+  ; Param "<"        ; SearchDirection
+  ; Param "<"        ; StrInclusionDirection
+  ; Param "0"        ; IncludeSubString
+  ; Param "0"        ; Loops
+  ; Param "0"        ; CaseSensitive
+  ${${un}StrStrAdv} "$1" "$0" "\" "<" "<" "0" "0" "0"
   StrCmp $1 "" exit
 
   ; Save current i8042prt info to new uninstall registry path.
@@ -356,17 +359,16 @@ Function ${un}Uninstall_Innotek
   ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\innotek VirtualBox Guest Additions" "UninstallString"
   StrCmp $0 "" exit
 
-  ; Extract path
-  Push "$0"       ; String
-  Push "\"        ; SubString
-  Push "<"        ; SearchDirection
-  Push "<"        ; StrInclusionDirection
-  Push "0"        ; IncludeSubString
-  Push "0"        ; Loops
-  Push "0"        ; CaseSensitive
-  Call ${un}StrStrAdv
-  Pop $1          ; $1 only contains the full path
-
+  ; Extract path.
+  ; Param "$1"       ; Result string
+  ; Param "$0"       ; String
+  ; Param "\"        ; SubString
+  ; Param "<"        ; SearchDirection
+  ; Param "<"        ; StrInclusionDirection
+  ; Param "0"        ; IncludeSubString
+  ; Param "0"        ; Loops
+  ; Param "0"        ; CaseSensitive
+  ${${un}StrStrAdv} "$1" "$0" "\" "<" "<" "0" "0" "0"
   StrCmp $1 "" exit
 
   ; Save current i8042prt info to new uninstall registry path.
@@ -532,3 +534,5 @@ done:
   Pop $0
 
 FunctionEnd
+
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"

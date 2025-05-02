@@ -38,37 +38,40 @@
 Function ${un}Uninstall_Perform
 
   ${LogVerbose} "Uninstalling ..."
-!ifdef _DEBUG
-  ${LogVerbose} "Detected OS version: Windows $g_strWinVersion"
-  ${LogVerbose} "System Directory: $g_strSystemDir"
-  ${LogVerbose} "Temp Directory: $TEMP"
-!endif
 
   ; Create temp directory where we can store uninstallation logs.
   CreateDirectory "$TEMP\${PRODUCT_NAME}"
 
-  !insertmacro Common_EmitOSSelectionSwitch
-!if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only
-osselswitch_case_nt4:
-  Call ${un}NT4_CallbackUninstall
-  goto common
-!endif
-osselswitch_case_w2k_xp_w2k3:
-  Call ${un}W2K_CallbackUninstall
-  goto common
-osselswitch_case_vista_and_later:
-  Call ${un}W2K_CallbackUninstall
-  Call ${un}Vista_CallbackUninstall
-  goto common
-osselswitch_case_unsupported:
-  ${If} $g_bForceInstall == "true"
-    Goto osselswitch_case_vista_and_later ; Assume newer OS than we know of ...
-  ${EndIf}
-  MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
-  Goto exit
+  ; Uninstall OS-specifics.
+  ${If} ${AtLeastWinVista}
 
-common:
-exit:
+force_uninstall_unsupported_os:
+
+    Call ${un}W2K_CallbackUninstall
+    Call ${un}Vista_CallbackUninstall
+    goto done_os_specific ; Needed because of force_uninstall_unsupported_os label.
+
+!if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only
+  ${ElseIf} ${AtLeastWin2000}
+
+    Call ${un}W2K_CallbackUninstall
+
+  ${ElseIf} ${AtLeastWinNT4}
+
+    Call ${un}NT4_CallbackUninstall
+
+!endif
+  ${Else}
+
+    ${If} $g_bForceInstall == "true"
+      Goto force_uninstall_unsupported_os ; Assume newer OS than we know of ...
+    ${EndIf}
+    MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
+    Goto done
+
+  ${EndIf}
+
+done_os_specific:
 
   ; Delete Guest Additions directory (only if completely empty).
   RMDir /REBOOTOK "$INSTDIR"
@@ -95,6 +98,8 @@ exit:
   DeleteRegKey /ifempty HKLM "${REGISTRY_KEY_PRODUCT_ROOT}"
   DeleteRegKey /ifempty HKLM "${REGISTRY_KEY_VENDOR_ROOT}"
   DeleteRegKey "${REGISTRY_KEY_UNINST_ROOT}" "${REGISTRY_KEY_UNINST_PRODUCT}" ; Uninstaller.
+
+done:
 
   ;
   ; Dump UI log to on success too. Only works with non-silent installs.
@@ -265,36 +270,40 @@ FunctionEnd
 Function ${un}Uninstall_DeleteFiles
 
   ${LogVerbose} "Deleting files in $\"$INSTDIR$\" ..."
-!ifdef _DEBUG
-  ${LogVerbose} "Detected OS version: Windows $g_strWinVersion"
-  ${LogVerbose} "System Directory: $g_strSystemDir"
-!endif
 
-  !insertmacro Common_EmitOSSelectionSwitch
+  ${If} ${AtLeastWinVista}
+
+force_delete_unsupported_os:
+
+    Call ${un}W2K_CallbackDeleteFiles
+    Call ${un}Vista_CallbackDeleteFiles
+    goto done_os_specific ; Needed because of force_delete_unsupported_os label.
+
 !if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only
-osselswitch_case_nt4:
-  Call ${un}NT4_CallbackDeleteFiles
-  goto common
-!endif
-osselswitch_case_w2k_xp_w2k3:
-  Call ${un}W2K_CallbackDeleteFiles
-  goto common
-osselswitch_case_vista_and_later:
-  Call ${un}W2K_CallbackDeleteFiles
-  Call ${un}Vista_CallbackDeleteFiles
-  goto common
-osselswitch_case_unsupported:
-  ${If} $g_bForceInstall == "true"
-    Goto osselswitch_case_vista_and_later ; Assume newer OS than we know of ...
-  ${EndIf}
-  MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
-  Goto exit
+  ${ElseIf} ${AtLeastWin2000}
 
-common:
+    Call ${un}W2K_CallbackDeleteFiles
+
+  ${ElseIf} ${AtLeastWinNT4}
+
+      Call ${un}NT4_CallbackDeleteFiles
+!endif
+
+  ${Else}
+
+    ${If} $g_bForceInstall == "true"
+      Goto force_delete_unsupported_os ; Assume newer OS than we know of ...
+    ${EndIf}
+    MessageBox MB_ICONSTOP $(VBOX_PLATFORM_UNSUPPORTED) /SD IDOK
+    Goto done
+
+  ${EndIf}
+
+done_os_specific:
 
   Call ${un}Common_DeleteFiles
 
-exit:
+done:
 
 FunctionEnd
 !macroend

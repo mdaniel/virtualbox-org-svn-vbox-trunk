@@ -27,42 +27,79 @@
 
 
 ;;
-; Macro which emits an OS selection switch.
+; Function which detects the environment we're currently running on.
 ;
 ; Input:
 ;   None
 ; Output:
 ;   None
 ;
-; The following labels must be implemented by the caller:
-; - osselswitch_case_w2k_xp_w2k3
-; - osselswitch_case_vista_and_later
-; - osselswitch_case_nt4 (x86 only)
-; - osselswitch_case_unsupported
+; This function sets the following global variables:
+;   - g_strWinVersion
+;   - g_strEarlyNTDrvInfix
+;   - g_strSystemDir
+;   - g_strSysWow64
+;   - g_strCurUser
 ;
-; Note: When adding new OS support, this is the place to add it.
-;       Used for installation and uninstallation routines.
-;
-!macro Common_EmitOSSelectionSwitch
-  ${If}     "$g_strWinVersion" == "2000"
-  ${OrIf}   "$g_strWinVersion" == "XP"
-  ${OrIf}   "$g_strWinVersion" == "203"
-    goto osselswitch_case_w2k_xp_w2k3
-  ${ElseIf} "$g_strWinVersion" == "2000"
-  ${OrIf}   "$g_strWinVersion" == "Vista"
-  ${OrIf}   "$g_strWinVersion" == "7"
-  ${OrIf}   "$g_strWinVersion" == "8"
-  ${OrIf}   "$g_strWinVersion" == "8_1"
-  ${OrIf}   "$g_strWinVersion" == "10"
-    goto osselswitch_case_vista_and_later
-!if $%KBUILD_TARGET_ARCH% == "x86" ; 32-bit only.
-  ${ElseIf} "$g_strWinVersion" == "NT4"
-    goto osselswitch_case_nt4
-!endif
-  ${Else}
-    goto osselswitch_case_unsupported
+!macro Common_DetectEnvironment un
+Function ${un}Common_DetectEnvironment
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  ${WinVerGetMajor} $0
+  ${WinVerGetMinor} $1
+  ${WinVerGetBuild} $2
+  StrCpy $g_strWinVersion "$0.$1.$2"
+  ${WinVerGetServicePackLevel} $3
+  ${If} $3 <> "0"
+    StrCpy $g_strWinVersion "$g_strWinVersion (Service Pack: $3)"
   ${EndIf}
+
+  ; Init global variables that depends on the Windows version.
+  ${If} $g_strWinVersion == "XP"
+    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
+  ${ElseIf} $g_strWinVersion == "2000"
+    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
+  ${ElseIf} $g_strWinVersion == "NT4"
+    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
+  ${Else}
+    StrCpy $g_strEarlyNTDrvInfix ""
+  ${EndIf}
+
+  Call ${un}SetAppMode64
+
+  ; Get system directory.
+  StrCpy $g_strSystemDir "$SYSDIR"
+
+  ; We need a special directory set to SysWOW64 because some
+  ; shell operations don't support file redirection (yet).
+  StrCpy $g_strSysWow64 "$WINDIR\SysWOW64"
+
+  ; Retrieve current user name.
+  AccessControl::GetCurrentUserName
+  Pop $g_strCurUser
+
+  ${LogVerbose} "--------------------------------------------------------------------------------"
+  ${LogVerbose} "Detected environment:"
+  ${LogVerbose} "OS version: Windows $g_strWinVersion"
+  ${LogVerbose} "System directory: $g_strSystemDir"
+  ${LogVerbose} "Temp directory: $TEMP"
+  ${LogVerbose} "Current user: $g_strCurUser"
+  ${LogVerbose} "--------------------------------------------------------------------------------"
+
+!ifdef _DEBUG
+  ${LogVerbose} "Installer runs in debug mode"
+!endif
+
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
 !macroend
+!insertmacro Common_DetectEnvironment ""
+!insertmacro Common_DetectEnvironment "un."
 
 
 ;;
@@ -270,55 +307,6 @@ ${EndIf}
 FunctionEnd
 
 
-;;
-; Macro for retrieving the Windows version this installer is running on.
-;
-; @return  Stack: Windows version string. Empty on error /
-;                 if not able to identify.
-;
-!macro GetWindowsVersionEx un
-Function ${un}GetWindowsVersionEx
-
-  Push $0
-  Push $1
-
-  ; Check if we are running on Windows 2000 or above.
-  ; For other windows versions (> XP) it may be necessary to change winver.nsh.
-  Call ${un}GetWindowsVersion
-  Pop $0         ; Windows Version.
-
-  ; Param "$1"        ; Result string.
-  ; Param "$0"        ; The windows version string.
-  ; Param "NT"        ; String to search for. W2K+ returns no string containing "NT".
-  ${${un}StrStr} "$1" "$0" "NT"
-
-  ${If} $1 == "" ; If empty -> not NT 3.XX or 4.XX.
-    ; $0 contains the original version string.
-  ${Else}
-    ; Ok we know it is NT. Must be a string like NT X.XX.
-    ; Param "$1"      ; Result string.
-    ; Param "$0"      ; The windows version string.
-    ; Param "4."      ; String to search for.
-    ${${un}StrStr} "$1" "$0" "4."
-    ${If} $1 == "" ; If empty -> not NT 4.
-      ;; @todo NT <= 3.x ?
-      ; $0 contains the original version string.
-    ${Else}
-      StrCpy $0 "NT4"
-    ${EndIf}
-  ${EndIf}
-
-  Pop $1
-  Exch $0
-
-FunctionEnd
-!macroend
-!ifndef UNINSTALLER_ONLY
-  !insertmacro GetWindowsVersionEx ""
-!endif
-!insertmacro GetWindowsVersionEx "un."
-
-
 !ifndef UNINSTALLER_ONLY
 !macro GetAdditionsVersion un
 ;;
@@ -389,6 +377,7 @@ Function ${un}GetAdditionsVersion
 FunctionEnd
 !macroend
 !insertmacro GetAdditionsVersion ""
+!insertmacro GetAdditionsVersion "un."
 !endif ; UNINSTALLER_ONLY
 
 

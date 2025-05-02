@@ -308,8 +308,6 @@ $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(PATH_SUB_CURRENT)/VBoxGuestAdditionsW2KXP.nsh \
 		$(PATH_SUB_CURRENT)/VBoxGuestAdditionsVista.nsh \
 		$(PATH_SUB_CURRENT)/dumplog.nsh \
-		$(PATH_SUB_CURRENT)/servicepack.nsh \
-		$(PATH_SUB_CURRENT)/winver.nsh \
 		$(PATH_SUB_CURRENT)/Languages/English.nsh \
 		$(PATH_SUB_CURRENT)/Languages/German.nsh \
 		$(PATH_SUB_CURRENT)/Languages/French.nsh \
@@ -361,8 +359,6 @@ ifdef VBOX_SIGNING_MODE
  		$(PATH_SUB_CURRENT)/VBoxGuestAdditionsW2KXP.nsh \
  		$(PATH_SUB_CURRENT)/VBoxGuestAdditionsVista.nsh \
  		$(PATH_SUB_CURRENT)/dumplog.nsh \
- 		$(PATH_SUB_CURRENT)/servicepack.nsh \
- 		$(PATH_SUB_CURRENT)/winver.nsh \
  		$(PATH_SUB_CURRENT)/Languages/English.nsh \
  		$(PATH_SUB_CURRENT)/Languages/German.nsh \
  		$(PATH_SUB_CURRENT)/Languages/French.nsh \
@@ -484,7 +480,6 @@ RePackScriptsAddResources_SOURCES = \
 	$(PATH_ROOT)/doc/License-gpl-3.0.rtf \
 	VBoxGuestAdditions.nsi \
 	dumplog.nsh \
-	servicepack.nsh \
 	VBoxGuestAdditionsCommon.nsh \
 	VBoxGuestAdditionsExternal.nsh \
 	VBoxGuestAdditionsLog.nsh \
@@ -493,7 +488,6 @@ RePackScriptsAddResources_SOURCES = \
 	VBoxGuestAdditionsUninstallOld.nsh \
 	VBoxGuestAdditionsVista.nsh \
 	VBoxGuestAdditionsW2KXP.nsh \
-	winver.nsh \
 	ISO/AUTORUN.INF \
 	ISO/NT3xReadme.txt \
 	\

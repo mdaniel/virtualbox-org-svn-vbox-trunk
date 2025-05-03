@@ -1121,7 +1121,7 @@ VBOX_RSYNC_IN_FN = $(if-expr "$(3)" != "nossh",$(VBOX_RSYNC),$(VBOX_RSYNC_NOSSH)
 # VM IP addresses.
 #
 VBOX_BLD_VM_LNX_IP               := 192.168.27.2
-VBOX_BLD_VM_LNX_ARM64_IP         := 192.168.27.26  ## @todo this should've been 22, not 26...
+VBOX_BLD_VM_LNX_ARM64_IP         := 192.168.27.22
 VBOX_BLD_VM_OS2_IP               := 192.168.27.3
 VBOX_BLD_VM_SOLARIS_IP           := 192.168.27.4
 VBOX_BLD_VM_DARWIN_X86_IP        := 192.168.27.5
@@ -1130,7 +1130,7 @@ VBOX_BLD_VM_DARWIN_109_AMD64_IP  := 192.168.27.18
 VBOX_BLD_VM_DARWIN_ARM64_IP      := 192.168.27.25
 VBOX_BLD_VM_WIN_X86_IP           := 192.168.27.6
 VBOX_BLD_VM_WIN_AMD64_IP         := 192.168.27.16
-VBOX_BLD_VM_WIN_ARM64_IP         := 192.168.27.36 # .26 is taken by the linux arm build vm...
+VBOX_BLD_VM_WIN_ARM64_IP         := 192.168.27.26
 VBOX_BLD_VM_FBSD_X86_IP          := 192.168.27.7
 VBOX_BLD_VM_FBSD_AMD64_IP        := 192.168.27.17
 

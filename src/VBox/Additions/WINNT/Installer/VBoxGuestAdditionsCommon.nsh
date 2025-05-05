@@ -57,14 +57,10 @@ Function ${un}Common_DetectEnvironment
   ${EndIf}
 
   ; Init global variables that depends on the Windows version.
-  ${If} $g_strWinVersion == "XP"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${ElseIf} $g_strWinVersion == "2000"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${ElseIf} $g_strWinVersion == "NT4"
-    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
-  ${Else}
+  ${If} ${AtLeastWinVista}
     StrCpy $g_strEarlyNTDrvInfix ""
+  ${Else}
+    StrCpy $g_strEarlyNTDrvInfix "EarlyNT"
   ${EndIf}
 
   Call ${un}SetAppMode64
@@ -147,7 +143,7 @@ Function Common_ExtractFiles
   !if $%KBUILD_TARGET_ARCH% == "arm64"
     FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
   !else
-  ${If} $g_strWinVersion == "10"
+  ${If} ${AtLeastWin10}
     FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
   ${Else}
     FILE "/oname=VBoxGuest.cat" "$%PATH_OUT%\bin\additions\VBoxGuest-PreW10.cat"
@@ -165,7 +161,7 @@ Function Common_ExtractFiles
   !if $%KBUILD_TARGET_ARCH% == "arm64"
     FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
   !else
-    ${If} $g_strWinVersion == "10"
+    ${If} ${AtLeastWin10}
       FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
     ${Else}
       FILE "/oname=VBoxMouse.cat" "$%PATH_OUT%\bin\additions\VBoxMouse-PreW10.cat"
@@ -192,7 +188,7 @@ Function Common_ExtractFiles
 !endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 !ifdef VBOX_SIGN_ADDITIONS
   !if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Ditto.
-    ${If} $g_strWinVersion == "10"
+    ${If} ${AtLeastWin10}
       FILE "$%PATH_OUT%\bin\additions\VBoxVideo.cat"
     ${Else}
       FILE "/oname=VBoxVideo.cat" "$%PATH_OUT%\bin\additions\VBoxVideo-PreW10.cat"
@@ -212,7 +208,7 @@ Function Common_ExtractFiles
       !if $%KBUILD_TARGET_ARCH% == "arm64"
         FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
       !else
-      ${If} $g_strWinVersion == "10"
+      ${If} ${AtLeastWin10}
         FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
       ${Else}
         FILE "/oname=VBoxWddm.cat" "$%PATH_OUT%\bin\additions\VBoxWddm-PreW10.cat"
@@ -248,7 +244,7 @@ Function Common_ExtractFiles
   ;
   ; Shared Folders driver
   ;
-  ${If}   $g_strWinVersion <> "NT4" ; Only available for > NT4.
+  ${If}   ${AtLeastWin2000} ; Only available for > NT4.
   ${OrIf} $g_bOnlyExtract == "true"
     SetOutPath "$INSTDIR\VBoxSF"
     FILE "$%PATH_OUT%\bin\additions\VBoxSF.sys"
@@ -272,7 +268,7 @@ Function Common_ExtractFiles
   ; Certificate stuff
   ;
 !ifdef VBOX_SIGN_ADDITIONS
-  ${If}   $g_strWinVersion <> "NT4" ; Only required for > NT4.
+  ${If}   ${AtLeastWin2000} ; Only required for > NT4.
   ${OrIf} $g_bOnlyExtract == "true"
     SetOutPath "$INSTDIR\Cert"
     FILE "$%PATH_OUT%\bin\additions\VBoxCertUtil.exe"
@@ -293,10 +289,10 @@ Function Common_ExtractFiles
   ; Tools
   ;
   SetOutPath "$INSTDIR\Tools"
-${If} $g_strWinVersion <> "NT4" ; VBoxDrvInst only works with > NT4.
-  FILE "$%PATH_OUT%\bin\additions\VBoxDrvInst.exe"
-  AccessControl::SetOnFile "$INSTDIR\VBoxDrvInst.exe" "(BU)" "GenericRead"
-${EndIf}
+  ${If} ${AtLeastWin2000} ; VBoxDrvInst only works with > NT4.
+    FILE "$%PATH_OUT%\bin\additions\VBoxDrvInst.exe"
+    AccessControl::SetOnFile "$INSTDIR\VBoxDrvInst.exe" "(BU)" "GenericRead"
+  ${EndIf}
   FILE "$%PATH_OUT%\bin\additions\VBoxGuestInstallHelper.exe"
   AccessControl::SetOnFile "$INSTDIR\VBoxGuestInstallHelper.exe" "(BU)" "GenericRead"
 !ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
@@ -401,7 +397,7 @@ Function ${un}StopVBoxService
   ${LogVerbose} "Stopping VBoxService ..."
 
   ${LogVerbose} "Stopping VBoxService via SCM ..."
-  ${If} $g_strWinVersion == "NT4"
+  ${If} ${AtMostWinNT4}
     nsExec::Exec '"$SYSDIR\net.exe" stop VBoxService'
   ${Else}
     nsExec::Exec '"$SYSDIR\sc.exe" stop VBoxService'
@@ -536,29 +532,20 @@ Function ${un}CheckForCapabilities
   StrCpy $g_iSystemMode $0
 
   ; Does the guest have a DLL cache?
-  ${If}   $g_strWinVersion == "NT4"     ; bird: NT4 doesn't have a DLL cache, WTP is 5.0 <= NtVersion < 6.0.
-  ${OrIf} $g_strWinVersion == "2000"
-  ${OrIf} $g_strWinVersion == "XP"
+  ${If}   ${IsWin2000}
+  ${OrIf} ${IsWinXP}
     StrCpy $g_bCapDllCache "true"
     ${LogVerbose}  "OS has a DLL cache"
   ${EndIf}
 
-  ${If}   $g_strWinVersion == "2000"
-  ${OrIf} $g_strWinVersion == "XP"
-  ${OrIf} $g_strWinVersion == "2003"
-  ${OrIf} $g_strWinVersion == "Vista"
-  ${OrIf} $g_strWinVersion == "7"
+  ${If} ${AtLeastWin2000}
     StrCpy $g_bCapXPDM "true"
     ${LogVerbose} "OS is XPDM driver capable"
   ${EndIf}
 
 !if $%VBOX_WITH_WDDM% == "1"
   ; By default use the WDDM driver on Vista+.
-  ${If}   $g_strWinVersion == "Vista"
-  ${OrIf} $g_strWinVersion == "7"
-  ${OrIf} $g_strWinVersion == "8"
-  ${OrIf} $g_strWinVersion == "8_1"
-  ${OrIf} $g_strWinVersion == "10"
+  ${If} ${AtLeastWinVista}
     StrCpy $g_bWithWDDM "true"
     StrCpy $g_bCapWDDM "true"
     ${LogVerbose} "OS is WDDM driver capable"

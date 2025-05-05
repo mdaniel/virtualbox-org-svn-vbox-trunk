@@ -90,7 +90,7 @@ Function ${un}W2K_SetVideoResolution
 dev_found:
 
   ; If we're on Windows 2000, skip the ID detection ...
-  ${If} $g_strWinVersion == "2000"
+  ${If} ${IsWin2000}
     Goto change_res
   ${EndIf}
   Goto dev_found_detect_id
@@ -132,20 +132,14 @@ change_res:
   Var /GLOBAL reg_path_device
   Var /GLOBAL reg_path_monitor
 
-  ${LogVerbose} "Custom mode set: Platform is Windows $g_strWinVersion"
-  ${If} $g_strWinVersion == "2000"
-  ${OrIf} $g_strWinVersion == "Vista"
+  ${If}     ${IsWin2000}
     StrCpy $reg_path_device "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0"
     StrCpy $reg_path_monitor "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0\Mon00000001"
-  ${ElseIf} $g_strWinVersion == "XP"
-  ${OrIf} $g_strWinVersion == "7"
-  ${OrIf} $g_strWinVersion == "8"
-  ${OrIf} $g_strWinVersion == "8_1"
-  ${OrIf} $g_strWinVersion == "10"
+  ${ElseIf} ${IsAtLeastWinXP}
     StrCpy $reg_path_device "SYSTEM\CurrentControlSet\Control\Video\$dev_id\0000"
     StrCpy $reg_path_monitor "SYSTEM\CurrentControlSet\Control\VIDEO\$dev_id\0000\Mon00000001"
   ${Else}
-    ${LogVerbose} "Custom mode set: Windows $g_strWinVersion not supported yet"
+    ${LogVerbose} "Custom mode set: Windows $g_strWinVersion not supported, skipping"
     Goto exit
   ${EndIf}
 
@@ -299,9 +293,9 @@ Function ${un}W2K_${fn}Certs
   ; If not explicitly specified, let the detected Windows version decide what
   ; to do. On guest OSes < Windows 10 we always go for the PreW10 security
   ; catalog files (.cat) and there we install our legacy timestamp CA by default.
-  ${If}    $g_bInstallTimestampCA == "unset"
-  ${AndIf} $g_strWinVersion != "10"
-      StrCpy $g_bInstallTimestampCA "true"
+  ${If}       $g_bInstallTimestampCA == "unset"
+  ${AndIfNot} ${AtLeastWin10}
+    StrCpy $g_bInstallTimestampCA "true"
   ${EndIf}
   ${If} $g_bInstallTimestampCA == "true"
     Push "SHA-1 timestamp root"
@@ -318,7 +312,7 @@ Function ${un}W2K_${fn}Certs
   ; XP sp3 and later can make use of SHA-2 certs. Windows 2000 cannot.
   ; Note that VBOX_GA_CERT_ROOT_SHA1 may be a SHA-2 cert, the hash algorithm
   ; refers to the windows signature structures not the certificate.
-  ${If} $g_strWinVersion != "2000"
+  ${If} ${AtLeastWinXP}
   !if  "$%VBOX_GA_CERT_ROOT_SHA2%" != "none"
     Push "SHA-2 root"
     Push "$%VBOX_GA_CERT_ROOT_SHA2%"
@@ -575,12 +569,10 @@ Function W2K_CallbackInstall
     ; The Shared Folder IFS goes to the system directory.
     !if $%KBUILD_TARGET_ARCH% == "x86"
       ; On x86 we have to use a different shared folder driver linked against an older RDBSS for Windows 7 and older.
-      ${If}   $g_strWinVersion == "2000"
-      ${OrIf} $g_strWinVersion == "XP"
-      ${OrIf} $g_strWinVersion == "2003"
-      ${OrIf} $g_strWinVersion == "7"
+      ${If}     ${AtLeastWin2000}
+      ${AndIf}  ${AtMostWin7}
         !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
-      ${Else}
+      ${ElseIf} ${AtLeastWin8}
         !insertmacro InstallLib DLL NOTSHARED REBOOT_NOTPROTECTED "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
       ${EndIf}
     !else

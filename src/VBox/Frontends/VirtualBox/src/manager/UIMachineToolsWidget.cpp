@@ -54,6 +54,7 @@ UIMachineToolsWidget::UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pA
     , m_pPaneTools(0)
     , m_enmSelectionType(SelectionType_Invalid)
     , m_fSelectedMachineItemAccessible(false)
+    , m_fSelectedMachineItemStarted(false)
     , m_pSplitterSettingsSaveTimer(0)
 {
     prepare();
@@ -281,18 +282,21 @@ void UIMachineToolsWidget::sltHandleChooserPaneIndexChange()
     /* Recache current machine item information: */
     recacheCurrentMachineItemInformation();
 
-    /* Calculate new selection type and item accessibility status: */
+    /* Calculate new status: */
     const SelectionType enmSelectedItemType = selectionType();
     const bool fCurrentItemIsOk = isItemAccessible();
+    const bool fItemStarted = pItem && pItem->isItemStarted();
 
-    /* Update toolbar if selection type or item accessibility status got changed: */
+    /* Update toolbar if status got changed: */
     if (   m_enmSelectionType != enmSelectedItemType
-        || m_fSelectedMachineItemAccessible != fCurrentItemIsOk)
+        || m_fSelectedMachineItemAccessible != fCurrentItemIsOk
+        || m_fSelectedMachineItemStarted != fItemStarted)
         emit sigChooserPaneSelectionChange();
 
-    /* Remember selection type and item accessibility status: */
+    /* Remember new status: */
     m_enmSelectionType = enmSelectedItemType;
     m_fSelectedMachineItemAccessible = fCurrentItemIsOk;
+    m_fSelectedMachineItemStarted = fItemStarted;
 }
 
 void UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated()

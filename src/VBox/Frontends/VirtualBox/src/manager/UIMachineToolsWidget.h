@@ -252,6 +252,8 @@ private:
     SelectionType  m_enmSelectionType;
     /** Holds whether the last selected item was accessible. */
     bool           m_fSelectedMachineItemAccessible;
+    /** Holds whether the last selected item was started. */
+    bool           m_fSelectedMachineItemStarted;
 
     /** Holds the splitter settings save timer. */
     QTimer *m_pSplitterSettingsSaveTimer;

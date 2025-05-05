@@ -104,6 +104,8 @@ public:
 
         /** Returns whether passed @a pItem accessible, by default it's the current one. */
         bool isItemAccessible(UIVirtualMachineItem *pItem = 0) const;
+        /** Returns whether passed @a pItem started, by default it's the current one. */
+        bool isItemStarted(UIVirtualMachineItem *pItem = 0) const;
 
         /** Returns whether group item is selected. */
         bool isGroupItemSelected() const;
@@ -218,6 +220,9 @@ private:
         void prepareConnections();
         /** Loads settings. */
         void loadSettings();
+
+        /** Recalculates Chooser-pane selection class. */
+        void recalculateChooserPaneSelectionClass();
 
         /** Cleanups connections. */
         void cleanupConnections();

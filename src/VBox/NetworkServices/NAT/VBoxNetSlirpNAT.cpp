@@ -998,11 +998,19 @@ int VBoxNetSlirpNAT::initIPv6()
         return VERR_INVALID_PARAMETER;
     }
 
+    m_ProxyOptions.vprefix_len = iPrefixLength;
+    memcpy(&m_ProxyOptions.vprefix_addr6, &Net6, sizeof(RTNETADDRIPV6));
+
     /* Use ...::1 as our address */
     RTNETADDRIPV6 Addr6 = Net6;
     Addr6.au8[15] = 0x01;
-    memcpy(&m_ProxyOptions.vprefix_addr6, &Addr6, sizeof(RTNETADDRIPV6));
+    memcpy(&m_ProxyOptions.vhost6, &Addr6, sizeof(RTNETADDRIPV6));
 
+#if 0
+    /** @todo Verify DNS server default. */
+    Addr6.au8[15] = 0x02;
+    memcpy(&m_ProxyOptions.vnameserver6, &Addr6, sizeof(RTNETADDRIPV6));
+#endif
 
     /*
      * Should we advertise ourselves as default IPv6 route?  If the

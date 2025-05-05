@@ -58,8 +58,8 @@ signals:
 
     /** @name Chooser pane stuff.
       * @{ */
-        /** Notifies about Chooser-pane index change. */
-        void sigChooserPaneIndexChange();
+        /** Notifies about Chooser-pane selection change. */
+        void sigChooserPaneSelectionChange();
         /** Notifies about Chooser-pane group saving change. */
         void sigGroupSavingStateChanged();
         /** Notifies about Chooser-pane cloud update change. */

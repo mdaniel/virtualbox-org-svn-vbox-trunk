@@ -442,8 +442,8 @@ void UIVirtualBoxWidget::prepareConnections()
             this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxWidget::sigToolTypeChangeMachine);
-    connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
-            this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
+            this, &UIVirtualBoxWidget::sigChooserPaneSelectionChange);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionClassChange,
             this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
@@ -691,8 +691,8 @@ void UIVirtualBoxWidget::cleanupConnections()
                this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxWidget::sigToolTypeChangeMachine);
-    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
-               this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
+               this, &UIVirtualBoxWidget::sigChooserPaneSelectionChange);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionClassChange,
                this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,

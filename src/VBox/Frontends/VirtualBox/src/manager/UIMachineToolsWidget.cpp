@@ -207,7 +207,7 @@ QString UIMachineToolsWidget::currentHelpKeyword() const
 void UIMachineToolsWidget::sltRetranslateUI()
 {
     /* Make sure chosen item fetched: */
-    sltHandleChooserPaneIndexChange();
+    sltHandleChooserPaneSelectionChange();
 }
 
 void UIMachineToolsWidget::sltHandleCommitData()
@@ -269,10 +269,10 @@ void UIMachineToolsWidget::sltHandleSplitterSettingsSave()
     gEDataManager->setSelectorWindowSplitterHints(splitterSizes);
 }
 
-void UIMachineToolsWidget::sltHandleChooserPaneIndexChange()
+void UIMachineToolsWidget::sltHandleChooserPaneSelectionChange()
 {
     /* Let the parent know: */
-    emit sigChooserPaneIndexChange();
+    emit sigChooserPaneSelectionChange();
 
     /* Update tool restrictions for currently selected item: */
     UIVirtualMachineItem *pItem = currentItem();
@@ -402,7 +402,7 @@ void UIMachineToolsWidget::prepare()
             this, &UIMachineToolsWidget::sltRetranslateUI);
 
     /* Make sure current Chooser-pane index fetched: */
-    sltHandleChooserPaneIndexChange();
+    sltHandleChooserPaneSelectionChange();
 }
 
 void UIMachineToolsWidget::prepareWidgets()
@@ -491,7 +491,7 @@ void UIMachineToolsWidget::prepareConnections()
 
     /* Chooser-pane connections: */
     connect(chooser(), &UIChooser::sigSelectionChanged,
-            this, &UIMachineToolsWidget::sltHandleChooserPaneIndexChange);
+            this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionChange);
     connect(chooser(), &UIChooser::sigSelectionInvalidated,
             this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
     connect(chooser(), &UIChooser::sigCloudMachineStateChange,
@@ -545,7 +545,7 @@ void UIMachineToolsWidget::cleanupConnections()
 
     /* Chooser-pane connections: */
     disconnect(chooser(), &UIChooser::sigSelectionChanged,
-               this, &UIMachineToolsWidget::sltHandleChooserPaneIndexChange);
+               this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionChange);
     disconnect(chooser(), &UIChooser::sigSelectionInvalidated,
                this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
     disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,

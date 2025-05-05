@@ -66,8 +66,8 @@ signals:
 
     /** @name Chooser pane stuff.
       * @{ */
-        /** Notifies about Chooser-pane index change. */
-        void sigChooserPaneIndexChange();
+        /** Notifies about Chooser-pane selection change. */
+        void sigChooserPaneSelectionChange();
         /** Notifies about Chooser-pane selection class change.
           * @note Every selection class change caused by selection change.
           *       But not every selection change causes class change. */
@@ -186,8 +186,8 @@ private slots:
 
     /** @name Chooser pane stuff.
       * @{ */
-        /** Handles signal about Chooser-pane index change. */
-        void sltHandleChooserPaneIndexChange();
+        /** Handles signal about Chooser-pane selection change. */
+        void sltHandleChooserPaneSelectionChange();
 
         /** Handles signal about Chooser-pane selection invalidated. */
         void sltHandleChooserPaneSelectionInvalidated();

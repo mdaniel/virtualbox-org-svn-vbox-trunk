@@ -142,8 +142,8 @@ private slots:
         /** Checks if USB device list can be enumerated and host produces any warning during enumeration. */
         void sltCheckUSBAccesibility();
 
-        /** Handles signal about Chooser-pane index change.  */
-        void sltHandleChooserPaneIndexChange();
+        /** Handles signal about Chooser-pane selection change.  */
+        void sltHandleChooserPaneSelectionChange();
 
         /** Handles signal about Global Tool type change.  */
         void sltHandleGlobalToolTypeChange();

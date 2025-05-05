@@ -68,8 +68,10 @@ signals:
       * @{ */
         /** Notifies about Chooser-pane index change. */
         void sigChooserPaneIndexChange();
-        /** Notifies about Chooser-pane selection change. */
-        void sigChooserPaneSelectionChange();
+        /** Notifies about Chooser-pane selection class change.
+          * @note Every selection class change caused by selection change.
+          *       But not every selection change causes class change. */
+        void sigChooserPaneSelectionClassChange();
 
         /** Notifies about state change for cloud machine with certain @a uId. */
         void sigCloudMachineStateChange(const QUuid &uId);

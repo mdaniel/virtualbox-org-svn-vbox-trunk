@@ -291,7 +291,7 @@ void UIMachineToolsWidget::sltHandleChooserPaneIndexChange()
     if (   m_enmSelectionType != enmSelectedItemType
         || m_fSelectedMachineItemAccessible != fCurrentItemIsOk
         || m_fSelectedMachineItemStarted != fItemStarted)
-        emit sigChooserPaneSelectionChange();
+        emit sigChooserPaneSelectionClassChange();
 
     /* Remember new status: */
     m_enmSelectionType = enmSelectedItemType;

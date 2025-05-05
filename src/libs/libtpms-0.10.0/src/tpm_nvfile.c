@@ -100,7 +100,9 @@ TPM_RESULT TPM_NVRAM_Init(void)
 {
     TPM_RESULT  rc = 0;
     char        *tpm_state_path = NULL;
+#ifndef VBOX
     size_t      length;
+#endif
 
 #ifdef TPM_LIBTPMS_CALLBACKS
     struct libtpms_callbacks *cbs = TPMLIB_GetCallbacks();

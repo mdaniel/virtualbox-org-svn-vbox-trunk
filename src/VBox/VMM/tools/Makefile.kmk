@@ -100,6 +100,15 @@ VBoxCpuReport_LIBS.solaris = kstat contract
 
 VBoxCpuReport_LDFLAGS.darwin = \
 	-framework IOKit -framework CoreFoundation -framework CoreServices
+VBoxCpuReport_LDFLAGS.darwin.arm64 = \
+	-framework Hypervisor
+
+ifdef VBOX_SIGNING_MODE
+ VBoxCpuReport_DEPS.darwin.arm64 = $(PATH_ROOT)/src/VBox/VMM/tools/VBoxCpuReport-arm-entitlements.plist #$(VBOX_DARWIN_ENTITLEMENTS_FILE_VM)
+ VBoxCpuReport_POST_CMDS.darwin.arm64 = \
+ 	$(call VBOX_SIGN_MACHO_FN,$(out),org.virtualbox.app.macos.VBoxCpuReport,--entitlements $(VBoxCpuReport_DEPS.darwin.arm64))
+endif
+
 
 
 include $(FILE_KBUILD_SUB_FOOTER)

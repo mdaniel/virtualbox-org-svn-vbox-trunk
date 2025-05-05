@@ -739,7 +739,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
 
                         case GITS_CMD_ID_MAPTI:
                         {
-                            ///* Map device ID and event ID to corresponding ITE. */
+                            /* Map device ID and event ID to corresponding ITE. */
                             //uint32_t const uDevId   = RT_BF_GET(pCmd->au64[0].u, GITS_BF_CMD_MAPTI_DW0_DEV_ID);
                             //uint32_t const uEventId = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPTI_DW1_EVENT_ID);
                             //uint32_t const uIntId   = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPTI_DW1_PHYS_INTID);
@@ -747,6 +747,8 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                             //
                             ///* We support 32-bits of device ID and hence it cannot be out of range (asserted below). */
                             //Assert(sizeof(uDevId) * 8 >= RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_DEV_BITS) + 1);
+                            //AssertMsgFailed(("uDevId=%RU32 uEventId=%RU32 uIntId=%RU32 uIcId=%RU16\n",
+                            //                 uDevId, uEventId, uIntId, uIcId));
                             break;
                         }
 
@@ -756,6 +758,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                             AssertMsgFailed(("aItsTableRegs[0].u=%#RX64 (%#RGp %#RGp) Valid=%RTbool\n", uReg,
                                              uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK, gitsGetBaseRegPhysAddr(uReg),
                                              RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID))));
+                            NOREF(uReg);
                             break;
                         }
 

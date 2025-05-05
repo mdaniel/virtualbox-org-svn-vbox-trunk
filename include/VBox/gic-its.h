@@ -402,6 +402,8 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_INDIRECT_LVL1_16K_, UINT64_C(0), UINT64_
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_INDIRECT_LVL1_64K_, UINT64_C(0), UINT64_MAX,
                             (RSVD_15_0, PHYS_ADDR, RSVD_62_52, VALID));
 
+/** GITS indirect table level-1 entry size in bytes. */
+#define GITS_ITE_INDIRECT_LVL1_SIZE                             8
 
 /**
  * Memory shareability attributes.
@@ -557,6 +559,63 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPD_DW1_, UINT64_C(0), UINT64_MAX,
 #define GITS_BF_CMD_MAPD_DW2_VALID_MASK                         UINT64_C(0x8000000000000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPD_DW2_, UINT64_C(0), UINT64_MAX,
                             (RSVD_7_0, ITT_ADDR, RSVD_62_52, VALID));
+/** @} */
+
+/** @name GITS command: MAPTI.
+ * @{ */
+/** MAPTI DW0: Command ID. */
+#define GITS_BF_CMD_MAPTI_DW0_CMD_ID_SHIFT                      0
+#define GITS_BF_CMD_MAPTI_DW0_CMD_ID_MASK                       UINT64_C(0x00000000000000ff)
+/** MAPTI DW0: Reserved (bits 31:8). */
+#define GITS_BF_CMD_MAPTI_DW0_RSVD_31_8_SHIFT                   8
+#define GITS_BF_CMD_MAPTI_DW0_RSVD_31_8_MASK                    UINT64_C(0x00000000ffffff00)
+/** MAPTI DW0: Device ID. */
+#define GITS_BF_CMD_MAPTI_DW0_DEV_ID_SHIFT                      32
+#define GITS_BF_CMD_MAPTI_DW0_DEV_ID_MASK                       UINT64_C(0xffffffff00000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPTI_DW0_, UINT64_C(0), UINT64_MAX,
+                            (CMD_ID, RSVD_31_8, DEV_ID));
+
+/** MAPTI DW1: Event ID. */
+#define GITS_BF_CMD_MAPTI_DW1_EVENT_ID_SHIFT                    0
+#define GITS_BF_CMD_MAPTI_DW1_EVENT_ID_MASK                     UINT64_C(0x00000000ffffffff)
+/** MAPTI DW1: Physical INTID. */
+#define GITS_BF_CMD_MAPTI_DW1_PHYS_INTID_SHIFT                  32
+#define GITS_BF_CMD_MAPTI_DW1_PHYS_INTID_MASK                   UINT64_C(0xffffffff00000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPTI_DW1_, UINT64_C(0), UINT64_MAX,
+                            (EVENT_ID, PHYS_INTID));
+
+/** MAPTI DW2: ICID. */
+#define GITS_BF_CMD_MAPTI_DW2_IC_ID_SHIFT                       0
+#define GITS_BF_CMD_MAPTI_DW2_IC_ID_MASK                        UINT64_C(0x000000000000ffff)
+/** MAPTI DW2: Reserved (bits 63:16). */
+#define GITS_BF_CMD_MAPTI_DW2_RSVD_63_16_SHIFT                  16
+#define GITS_BF_CMD_MAPTI_DW2_RSVD_63_16_MASK                   UINT64_C(0xffffffffffff0000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPTI_DW2_, UINT64_C(0), UINT64_MAX,
+                            (IC_ID, RSVD_63_16));
+/** @} */
+
+/** @name GITS command: INV.
+ * @{ */
+/** INV DW0: Command ID. */
+#define GITS_BF_CMD_INV_DW0_CMD_ID_SHIFT                        0
+#define GITS_BF_CMD_INV_DW0_CMD_ID_MASK                         UINT64_C(0x00000000000000ff)
+/** INV DW0: Reserved (bits 31:8). */
+#define GITS_BF_CMD_INV_DW0_RSVD_31_8_SHIFT                     8
+#define GITS_BF_CMD_INV_DW0_RSVD_31_8_MASK                      UINT64_C(0x00000000ffffff00)
+/** INV DW0: Device ID. */
+#define GITS_BF_CMD_INV_DW0_DEV_ID_SHIFT                        32
+#define GITS_BF_CMD_INV_DW0_DEV_ID_MASK                         UINT64_C(0xffffffff00000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_INV_DW0_, UINT64_C(0), UINT64_MAX,
+                            (CMD_ID, RSVD_31_8, DEV_ID));
+
+/** INV DW1: Event ID. */
+#define GITS_BF_CMD_INV_DW1_EVENT_ID_SHIFT                      0
+#define GITS_BF_CMD_INV_DW1_EVENT_ID_MASK                       UINT64_C(0x00000000ffffffff)
+/** INV DW1: Reserved (bits 63:32). */
+#define GITS_BF_CMD_INV_DW1_RSVD_63_32_SHIFT                    32
+#define GITS_BF_CMD_INV_DW1_RSVD_63_32_MASK                     UINT64_C(0xffffffff00000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_INV_DW1_, UINT64_C(0), UINT64_MAX,
+                            (EVENT_ID, RSVD_63_32));
 /** @} */
 
 /** @name GITS command: INVALL.

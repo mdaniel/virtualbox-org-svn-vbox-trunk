@@ -151,8 +151,8 @@ static RTGCPHYS gitsGetBaseRegPhysAddr(uint64_t uGitsBaseReg)
     /* Mask for physical address bits [47:12]. */
     static uint64_t const s_auPhysAddrLoMasks[] =
     {
-        UINT64_C(0x0000fffffffff000), /* 4K  bits[47:12] */
-        UINT64_C(0x0000ffffffffe000), /* 16K bits[47:13] */
+        UINT64_C(0x0000fffffffff000), /*  4K bits[47:12] */
+        UINT64_C(0x0000ffffffffc000), /* 16K bits[47:14] */
         UINT64_C(0x0000ffffffff0000), /* 64K bits[47:16] */
         UINT64_C(0x0000ffffffff0000)  /* 64K bits[47:16] */
     };
@@ -160,7 +160,7 @@ static RTGCPHYS gitsGetBaseRegPhysAddr(uint64_t uGitsBaseReg)
     /* Mask for physical address bits [51:48]. */
     static uint64_t const s_auPhysAddrHiMasks[] =
     {
-        UINT64_C(0x0),                /* 4K  bits[51:48] = 0 */
+        UINT64_C(0x0),                /*  4K bits[51:48] = 0 */
         UINT64_C(0x0),                /* 16K bits[51:48] = 0 */
         UINT64_C(0x000000000000f000), /* 64K bits[51:48] = bits[15:12] */
         UINT64_C(0x000000000000f000)  /* 64K bits[51:48] = bits[15:12] */
@@ -292,6 +292,14 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
             break;
 
         case GITS_CTRL_REG_CREADR_OFF + 4:
+            uReg = 0;   /* Upper 32-bits are reserved, MBZ. */
+            break;
+
+        case GITS_CTRL_REG_CWRITER_OFF:
+            uReg = pGitsDev->uCmdWriteReg;
+            break;
+
+        case GITS_CTRL_REG_CWRITER_OFF + 4:
             uReg = 0;   /* Upper 32-bits are reserved, MBZ. */
             break;
 
@@ -557,10 +565,44 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp)
 }
 
 
-static int gitsR3WriteDeviceTableEntry(PPDMDEVINS pDevIns, RTGCPHYS GCPhysDevTable, uint32_t uDevId, uint64_t uDte)
+static int gitsR3WriteDeviceTableEntry(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, uint32_t uDevId, uint64_t uDte)
 {
-    RTGCPHYS const offDte = GITS_DTE_SIZE * uDevId;
-    int rc = PDMDevHlpPhysWriteMeta(pDevIns, GCPhysDevTable + offDte, (const void *)uDte, sizeof(uDte));
+    uint64_t const uBaseReg       = pGitsDev->aItsTableRegs[0].u;
+    bool const     fIndirect      = RT_BF_GET(uBaseReg, GITS_BF_CTRL_REG_BASER_INDIRECT);
+    RTGCPHYS       GCPhysDevTable = gitsGetBaseRegPhysAddr(uBaseReg);
+    RTGCPHYS const offDte         = GITS_DTE_SIZE * uDevId;
+
+    /* Determine the physical address of the device table. */
+    if (fIndirect)
+    {
+        /* Read the the level 1 table device-table entry. */
+        uint64_t       uLevel1Dte = 0;
+        int const rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysDevTable + offDte, &uLevel1Dte, sizeof(uLevel1Dte));
+        if (RT_SUCCESS(rc))
+        {
+            static uint32_t const s_auPageSizes[] = { _4K, _16K, _64K, _64K };
+            static uint64_t const s_auPhysAddrMasks[] =
+            {
+                UINT64_C(0x000ffffffffff000), /*  4K bits[51:12] */
+                UINT64_C(0x000fffffffffc000), /* 16K bits[51:14] */
+                UINT64_C(0x000fffffffff0000), /* 64K bits[51:16] */
+                UINT64_C(0x000fffffffff0000)  /* 64K bits[51:16] */
+            };
+
+            /* Get size of level 2 table from the level 1 entry. */
+            uint8_t const idxPageSize = RT_BF_GET(uLevel1Dte, GITS_BF_CTRL_REG_BASER_PAGESIZE);
+            Assert(idxPageSize < RT_ELEMENTS(s_auPageSizes));
+            uint32_t const cbPage = s_auPageSizes[idxPageSize];
+            AssertMsg(offDte < cbPage, ("cbPage=%RU64 offDte=%RU64\n", cbPage, offDte)); NOREF(cbPage);
+
+            /* Get the physical address of the device-table and offset to the ITE from the level 1 entry. */
+            GCPhysDevTable = uLevel1Dte & s_auPhysAddrMasks[idxPageSize];
+            AssertCompile(GITS_DTE_SIZE == GITS_ITE_INDIRECT_LVL1_SIZE);
+        }
+    }
+
+    /* Write the device-table entry to its table in memory. */
+    int const rc = PDMDevHlpPhysWriteMeta(pDevIns, GCPhysDevTable + offDte, (const void *)uDte, sizeof(uDte));
     AssertRC(rc);
     return rc;
 }
@@ -638,16 +680,16 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         {
                             /* Map interrupt collection with a target CPU ID. */
                             uint64_t const uDw2 = pCmd->au64[2].u;
-                            uint8_t  const fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
-                            uint16_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
-                            uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
+                            uint8_t  const fValid       = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
+                            uint16_t const uTargetCpuId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
+                            uint16_t const uIcId        = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
 
-                            if (RT_LIKELY(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)))
+                            if (RT_LIKELY(uIcId < RT_ELEMENTS(pGitsDev->auCtes)))
                             {
                                 GIC_CRIT_SECT_ENTER(pDevIns);
                                 Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA));
-                                pGitsDev->auCtes[uIntrCollectionId] = RT_BF_MAKE(GITS_BF_CTE_VALID,  fValid)
-                                                                    | RT_BF_MAKE(GITS_BF_CTE_RDBASE, uTargetCpuId);
+                                pGitsDev->auCtes[uIcId] = RT_BF_MAKE(GITS_BF_CTE_VALID,  fValid)
+                                                        | RT_BF_MAKE(GITS_BF_CTE_RDBASE, uTargetCpuId);
                                 GIC_CRIT_SECT_LEAVE(pDevIns);
                             }
                             else
@@ -663,7 +705,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                             uint32_t const uDevId     = RT_BF_GET(pCmd->au64[0].u, GITS_BF_CMD_MAPD_DW0_DEV_ID);
                             uint8_t const  cDevIdBits = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPD_DW1_SIZE);
                             bool const     fValid     = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPD_DW2_VALID);
-                            RTGCPHYS const GCPhysItt  = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPD_DW2_ITT_ADDR);
+                            uint64_t const u64IttAddr = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPD_DW2_ITT_ADDR);
                             if (fValid)
                             {
                                 /* We support 32-bits of device ID and hence it cannot be out of range (asserted below). */
@@ -674,11 +716,12 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                                 if (cDevIdBits <= cEventIdBits)
                                 {
                                     uint64_t const uDte = RT_BF_MAKE(GITS_BF_DTE_VALID,     1)
-                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_ADDR,  GCPhysItt)
-                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_RANGE, cDevIdBits);
+                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_RANGE, cDevIdBits)
+                                                        | RT_BF_MAKE(GITS_BF_DTE_ITT_ADDR,  u64IttAddr);
                                     AssertCompile(sizeof(uDte) == GITS_DTE_SIZE);
-                                    rc = gitsR3WriteDeviceTableEntry(pDevIns, GCPhysItt, uDevId, uDte);
+                                    rc = gitsR3WriteDeviceTableEntry(pDevIns, pGitsDev, uDevId, uDte);
                                     AssertRC(rc);
+                                    /** @todo Add Device ID to internal cache. */
                                 }
                                 else
                                     gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Mapd_Size_Overflow,
@@ -687,9 +730,32 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                             else
                             {
                                 uint64_t const uDte = 0;
-                                rc = gitsR3WriteDeviceTableEntry(pDevIns, GCPhysItt, uDevId, uDte);
+                                rc = gitsR3WriteDeviceTableEntry(pDevIns, pGitsDev, uDevId, uDte);
+                                /** @todo Remove Device ID from internal cache. */
                             }
                             STAM_COUNTER_INC(&pGitsDev->StatCmdMapd);
+                            break;
+                        }
+
+                        case GITS_CMD_ID_MAPTI:
+                        {
+                            ///* Map device ID and event ID to corresponding ITE. */
+                            //uint32_t const uDevId   = RT_BF_GET(pCmd->au64[0].u, GITS_BF_CMD_MAPTI_DW0_DEV_ID);
+                            //uint32_t const uEventId = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPTI_DW1_EVENT_ID);
+                            //uint32_t const uIntId   = RT_BF_GET(pCmd->au64[1].u, GITS_BF_CMD_MAPTI_DW1_PHYS_INTID);
+                            //uint16_t const uIcId    = RT_BF_GET(pCmd->au64[2].u, GITS_BF_CMD_MAPTI_DW2_IC_ID);
+                            //
+                            ///* We support 32-bits of device ID and hence it cannot be out of range (asserted below). */
+                            //Assert(sizeof(uDevId) * 8 >= RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_DEV_BITS) + 1);
+                            break;
+                        }
+
+                        case GITS_CMD_ID_INV:
+                        {
+                            uint64_t const uReg = pGitsDev->aItsTableRegs[0].u;
+                            AssertMsgFailed(("aItsTableRegs[0].u=%#RX64 (%#RGp %#RGp) Valid=%RTbool\n", uReg,
+                                             uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK, gitsGetBaseRegPhysAddr(uReg),
+                                             RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID))));
                             break;
                         }
 
@@ -701,9 +767,9 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                         case GITS_CMD_ID_INVALL:
                         {
                             /* Reading the table is likely to take the same time as reading just one entry. */
-                            uint64_t const uDw2 = pCmd->au64[2].u;
-                            uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_INVALL_DW2_IC_ID);
-                            if (RT_LIKELY(uIntrCollectionId < RT_ELEMENTS(pGitsDev->auCtes)))
+                            uint64_t const uDw2  = pCmd->au64[2].u;
+                            uint16_t const uIcId = RT_BF_GET(uDw2, GITS_BF_CMD_INVALL_DW2_IC_ID);
+                            if (RT_LIKELY(uIcId < RT_ELEMENTS(pGitsDev->auCtes)))
                                 gicDistReadLpiConfigTableFromMem(pDevIns);
                             else
                                 gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_Cmd_Invall_Icid_Overflow,

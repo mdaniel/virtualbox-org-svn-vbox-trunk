@@ -282,7 +282,9 @@
     EC_POINT_free
     EC_POINT_clear_free
     EC_POINT_set_affine_coordinates
+    EC_POINT_set_affine_coordinates_GFp
     EC_POINT_get_affine_coordinates
+    EC_POINT_get_affine_coordinates_GFp
     EC_POINT_add
     EC_POINTs_mul
     EC_POINT_mul

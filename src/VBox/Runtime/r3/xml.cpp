@@ -1871,7 +1871,7 @@ static void xmlParserBaseGenericError(void *pCtx, const char *pszMsg, ...) RT_NO
     va_end(args);
 }
 
-#if LIBXML_VERSION >= 21206
+#if LIBXML_VERSION >= 21205
 static void xmlStructuredErrorFunc(void *userData, const xmlError *error)  RT_NOTHROW_DEF
 {
     NOREF(userData);
@@ -1893,7 +1893,7 @@ XmlParserBase::XmlParserBase()
         throw std::bad_alloc();
     /* per-thread so it must be here */
     xmlSetGenericErrorFunc(NULL, xmlParserBaseGenericError);
-#if LIBXML_VERSION >= 21206
+#if LIBXML_VERSION >= 21205
     xmlSetStructuredErrorFunc(NULL, xmlStructuredErrorFunc);
 #else
     xmlSetStructuredErrorFunc(NULL, xmlParserBaseStructuredError);

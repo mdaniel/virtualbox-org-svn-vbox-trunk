@@ -41,8 +41,10 @@
 #include "UIMachineToolsWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPane.h"
+#include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualBoxWidget.h"
+#include "UIVirtualMachineItem.h"
 #if defined(VBOX_WS_MAC) && (defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32))
 # include "UIGlobalSession.h"
 # include "UIIconPool.h"
@@ -328,6 +330,13 @@ void UIVirtualBoxWidget::sltHandleCommitData()
     cleanupConnections();
 }
 
+void UIVirtualBoxWidget::sltHandleMachineStateChange(const QUuid &uId)
+{
+    /* Update toolbar to show/hide corresponding actions: */
+    if (currentItem()->id() == uId)
+        updateToolbar();
+}
+
 void UIVirtualBoxWidget::sltUpdateToolbar()
 {
     /* Update toolbar to show/hide corresponding actions: */
@@ -417,6 +426,8 @@ void UIVirtualBoxWidget::prepareConnections()
             this, &UIVirtualBoxWidget::sltHandleCommitData);
 
     /* Global COM event handlers: */
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
+            this, &UIVirtualBoxWidget::sltHandleMachineStateChange);
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
             this, &UIVirtualBoxWidget::sltUpdateToolbar);
 
@@ -666,6 +677,8 @@ void UIVirtualBoxWidget::updateToolbar()
 void UIVirtualBoxWidget::cleanupConnections()
 {
     /* Global COM event handlers: */
+    disconnect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
+               this, &UIVirtualBoxWidget::sltHandleMachineStateChange);
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
                this, &UIVirtualBoxWidget::sltUpdateToolbar);
 

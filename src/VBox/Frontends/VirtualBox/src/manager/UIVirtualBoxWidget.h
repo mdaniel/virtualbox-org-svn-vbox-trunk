@@ -247,6 +247,11 @@ private slots:
         void sltHandleCommitData();
     /** @} */
 
+    /** @name Chooser pane stuff.
+      * @{ */
+        void sltHandleMachineStateChange(const QUuid &uId);
+    /** @} */
+
     /** @name Tool-bar stuff.
       * @{ */
         /** Updates tool-bar. */

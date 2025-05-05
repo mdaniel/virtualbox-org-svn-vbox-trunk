@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -182,6 +182,9 @@ NTSTATUS GaContextCreate(PVBOXWDDM_EXT_GA pGaDevExt,
     PVMSVGACONTEXT pSvgaContext = (PVMSVGACONTEXT)GaMemAllocZero(sizeof(VMSVGACONTEXT));
     AssertReturn(pSvgaContext, STATUS_INSUFFICIENT_RESOURCES);
 
+    pSvgaContext->u32Cid = SVGA3D_INVALID_ID;
+    for (unsigned i = 0; i < RT_ELEMENTS(pSvgaContext->aCOT); ++i)
+        pSvgaContext->aCOT[i].mobid = SVGA3D_INVALID_ID;
     pSvgaContext->fDXContext = RT_BOOL(pInfo->u.vmsvga.u32Flags & VBOXWDDM_F_GA_CONTEXT_VGPU10);
 
     uint32_t u32Cid;
@@ -235,7 +238,7 @@ NTSTATUS GaContextDestroy(PVBOXWDDM_EXT_GA pGaDevExt,
         for (unsigned i = 0; i < RT_ELEMENTS(pSvgaContext->aCOT); ++i)
         {
             PVMSVGACOT pCOT = &pSvgaContext->aCOT[i];
-            if (pCOT->pMob)
+            if (pCOT->mobid != SVGA3D_INVALID_ID)
             {
                 void *pvCmd = SvgaCmdBuf3dCmdReserve(pSvga, SVGA_3D_CMD_DX_SET_COTABLE, sizeof(SVGA3dCmdDXSetCOTable), SVGA3D_INVALID_ID);
                 if (pvCmd)
@@ -256,15 +259,15 @@ NTSTATUS GaContextDestroy(PVBOXWDDM_EXT_GA pGaDevExt,
                 }
 
                 uint32_t cbRequired = 0;
-                SvgaMobDestroy(pSvga, pCOT->pMob, NULL, 0, &cbRequired);
+                SvgaMobDestroy(pSvga, SVGA3D_INVALID_ID, NULL, 0, &cbRequired);
                 pvCmd = SvgaCmdBufReserve(pSvga, cbRequired, SVGA3D_INVALID_ID);
                 if (pvCmd)
                 {
-                    SvgaMobDestroy(pSvga, pCOT->pMob, pvCmd, cbRequired, &cbRequired);
+                    SvgaMobDestroy(pSvga, pCOT->mobid, pvCmd, cbRequired, &cbRequired);
                     SvgaCmdBufCommit(pSvga, cbRequired);
                 }
 
-                pCOT->pMob = NULL;
+                pCOT->mobid = SVGA3D_INVALID_ID;
             }
         }
 
@@ -1562,36 +1565,9 @@ static void dxDeferredMobDestruction(PVOID IoObject, PVOID Context, PIO_WORKITEM
     IoFreeWorkItem(IoWorkItem);
 
     PVBOXWDDM_EXT_VMSVGA pSvga = (PVBOXWDDM_EXT_VMSVGA)Context;
-    if (pSvga->pMiniportMobData)
-    {
-        uint64_t const u64MobFence = ASMAtomicReadU64(&pSvga->pMiniportMobData->u64MobFence);
+    SvgaDeferredMobDestruction(pSvga);
 
-        /* Move mobs which were deleted by the host to the local list under the lock. */
-        RTLISTANCHOR listDestroyedMobs;
-        RTListInit(&listDestroyedMobs);
-
-        KIRQL OldIrql;
-        SvgaHostObjectsLock(pSvga, &OldIrql);
-
-        PVMSVGAMOB pIter, pNext;
-        RTListForEachSafe(&pSvga->listMobDeferredDestruction, pIter, pNext, VMSVGAMOB, node)
-        {
-            if (gaFenceCmp64(pIter->u64MobFence, u64MobFence) <= 0)
-            {
-                RTListNodeRemove(&pIter->node);
-                RTListAppend(&listDestroyedMobs, &pIter->node);
-            }
-        }
-
-        SvgaHostObjectsUnlock(pSvga, OldIrql);
-
-        RTListForEachSafe(&listDestroyedMobs, pIter, pNext, VMSVGAMOB, node)
-        {
-            /* Delete the data. SvgaMobFree deallocates pIter. */
-            RTListNodeRemove(&pIter->node);
-            SvgaMobFree(pSvga, pIter);
-        }
-    }
+    ASMAtomicDecS32(&pSvga->cQueuedWorkItems);
 }
 
 
@@ -1691,7 +1667,10 @@ VOID GaDxgkDdiDpcRoutine(const PVOID MiniportDeviceContext)
         /* Deallocate memory in a worker thread at PASSIVE_LEVEL. */
         PIO_WORKITEM pWorkItem = IoAllocateWorkItem(pDevExt->pPDO);
         if (pWorkItem)
+        {
+            ASMAtomicIncS32(&pSvga->cQueuedWorkItems);
             IoQueueWorkItemEx(pWorkItem, dxDeferredMobDestruction, DelayedWorkQueue, pSvga);
+        }
     }
 }
 

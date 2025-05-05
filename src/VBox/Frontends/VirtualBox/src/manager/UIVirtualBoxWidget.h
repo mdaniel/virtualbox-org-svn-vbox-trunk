@@ -127,12 +127,6 @@ public:
         UIActionPool *actionPool() const { return m_pActionPool; }
     /** @} */
 
-    /** @name Tool-bar stuff.
-      * @{ */
-        /** Updates tool-bar menu buttons. */
-        void updateToolBarMenuButtons(bool fSeparateMenuSection);
-    /** @} */
-
     /** @name Chooser pane stuff.
       * @{ */
         /** Returns current-item. */

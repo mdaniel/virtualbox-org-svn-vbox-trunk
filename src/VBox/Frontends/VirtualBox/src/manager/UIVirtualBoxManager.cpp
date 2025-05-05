@@ -1543,10 +1543,20 @@ void UIVirtualBoxManager::sltPerformMachineMoveToSpecificGroup()
 
 void UIVirtualBoxManager::sltPerformStartOrShowMachine()
 {
+    /* Check whether we can start or show 1st VM item: */
+    UIVirtualMachineItem *pItem = currentItem();
+    if (pItem && pItem->isItemPoweredOff())
+        sltPerformStartMachine();
+    else
+        sltPerformShowMachine();
+}
+
+void UIVirtualBoxManager::sltPerformStartMachine()
+{
     /* Start selected VMs in corresponding mode: */
     QList<UIVirtualMachineItem*> items = currentItems();
     AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
-    performStartOrShowVirtualMachines(items, UILaunchMode_Invalid);
+    performStartVirtualMachines(items, UILaunchMode_Invalid);
 }
 
 void UIVirtualBoxManager::sltPerformStartMachineNormal()
@@ -1554,7 +1564,7 @@ void UIVirtualBoxManager::sltPerformStartMachineNormal()
     /* Start selected VMs in corresponding mode: */
     QList<UIVirtualMachineItem*> items = currentItems();
     AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
-    performStartOrShowVirtualMachines(items, UILaunchMode_Default);
+    performStartVirtualMachines(items, UILaunchMode_Default);
 }
 
 void UIVirtualBoxManager::sltPerformStartMachineHeadless()
@@ -1562,7 +1572,7 @@ void UIVirtualBoxManager::sltPerformStartMachineHeadless()
     /* Start selected VMs in corresponding mode: */
     QList<UIVirtualMachineItem*> items = currentItems();
     AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
-    performStartOrShowVirtualMachines(items, UILaunchMode_Headless);
+    performStartVirtualMachines(items, UILaunchMode_Headless);
 }
 
 void UIVirtualBoxManager::sltPerformStartMachineDetachable()
@@ -1570,7 +1580,15 @@ void UIVirtualBoxManager::sltPerformStartMachineDetachable()
     /* Start selected VMs in corresponding mode: */
     QList<UIVirtualMachineItem*> items = currentItems();
     AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
-    performStartOrShowVirtualMachines(items, UILaunchMode_Separate);
+    performStartVirtualMachines(items, UILaunchMode_Separate);
+}
+
+void UIVirtualBoxManager::sltPerformShowMachine()
+{
+    /* Show selected VMs: */
+    QList<UIVirtualMachineItem*> items = currentItems();
+    AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
+    performShowVirtualMachines(items);
 }
 
 void UIVirtualBoxManager::sltPerformCreateConsoleConnectionForGroup()
@@ -2592,8 +2610,10 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltOpenGroupNameEditor);
     connect(actionPool()->action(UIActionIndexMN_M_Group_S_Remove), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltDisbandGroup);
-    connect(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow), &UIAction::triggered,
-            this, &UIVirtualBoxManager::sltPerformStartOrShowMachine);
+    connect(actionPool()->action(UIActionIndexMN_M_Group_M_Start), &UIAction::triggered,
+            this, &UIVirtualBoxManager::sltPerformStartMachine);
+    connect(actionPool()->action(UIActionIndexMN_M_Group_S_Show), &UIAction::triggered,
+            this, &UIVirtualBoxManager::sltPerformShowMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Group_T_Pause), &UIAction::toggled,
             this, &UIVirtualBoxManager::sltPerformPauseOrResumeMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Group_S_Reset), &UIAction::triggered,
@@ -2634,8 +2654,10 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformMachineRemove);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup_S_New), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformMachineMoveToNewGroup);
-    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow), &UIAction::triggered,
-            this, &UIVirtualBoxManager::sltPerformStartOrShowMachine);
+    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_Start), &UIAction::triggered,
+            this, &UIVirtualBoxManager::sltPerformStartMachine);
+    connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Show), &UIAction::triggered,
+            this, &UIVirtualBoxManager::sltPerformShowMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause), &UIAction::toggled,
             this, &UIVirtualBoxManager::sltPerformPauseOrResumeMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset), &UIAction::triggered,
@@ -2657,20 +2679,20 @@ void UIVirtualBoxManager::prepareConnections()
     connect(m_pWidget, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged,
             actionPool()->action(UIActionIndexMN_M_Machine_T_Search), &QAction::setChecked);
 
-    /* 'Group/Start or Show' menu connections: */
-    connect(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal), &UIAction::triggered,
+    /* 'Group/Start' menu connections: */
+    connect(actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Normal), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineNormal);
-    connect(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless), &UIAction::triggered,
+    connect(actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Headless), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineHeadless);
-    connect(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable), &UIAction::triggered,
+    connect(actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Detachable), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineDetachable);
 
-    /* 'Machine/Start or Show' menu connections: */
-    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal), &UIAction::triggered,
+    /* 'Machine/Start' menu connections: */
+    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Normal), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineNormal);
-    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless), &UIAction::triggered,
+    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Headless), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineHeadless);
-    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable), &UIAction::triggered,
+    connect(actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Detachable), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformStartMachineDetachable);
 
     /* 'Group/Console' menu connections: */
@@ -3003,7 +3025,8 @@ void UIVirtualBoxManager::startUnattendedInstall(const CUnattended &comUnattende
     launchMachine(comMachine, fStartHeadless ? UILaunchMode_Headless : UILaunchMode_Default);
 }
 
-void UIVirtualBoxManager::performStartOrShowVirtualMachines(const QList<UIVirtualMachineItem*> &items, UILaunchMode enmLaunchMode)
+void UIVirtualBoxManager::performStartVirtualMachines(const QList<UIVirtualMachineItem*> &items,
+                                                      UILaunchMode enmLaunchMode)
 {
     /* Do nothing while group saving is in progress: */
     if (isGroupSavingInProgress())
@@ -3031,9 +3054,8 @@ void UIVirtualBoxManager::performStartOrShowVirtualMachines(const QList<UIVirtua
     /* For every item => check if it could be launched: */
     foreach (UIVirtualMachineItem *pItem, items)
     {
-        if (   isAtLeastOneItemCanBeShown(QList<UIVirtualMachineItem*>() << pItem)
-            || (   isAtLeastOneItemCanBeStarted(QList<UIVirtualMachineItem*>() << pItem)
-                && fStartConfirmed))
+        if (   isAtLeastOneItemCanBeStarted(QList<UIVirtualMachineItem*>() << pItem)
+            && fStartConfirmed)
         {
             /* For local machine: */
             if (pItem->itemType() == UIVirtualMachineItemType_Local)
@@ -3058,6 +3080,35 @@ void UIVirtualBoxManager::performStartOrShowVirtualMachines(const QList<UIVirtua
                 CCloudMachine comCloudMachine = pItem->toCloud()->machine();
                 /* Launch current VM: */
                 launchMachine(comCloudMachine);
+            }
+        }
+    }
+}
+
+void UIVirtualBoxManager::performShowVirtualMachines(const QList<UIVirtualMachineItem*> &items)
+{
+    /* Do nothing while group saving is in progress: */
+    if (isGroupSavingInProgress())
+        return;
+
+    /* For every item => check if it could be shown: */
+    foreach (UIVirtualMachineItem *pItem, items)
+    {
+        if (isAtLeastOneItemCanBeShown(QList<UIVirtualMachineItem*>() << pItem))
+        {
+            /* For local machine: */
+            if (pItem->itemType() == UIVirtualMachineItemType_Local)
+            {
+                /* Fetch item launch mode: */
+                UILaunchMode enmItemLaunchMode = pItem->isItemRunningHeadless()
+                                               ? UILaunchMode_Separate
+                                               : qApp->keyboardModifiers() == Qt::ShiftModifier
+                                               ? UILaunchMode_Headless
+                                               : UILaunchMode_Default;
+                /* Acquire local machine: */
+                CMachine machine = pItem->toLocal()->machine();
+                /* Launch current VM: */
+                launchMachine(machine, enmItemLaunchMode);
             }
         }
     }
@@ -3148,7 +3199,9 @@ void UIVirtualBoxManager::updateMenuGroup(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
         pMenu->addSeparator();
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+        if (   currentItem()
+            && currentItem()->isItemPoweredOff())
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Start));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
@@ -3169,7 +3222,11 @@ void UIVirtualBoxManager::updateMenuGroup(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup));
         pMenu->addSeparator();
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+        if (   currentItem()
+            && currentItem()->isItemPoweredOff())
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Start));
+        else
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Show));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
         // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
@@ -3207,7 +3264,9 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
             pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
         pMenu->addSeparator();
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+        if (   currentItem()
+            && currentItem()->isItemPoweredOff())
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Start));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
@@ -3234,7 +3293,11 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup));
         pMenu->addSeparator();
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+        if (   currentItem()
+            && currentItem()->isItemPoweredOff())
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Start));
+        else
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Show));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
         // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
@@ -3562,6 +3625,7 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Group_S_Rename)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Rename, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Remove)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Remove, items));
     actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_MoveToGroup, items));
+    actionPool()->action(UIActionIndexMN_M_Group_S_Show)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Show, items));
     actionPool()->action(UIActionIndexMN_M_Group_T_Pause)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_T_Pause, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Reset)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Reset, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Detach)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Detach, items));
@@ -3581,6 +3645,7 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Machine_S_Remove)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Remove, items));
     actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_MoveToGroup, items));
     actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup_S_New)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_MoveToGroup_S_New, items));
+    actionPool()->action(UIActionIndexMN_M_Machine_S_Show)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Show, items));
     actionPool()->action(UIActionIndexMN_M_Machine_T_Pause)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_T_Pause, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_Reset)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Reset, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_Detach)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Detach, items));
@@ -3591,16 +3656,16 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Machine_S_SortParent)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_SortParent, items));
 
     /* Enable/disable group-start-or-show actions: */
-    actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_StartOrShow, items));
-    actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal, items));
-    actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless, items));
-    actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable, items));
+    actionPool()->action(UIActionIndexMN_M_Group_M_Start)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_Start, items));
+    actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Normal)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_Start_S_Normal, items));
+    actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Headless)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_Start_S_Headless, items));
+    actionPool()->action(UIActionIndexMN_M_Group_M_Start_S_Detachable)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_Start_S_Detachable, items));
 
     /* Enable/disable machine-start-or-show actions: */
-    actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_StartOrShow, items));
-    actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal, items));
-    actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless, items));
-    actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable, items));
+    actionPool()->action(UIActionIndexMN_M_Machine_M_Start)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Start, items));
+    actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Normal)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Start_S_Normal, items));
+    actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Headless)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Start_S_Headless, items));
+    actionPool()->action(UIActionIndexMN_M_Machine_M_Start_S_Detachable)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Start_S_Detachable, items));
 
     /* Enable/disable group-console actions: */
     actionPool()->action(UIActionIndexMN_M_Group_M_Console)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_M_Console, items));
@@ -3632,23 +3697,6 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Machine_M_Stop_S_Terminate)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Stop_S_Terminate, items));
     actionPool()->action(UIActionIndexMN_M_Machine_M_Stop_S_Shutdown)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Stop_S_Shutdown, items));
     actionPool()->action(UIActionIndexMN_M_Machine_M_Stop_S_PowerOff)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_M_Stop_S_PowerOff, items));
-
-    /* Get current item: */
-    UIVirtualMachineItem *pItem = currentItem();
-
-    /* Start/Show action is deremined by 1st item: */
-    if (pItem && pItem->accessible())
-    {
-        actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow)->setState(pItem->isItemPoweredOff() ? 0 : 1);
-        actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow)->setState(pItem->isItemPoweredOff() ? 0 : 1);
-        m_pWidget->updateToolBarMenuButtons(pItem->isItemPoweredOff());
-    }
-    else
-    {
-        actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow)->setState(0);
-        actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow)->setState(0);
-        m_pWidget->updateToolBarMenuButtons(true /* separate menu section? */);
-    }
 
     /* Pause/Resume action is deremined by 1st started item: */
     UIVirtualMachineItem *pFirstStartedAction = 0;
@@ -3842,24 +3890,32 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
                    isItemsLocal(items) &&
                    isItemsPoweredOff(items);
         }
-        case UIActionIndexMN_M_Group_M_StartOrShow:
-        case UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal:
-        case UIActionIndexMN_M_Machine_M_StartOrShow:
-        case UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal:
+        case UIActionIndexMN_M_Group_M_Start:
+        case UIActionIndexMN_M_Group_M_Start_S_Normal:
+        case UIActionIndexMN_M_Machine_M_Start:
+        case UIActionIndexMN_M_Machine_M_Start_S_Normal:
         {
             return !isGroupSavingInProgress() &&
-                   isAtLeastOneItemCanBeStartedOrShown(items) &&
+                   isAtLeastOneItemCanBeStarted(items) &&
                     (m_pWidget->currentMachineTool() != UIToolType_Snapshots ||
                      m_pWidget->isCurrentStateItemSelected());
         }
-        case UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless:
-        case UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable:
-        case UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless:
-        case UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable:
+        case UIActionIndexMN_M_Group_M_Start_S_Headless:
+        case UIActionIndexMN_M_Group_M_Start_S_Detachable:
+        case UIActionIndexMN_M_Machine_M_Start_S_Headless:
+        case UIActionIndexMN_M_Machine_M_Start_S_Detachable:
         {
             return !isGroupSavingInProgress() &&
                    isItemsLocal(items) &&
-                   isAtLeastOneItemCanBeStartedOrShown(items) &&
+                   isAtLeastOneItemCanBeStarted(items) &&
+                    (m_pWidget->currentMachineTool() != UIToolType_Snapshots ||
+                     m_pWidget->isCurrentStateItemSelected());
+        }
+        case UIActionIndexMN_M_Group_S_Show:
+        case UIActionIndexMN_M_Machine_S_Show:
+        {
+            return !isGroupSavingInProgress() &&
+                   isAtLeastOneItemCanBeShown(items) &&
                     (m_pWidget->currentMachineTool() != UIToolType_Snapshots ||
                      m_pWidget->isCurrentStateItemSelected());
         }

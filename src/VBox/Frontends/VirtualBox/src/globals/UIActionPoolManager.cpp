@@ -1039,15 +1039,15 @@ protected:
     }
 };
 
-/** Menu action extension, used as 'Start or Show' menu class. */
-class UIActionStateManagerCommonStartOrShow : public UIActionMenu
+/** Menu action extension, used as 'Start' menu class. */
+class UIActionMenuManagerCommonStart : public UIActionMenu
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionStateManagerCommonStartOrShow(UIActionPool *pParent)
+    UIActionMenuManagerCommonStart(UIActionPool *pParent)
         : UIActionMenu(pParent,
                        ":/vm_start_32px.png", ":/vm_start_16px.png",
                        ":/vm_start_disabled_32px.png", ":/vm_start_disabled_16px.png")
@@ -1058,25 +1058,34 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        switch (state())
-        {
-            case 0:
-            {
-                setName(QApplication::translate("UIActionPool", "S&tart"));
-                setStatusTip(QApplication::translate("UIActionPool", "Start selected virtual machines"));
-                setToolTip(simplifyText(text()) + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
-                break;
-            }
-            case 1:
-            {
-                setName(QApplication::translate("UIActionPool", "S&how"));
-                setStatusTip(QApplication::translate("UIActionPool", "Switch to the windows of selected virtual machines"));
-                setToolTip(simplifyText(text()) + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
-                break;
-            }
-            default:
-                break;
-        }
+        setName(QApplication::translate("UIActionPool", "S&tart"));
+        setStatusTip(QApplication::translate("UIActionPool", "Start selected virtual machines"));
+        setToolTip(simplifyText(text()) + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Menu action extension, used as 'Show' menu class. */
+class UIActionSimpleManagerCommonShow : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleManagerCommonShow(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/vm_start_32px.png", ":/vm_start_16px.png",
+                         ":/vm_start_disabled_32px.png", ":/vm_start_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "S&how"));
+        setStatusTip(QApplication::translate("UIActionPool", "Switch to the windows of selected virtual machines"));
+        setToolTip(simplifyText(text()) + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
 
@@ -3549,10 +3558,11 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_Group_S_Rename] = new UIActionSimpleManagerGroupPerformRename(this);
     m_pool[UIActionIndexMN_M_Group_S_Remove] = new UIActionSimpleManagerGroupPerformRemove(this);
     m_pool[UIActionIndexMN_M_Group_M_MoveToGroup] = new UIActionMenuManagerCommonMoveToGroup(this);
-    m_pool[UIActionIndexMN_M_Group_M_StartOrShow] = new UIActionStateManagerCommonStartOrShow(this);
-    m_pool[UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal] = new UIActionSimpleManagerCommonPerformStartNormal(this);
-    m_pool[UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless] = new UIActionSimpleManagerCommonPerformStartHeadless(this);
-    m_pool[UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable] = new UIActionSimpleManagerCommonPerformStartDetachable(this);
+    m_pool[UIActionIndexMN_M_Group_M_Start] = new UIActionMenuManagerCommonStart(this);
+    m_pool[UIActionIndexMN_M_Group_M_Start_S_Normal] = new UIActionSimpleManagerCommonPerformStartNormal(this);
+    m_pool[UIActionIndexMN_M_Group_M_Start_S_Headless] = new UIActionSimpleManagerCommonPerformStartHeadless(this);
+    m_pool[UIActionIndexMN_M_Group_M_Start_S_Detachable] = new UIActionSimpleManagerCommonPerformStartDetachable(this);
+    m_pool[UIActionIndexMN_M_Group_S_Show] = new UIActionSimpleManagerCommonShow(this);
     m_pool[UIActionIndexMN_M_Group_T_Pause] = new UIActionToggleManagerCommonPauseAndResume(this);
     m_pool[UIActionIndexMN_M_Group_S_Reset] = new UIActionSimpleManagerCommonPerformReset(this);
     m_pool[UIActionIndexMN_M_Group_S_Detach] = new UIActionSimpleManagerCommonPerformDetach(this);
@@ -3589,10 +3599,11 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_Machine_S_Remove] = new UIActionSimpleManagerMachinePerformRemove(this);
     m_pool[UIActionIndexMN_M_Machine_M_MoveToGroup] = new UIActionMenuManagerCommonMoveToGroup(this);
     m_pool[UIActionIndexMN_M_Machine_M_MoveToGroup_S_New] = new UIActionSimpleManagerMachineMoveToGroupNew(this);
-    m_pool[UIActionIndexMN_M_Machine_M_StartOrShow] = new UIActionStateManagerCommonStartOrShow(this);
-    m_pool[UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal] = new UIActionSimpleManagerCommonPerformStartNormal(this);
-    m_pool[UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless] = new UIActionSimpleManagerCommonPerformStartHeadless(this);
-    m_pool[UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable] = new UIActionSimpleManagerCommonPerformStartDetachable(this);
+    m_pool[UIActionIndexMN_M_Machine_M_Start] = new UIActionMenuManagerCommonStart(this);
+    m_pool[UIActionIndexMN_M_Machine_M_Start_S_Normal] = new UIActionSimpleManagerCommonPerformStartNormal(this);
+    m_pool[UIActionIndexMN_M_Machine_M_Start_S_Headless] = new UIActionSimpleManagerCommonPerformStartHeadless(this);
+    m_pool[UIActionIndexMN_M_Machine_M_Start_S_Detachable] = new UIActionSimpleManagerCommonPerformStartDetachable(this);
+    m_pool[UIActionIndexMN_M_Machine_S_Show] = new UIActionSimpleManagerCommonShow(this);
     m_pool[UIActionIndexMN_M_Machine_T_Pause] = new UIActionToggleManagerCommonPauseAndResume(this);
     m_pool[UIActionIndexMN_M_Machine_S_Reset] = new UIActionSimpleManagerCommonPerformReset(this);
     m_pool[UIActionIndexMN_M_Machine_S_Detach] = new UIActionSimpleManagerCommonPerformDetach(this);
@@ -3717,8 +3728,8 @@ void UIActionPoolManager::preparePool()
     m_menuUpdateHandlers[UIActionIndexMN_M_Machine].ptfm =               &UIActionPoolManager::updateMenuMachine;
     m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_MoveToGroup].ptfm =   &UIActionPoolManager::updateMenuGroupMoveToGroup;
     m_menuUpdateHandlers[UIActionIndexMN_M_Machine_M_MoveToGroup].ptfm = &UIActionPoolManager::updateMenuMachineMoveToGroup;
-    m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_StartOrShow].ptfm =   &UIActionPoolManager::updateMenuGroupStartOrShow;
-    m_menuUpdateHandlers[UIActionIndexMN_M_Machine_M_StartOrShow].ptfm = &UIActionPoolManager::updateMenuMachineStartOrShow;
+    m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_Start].ptfm =         &UIActionPoolManager::updateMenuGroupStart;
+    m_menuUpdateHandlers[UIActionIndexMN_M_Machine_M_Start].ptfm =       &UIActionPoolManager::updateMenuMachineStart;
     m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_Console].ptfm =       &UIActionPoolManager::updateMenuGroupConsole;
     m_menuUpdateHandlers[UIActionIndexMN_M_Machine_M_Console].ptfm =     &UIActionPoolManager::updateMenuMachineConsole;
     m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_Stop].ptfm =          &UIActionPoolManager::updateMenuGroupClose;
@@ -3794,10 +3805,10 @@ void UIActionPoolManager::updateMenus()
 
     /* 'Machine' / 'Move to Group' menu: */
     updateMenuMachineMoveToGroup();
-    /* 'Group' / 'Start or Show' menu: */
-    updateMenuGroupStartOrShow();
-    /* 'Machine' / 'Start or Show' menu: */
-    updateMenuMachineStartOrShow();
+    /* 'Group' / 'Start' menu: */
+    updateMenuGroupStart();
+    /* 'Machine' / 'Start' menu: */
+    updateMenuMachineStart();
     /* 'Group' / 'Close' menu: */
     updateMenuGroupClose();
     /* 'Machine' / 'Close' menu: */
@@ -3868,7 +3879,8 @@ void UIActionPoolManager::setShortcutsVisible(int iIndex, bool fVisible)
                     << action(UIActionIndexMN_M_Group_S_Rename)
                     << action(UIActionIndexMN_M_Group_S_Remove)
                     << action(UIActionIndexMN_M_Group_M_MoveToGroup)
-                    << action(UIActionIndexMN_M_Group_M_StartOrShow)
+                    << action(UIActionIndexMN_M_Group_M_Start)
+                    << action(UIActionIndexMN_M_Group_S_Show)
                     << action(UIActionIndexMN_M_Group_T_Pause)
                     << action(UIActionIndexMN_M_Group_S_Reset)
                     // << action(UIActionIndexMN_M_Group_S_Detach)
@@ -3877,9 +3889,9 @@ void UIActionPoolManager::setShortcutsVisible(int iIndex, bool fVisible)
                     << action(UIActionIndexMN_M_Group_S_ShowInFileManager)
                     << action(UIActionIndexMN_M_Group_S_CreateShortcut)
                     << action(UIActionIndexMN_M_Group_S_Sort)
-                    << action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal)
-                    << action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless)
-                    << action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable)
+                    << action(UIActionIndexMN_M_Group_M_Start_S_Normal)
+                    << action(UIActionIndexMN_M_Group_M_Start_S_Headless)
+                    << action(UIActionIndexMN_M_Group_M_Start_S_Detachable)
                     << action(UIActionIndexMN_M_Group_M_Console_S_CreateConnection)
                     << action(UIActionIndexMN_M_Group_M_Console_S_DeleteConnection)
                     << action(UIActionIndexMN_M_Group_M_Console_S_ConfigureApplications)
@@ -3903,7 +3915,8 @@ void UIActionPoolManager::setShortcutsVisible(int iIndex, bool fVisible)
                     << action(UIActionIndexMN_M_Machine_S_ExportToOCI)
                     << action(UIActionIndexMN_M_Machine_S_Remove)
                     << action(UIActionIndexMN_M_Machine_M_MoveToGroup)
-                    << action(UIActionIndexMN_M_Machine_M_StartOrShow)
+                    << action(UIActionIndexMN_M_Machine_M_Start)
+                    << action(UIActionIndexMN_M_Machine_S_Show)
                     << action(UIActionIndexMN_M_Machine_T_Pause)
                     << action(UIActionIndexMN_M_Machine_S_Reset)
                     // << action(UIActionIndexMN_M_Machine_S_Detach)
@@ -3913,9 +3926,9 @@ void UIActionPoolManager::setShortcutsVisible(int iIndex, bool fVisible)
                     << action(UIActionIndexMN_M_Machine_S_CreateShortcut)
                     << action(UIActionIndexMN_M_Machine_S_SortParent)
                     << action(UIActionIndexMN_M_Machine_M_MoveToGroup_S_New)
-                    << action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal)
-                    << action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless)
-                    << action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable)
+                    << action(UIActionIndexMN_M_Machine_M_Start_S_Normal)
+                    << action(UIActionIndexMN_M_Machine_M_Start_S_Headless)
+                    << action(UIActionIndexMN_M_Machine_M_Start_S_Detachable)
                     << action(UIActionIndexMN_M_Machine_M_Console_S_CreateConnection)
                     << action(UIActionIndexMN_M_Machine_M_Console_S_DeleteConnection)
                     << action(UIActionIndexMN_M_Machine_M_Console_S_CopyCommandSerialUnix)
@@ -4149,38 +4162,38 @@ void UIActionPoolManager::updateMenuMachineMoveToGroup()
     /* This menu always remains invalid.. */
 }
 
-void UIActionPoolManager::updateMenuGroupStartOrShow()
+void UIActionPoolManager::updateMenuGroupStart()
 {
     /* Get corresponding menu: */
-    UIMenu *pMenu = action(UIActionIndexMN_M_Group_M_StartOrShow)->menu();
+    UIMenu *pMenu = action(UIActionIndexMN_M_Group_M_Start)->menu();
     AssertPtrReturnVoid(pMenu);
     /* Clear contents: */
     pMenu->clear();
 
-    /* Populate 'Group' / 'Start or Show' menu: */
-    pMenu->addAction(action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal));
-    pMenu->addAction(action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless));
-    pMenu->addAction(action(UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable));
+    /* Populate 'Group' / 'Start' menu: */
+    pMenu->addAction(action(UIActionIndexMN_M_Group_M_Start_S_Normal));
+    pMenu->addAction(action(UIActionIndexMN_M_Group_M_Start_S_Headless));
+    pMenu->addAction(action(UIActionIndexMN_M_Group_M_Start_S_Detachable));
 
     /* Mark menu as valid: */
-    m_invalidations.remove(UIActionIndexMN_M_Group_M_StartOrShow);
+    m_invalidations.remove(UIActionIndexMN_M_Group_M_Start);
 }
 
-void UIActionPoolManager::updateMenuMachineStartOrShow()
+void UIActionPoolManager::updateMenuMachineStart()
 {
     /* Get corresponding menu: */
-    UIMenu *pMenu = action(UIActionIndexMN_M_Machine_M_StartOrShow)->menu();
+    UIMenu *pMenu = action(UIActionIndexMN_M_Machine_M_Start)->menu();
     AssertPtrReturnVoid(pMenu);
     /* Clear contents: */
     pMenu->clear();
 
-    /* Populate 'Machine' / 'Start or Show' menu: */
-    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal));
-    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless));
-    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable));
+    /* Populate 'Machine' / 'Start' menu: */
+    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_Start_S_Normal));
+    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_Start_S_Headless));
+    pMenu->addAction(action(UIActionIndexMN_M_Machine_M_Start_S_Detachable));
 
     /* Mark menu as valid: */
-    m_invalidations.remove(UIActionIndexMN_M_Machine_M_StartOrShow);
+    m_invalidations.remove(UIActionIndexMN_M_Machine_M_Start);
 }
 
 void UIActionPoolManager::updateMenuGroupConsole()

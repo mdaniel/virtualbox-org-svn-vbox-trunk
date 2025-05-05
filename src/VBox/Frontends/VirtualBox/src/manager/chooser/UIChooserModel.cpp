@@ -1291,7 +1291,11 @@ void UIChooserModel::sltUpdateContextMenu()
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Remove));
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_MoveToGroup)->menu());
                     pMenu->addSeparator();
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                    if (   firstSelectedMachineItem()
+                        && firstSelectedMachineItem()->isItemPoweredOff())
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Start));
+                    else
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Show));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_T_Pause));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
                     // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Detach));
@@ -1324,7 +1328,11 @@ void UIChooserModel::sltUpdateContextMenu()
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup)->menu());
                     pMenu->addSeparator();
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                    if (   firstSelectedMachineItem()
+                        && firstSelectedMachineItem()->isItemPoweredOff())
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Start));
+                    else
+                        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Show));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_T_Pause));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
                     // pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Detach));
@@ -1363,7 +1371,7 @@ void UIChooserModel::sltUpdateContextMenu()
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
                     pMenu->addSeparator();
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Start));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
@@ -1386,7 +1394,7 @@ void UIChooserModel::sltUpdateContextMenu()
                         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
                     pMenu->addSeparator();
-                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+                    pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Start));
                     pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
                     pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());

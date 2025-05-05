@@ -73,10 +73,11 @@ enum UIActionIndexMN
     UIActionIndexMN_M_Group_S_Rename,
     UIActionIndexMN_M_Group_S_Remove,
     UIActionIndexMN_M_Group_M_MoveToGroup,
-    UIActionIndexMN_M_Group_M_StartOrShow,
-    UIActionIndexMN_M_Group_M_StartOrShow_S_StartNormal,
-    UIActionIndexMN_M_Group_M_StartOrShow_S_StartHeadless,
-    UIActionIndexMN_M_Group_M_StartOrShow_S_StartDetachable,
+    UIActionIndexMN_M_Group_M_Start,
+    UIActionIndexMN_M_Group_M_Start_S_Normal,
+    UIActionIndexMN_M_Group_M_Start_S_Headless,
+    UIActionIndexMN_M_Group_M_Start_S_Detachable,
+    UIActionIndexMN_M_Group_S_Show,
     UIActionIndexMN_M_Group_T_Pause,
     UIActionIndexMN_M_Group_S_Reset,
     UIActionIndexMN_M_Group_S_Detach,
@@ -113,10 +114,11 @@ enum UIActionIndexMN
     UIActionIndexMN_M_Machine_S_Remove,
     UIActionIndexMN_M_Machine_M_MoveToGroup,
     UIActionIndexMN_M_Machine_M_MoveToGroup_S_New,
-    UIActionIndexMN_M_Machine_M_StartOrShow,
-    UIActionIndexMN_M_Machine_M_StartOrShow_S_StartNormal,
-    UIActionIndexMN_M_Machine_M_StartOrShow_S_StartHeadless,
-    UIActionIndexMN_M_Machine_M_StartOrShow_S_StartDetachable,
+    UIActionIndexMN_M_Machine_M_Start,
+    UIActionIndexMN_M_Machine_M_Start_S_Normal,
+    UIActionIndexMN_M_Machine_M_Start_S_Headless,
+    UIActionIndexMN_M_Machine_M_Start_S_Detachable,
+    UIActionIndexMN_M_Machine_S_Show,
     UIActionIndexMN_M_Machine_T_Pause,
     UIActionIndexMN_M_Machine_S_Reset,
     UIActionIndexMN_M_Machine_S_Detach,
@@ -263,10 +265,10 @@ private:
     void updateMenuGroupMoveToGroup();
     /** Updates 'Machine' / 'Move to Group' menu. */
     void updateMenuMachineMoveToGroup();
-    /** Updates 'Group' / 'Start or Show' menu. */
-    void updateMenuGroupStartOrShow();
-    /** Updates 'Machine' / 'Start or Show' menu. */
-    void updateMenuMachineStartOrShow();
+    /** Updates 'Group' / 'Start' menu. */
+    void updateMenuGroupStart();
+    /** Updates 'Machine' / 'Start' menu. */
+    void updateMenuMachineStart();
     /** Updates 'Group' / 'Console' menu. */
     void updateMenuGroupConsole();
     /** Updates 'Machine' / 'Console' menu. */

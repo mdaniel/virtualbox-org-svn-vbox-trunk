@@ -65,6 +65,7 @@
 # else
 #  include <iprt/errcore.h>
 #  include <iprt/base64.h>
+#  include <iprt/string.h>
 # endif
 #endif
 
@@ -630,7 +631,17 @@ int TPMLIB_asprintf(char **strp, const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
+#ifndef VBOX
     ret = vasprintf(strp, fmt, ap);
+#else
+    char *psz = NULL;
+    ret = RTStrAPrintfV(&psz, fmt, ap);
+    if (ret >= 0)
+    {
+        *strp = strdup(psz);
+        RTStrFree(psz);
+    }
+#endif
     va_end(ap);
 
     return ret;

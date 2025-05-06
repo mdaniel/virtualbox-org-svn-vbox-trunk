@@ -539,12 +539,6 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
     {
         if (g_pfnR0DarwinCpuXCall && g_pfnR0DarwinCpuNumberMayBeNull)
         {
-            /** @todo With an MacBook M3 Max and 14.7.5 there is what looks like stack
-             * corruption after doing some RTMpOnAll/RTMpOnPair/RTMpOnSpecific stuff when
-             * supdrvOSAreTscDeltasInSync() returns true. Doesn't happen with M1 or M2 and
-             * the same OS version, so possibly related to the VERR_CPU_OFFLINE issues
-             * mentioned in RTMpGetOnlineCount.  For now, this isn't important enough to
-             * spend more time tracking down... */
             RTMPONPAIRDARWIN Args;
 # ifdef RT_STRICT
             Args.aidCpus[0]     = idCpu1;
@@ -570,24 +564,21 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
             RTThreadPreemptDisable(&PreemptState);
 
             RTCPUID const idCpuSelf = RTMpCpuId();
-            uint32_t      cWaitFor  = 0;
+            bool          fWait     = true;
             kern_return_t krc;
             if (idCpuSelf != idCpu1)
             {
                 krc = g_pfnR0DarwinCpuXCall(idCpu1, rtmpOnPairDarwinWrapper<0>, &Args);
                 if (krc == KERN_SUCCESS)
                 {
-                    cWaitFor = 1;
                     if (idCpuSelf != idCpu2)
                     {
                         krc = g_pfnR0DarwinCpuXCall(idCpu2, rtmpOnPairDarwinWrapper<1>, &Args);
                         if (krc == KERN_SUCCESS)
-                        {
-                            cWaitFor = 2;
                             rc = VINF_SUCCESS;
-                        }
                         else
                         {
+                            ASMAtomicSubU32(&Args.cCpusLeftSynch, 1);
                             ASMAtomicWriteU32(&Args.fState, RTMPONPAIRDARWIN_STATE_SETUP_CANCEL);
                             rc = VERR_CPU_OFFLINE;
                         }
@@ -599,7 +590,10 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
                     }
                 }
                 else
+                {
+                    fWait = false;
                     rc = VERR_CPU_OFFLINE;
+                }
             }
             else
             {
@@ -607,11 +601,13 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
                 if (krc == KERN_SUCCESS)
                 {
                     rtmpOnPairDarwinWrapper<0>(&Args);
-                    cWaitFor = 1;
                     rc = VINF_SUCCESS;
                 }
                 else
+                {
+                    fWait = false;
                     rc = VERR_CPU_OFFLINE;
+                }
             }
 
             RTThreadPreemptRestore(&PreemptState);
@@ -619,9 +615,7 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
             /*
              * Synchronize with any CPUs we've dispatched to pfnWorker.
              */
-            if (   cWaitFor == 0
-                || (cWaitFor == 2 ? ASMAtomicReadU32(&Args.cCpusLeftSynch) == 0
-                                  : ASMAtomicSubU32(&Args.cCpusLeftSynch, 1) == 1 /*old value*/))
+            if (!fWait || ASMAtomicReadU32(&Args.cCpusLeftSynch) == 0)
             {
                 /* clear_wait(current_thread(), THREAD_AWAKENED); - not exported, so we have to do: */
                 thread_wakeup((event_t)&Args.cCpusLeftSynch);

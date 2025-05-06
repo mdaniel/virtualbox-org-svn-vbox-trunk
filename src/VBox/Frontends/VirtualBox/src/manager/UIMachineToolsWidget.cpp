@@ -213,6 +213,8 @@ QString UIMachineToolsWidget::currentHelpKeyword() const
 
 void UIMachineToolsWidget::sltRetranslateUI()
 {
+    /* Recache current machine item information: */
+    recacheCurrentMachineItemInformation();
     /* Fetch Chooser-pane selection class: */
     recalculateChooserPaneSelectionClass();
 }

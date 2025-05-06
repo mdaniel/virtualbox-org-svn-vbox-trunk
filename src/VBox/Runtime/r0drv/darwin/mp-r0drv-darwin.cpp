@@ -619,7 +619,9 @@ RTDECL(int) RTMpOnPair(RTCPUID idCpu1, RTCPUID idCpu2, uint32_t fFlags, PFNRTMPW
             /*
              * Synchronize with any CPUs we've dispatched to pfnWorker.
              */
-            if (cWaitFor == 0 || ASMAtomicSubU32(&Args.cCpusLeftSynch, 2 - cWaitFor) == 0)
+            if (   cWaitFor == 0
+                || (cWaitFor == 2 ? ASMAtomicReadU32(&Args.cCpusLeftSynch) == 0
+                                  : ASMAtomicSubU32(&Args.cCpusLeftSynch, 1) == 1 /*old value*/))
             {
                 /* clear_wait(current_thread(), THREAD_AWAKENED); - not exported, so we have to do: */
                 thread_wakeup((event_t)&Args.cCpusLeftSynch);

@@ -49,10 +49,11 @@ static DECLCALLBACK(int) vmmR3ReservedVTableEntry(void);
 static const VMMR3VTABLE g_VMMR3VTable =
 {
     /* .uMagicVersion = */      VMMR3VTABLE_MAGIC_VERSION,
-    /* .fFlags = */             0,
 #ifdef VBOX_VMM_TARGET_X86
+    /* .fFlags = */             VMMR3VTABLE_F_TARGET_X86,
     /* .pszDescription = */     "x86 & amd64",
 #elif defined(VBOX_VMM_TARGET_ARMV8)
+    /* .fFlags = */             VMMR3VTABLE_F_TARGET_ARMV8,
     /* .pszDescription = */     "armv8",
 #else
 # error "port me"

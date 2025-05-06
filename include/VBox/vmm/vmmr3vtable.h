@@ -71,7 +71,7 @@ RT_C_DECLS_BEGIN
 
 
 /** Magic and version for the VMM vtable.  (Magic: Emmet Cohen)   */
-#define VMMR3VTABLE_MAGIC_VERSION         RT_MAKE_U64(0x19900525, 0x00050001)
+#define VMMR3VTABLE_MAGIC_VERSION         RT_MAKE_U64(0x19900525, 0x00060000)
 /** Compatibility mask: These bits must match - magic and major version. */
 #define VMMR3VTABLE_MAGIC_VERSION_MASK    RT_MAKE_U64(0xffffffff, 0xffff0000)
 
@@ -98,6 +98,17 @@ typedef FNVMMGETVTABLE                 *PFNVMMGETVTABLE;
 #define VMMR3VTABLE_GETTER_NAME         "VMMR3GetVTable"
 
 
+/** @name VMMR3VTABLE_F_XXX - VMM function table flags.
+ * @{ */
+/** Mask for extracting the VMM target value.   */
+#define VMMR3VTABLE_F_TARGET_MASK       UINT64_C(0x00000000000000ff)
+/** Target: x86 */
+#define VMMR3VTABLE_F_TARGET_X86        UINT64_C(0x0000000000000001)
+/** Target: ARMv8 */
+#define VMMR3VTABLE_F_TARGET_ARMV8      UINT64_C(0x0000000000000002)
+/** @} */
+
+
 /**
  * VTable for the ring-3 VMM API.
  */
@@ -105,7 +116,7 @@ typedef struct VMMR3VTABLE
 {
     /** VMMR3VTABLE_MAGIC_VERSION. */
     uint64_t    uMagicVersion;
-    /** Flags (TBD). */
+    /** Flags (VMMR3VTABLE_F_XXX). */
     uint64_t    fFlags;
     /** The description of this VMM. */
     const char *pszDescription;

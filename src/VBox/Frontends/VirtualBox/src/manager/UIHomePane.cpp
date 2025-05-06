@@ -90,9 +90,12 @@ void UIHomePane::sltRetranslateUI()
                                       "<p><a href=#create#>Create a new virtual machine (VM)</a></p>"
                                       "<p><a href=#open#>Open a saved VirtualBox VM</a></p>"
                                       "<p><a href=#import#>Import a VM from open virtualization or cloud formats</a></p>"
-                                      "<p>You can press the <b>%1</b> key to get instant help, or visit "
-                                      "<a href=https://www.virtualbox.org>www.virtualbox.org</a> "
-                                      "for more information and latest news.</p>")
+                                      "<p>Refer to the "
+                                      "<a href=https://docs.oracle.com/en/virtualization/virtualbox/index.html>"
+                                      "VirtualBox documentation</a> or press %1 for help.</p>"
+                                      "<p>Visit "
+                                      "<a href=https://www.virtualbox.org>"
+                                      "virtualbox.org</a> to download test builds, access the source code, and more.</p>")
                                       .arg(QKeySequence(QKeySequence::HelpContents).toString(QKeySequence::NativeText)));
 
     /* Translate experience mode stuff: */

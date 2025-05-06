@@ -489,6 +489,7 @@ typedef struct section_64
 #define S_THREAD_LOCAL_VARIABLES                UINT32_C(0x13)
 #define S_THREAD_LOCAL_VARIABLE_POINTERS        UINT32_C(0x14)
 #define S_THREAD_LOCAL_INIT_FUNCTION_POINTERS   UINT32_C(0x15)
+#define S_INIT_FUNC_OFFSETS                     UINT32_C(0x16)
 
 
 

@@ -839,6 +839,12 @@ static int kldrModMachOPreParseLoadCommands(uint8_t *pbLoadCommands, const mach_
                         fFileBits = 1; \
                         break; \
                     \
+                    case S_INIT_FUNC_OFFSETS: \
+                        Log(("ldrMachO: Can't load because of section flags: %#x\n", pSect->flags & SECTION_TYPE)); \
+                        *pfCanLoad = false; \
+                        fFileBits = 1; \
+                        break; \
+                    \
                     case S_INTERPOSING: \
                     case S_GB_ZEROFILL: \
                         RTLDRMODMACHO_FAILED_RETURN(VERR_LDRMACHO_UNSUPPORTED_SECTION); \
@@ -1236,6 +1242,8 @@ static int kldrModMachOPreParseLoadCommands(uint8_t *pbLoadCommands, const mach_
             case LC_DYLD_INFO_ONLY:     /** @todo dylib */
             case LC_LOAD_UPWARD_DYLIB:  /** @todo dylib */
             case LC_DYLD_ENVIRONMENT:   /** @todo dylib */
+            case LC_DYLD_EXPORTS_TRIE:  /** @todo dylib */
+            case LC_DYLD_CHAINED_FIXUPS:/** @todo dylib */
             case LC_MAIN: /** @todo parse this and find and entry point or smth. */
                 /** @todo valid command size. */
                 if (!(fOpenFlags & (RTLDR_O_FOR_DEBUG | RTLDR_O_FOR_VALIDATION)))

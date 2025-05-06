@@ -424,10 +424,6 @@ void UIVisoContentBrowser::createVisoEntry(const QString &strPath, const QString
 /* static */
 QString UIVisoContentBrowser::sanitizePath(const QString &strOriginal)
 {
-    /* Look for white space and double quote: */
-    QRegularExpression regex("[\\s\"]");
-    if (!regex.match(strOriginal).hasMatch())
-        return strOriginal;
     QString strNew(strOriginal);
     strNew.replace("\"", "\\\"");
     strNew.append("\"");
@@ -442,8 +438,8 @@ QStringList UIVisoContentBrowser::entryList()
     {
         if (iterator.value().isEmpty())
             continue;
-        QString strEntry = QString("%1=%2").arg(sanitizePath(iterator.key())).arg(sanitizePath(iterator.value()));
-        entryList << strEntry;
+        QString strEntry = QString("%1=%2").arg(iterator.key()).arg(iterator.value());
+        entryList << sanitizePath(strEntry);
     }
     return entryList;
 }
@@ -897,44 +893,51 @@ void UIVisoContentBrowser::parseVisoFileContent(const QString &strFileName)
         return;
     QTextStream stream(&file);
     QString strFileContent = stream.readAll();
-    strFileContent.replace(' ', '\n');
     QMap<QString, QString> fileEntries;
-    QStringList removedEntries;
-    foreach (const QString &strPart, strFileContent.split("\n", Qt::SkipEmptyParts))
+    strFileContent.replace("\'", "\"");
+    bool fInsideQuotes = false;
+    /* Replace spaces with new lines expect those within quotes: */
+    for (int i = 0; i < strFileContent.length(); ++i)
     {
-        const QStringList fileEntry = strPart.split("=", Qt::SkipEmptyParts);
-        /* We currently do not support different on-ISO names for different namespaces. */
-        if (strPart.startsWith("/") && strPart.count('=') <= 1)
+        if (strFileContent[i] == "\"")
+            fInsideQuotes = !fInsideQuotes;
+        if (strFileContent[i] == ' ' && !fInsideQuotes)
+            strFileContent[i] = '\n';
+    }
+    QStringList removedEntries;
+    QStringList lines = strFileContent.split('\n', Qt::SkipEmptyParts);
+    for (int i = 0; i < lines.size(); ++i)
+    {
+        const QString &strLine = lines[i];
+        if (strLine.count('=') == 1)
         {
-            if (fileEntry.size() == 1)
+            /* file-mode and dir-mode. something for later to deal with: */
+            if (strLine.contains("file-mode") || strLine.contains("dir-mode"))
+                continue;
+            QStringList lineParts = strLine.split('=');
+            if (lineParts.size() == 2)
             {
-                QFileInfo fileInfo(fileEntry[0]);
-                if (fileInfo.exists())
+                if (lineParts[1].contains("must-remove"))
                 {
-                    QString isoName = QString("/%1").arg(fileInfo.fileName());
-                    fileEntries[isoName] = fileEntry[0];
+                    removedEntries << lineParts[0];
+                }
+                else
+                {
+                    lineParts[0].remove('\"');
+                    lineParts[1].remove('\"');
+                    /* Check if target file structure exists: */
+                    if (QFileInfo(lineParts[1]).exists())
+                        fileEntries[lineParts[0]] = lineParts[1];
                 }
             }
-            else if (fileEntry.size() == 2)
-            {
-                if (QFileInfo(fileEntry[1]).exists())
-                    fileEntries[fileEntry[0]] = fileEntry[1];
-                else if (fileEntry[1] == cRemoveText)
-                    removedEntries.append(fileEntry[0]);
-            }
+            continue;
         }
-        else if(fileEntry.size() == 2 && fileEntry[0].contains("import-iso", Qt::CaseInsensitive))
+        if (strLine.contains("import-iso") && i + 1 < lines.size())
         {
-            if (QFileInfo(fileEntry[1]).exists())
-                importISOContentToViso(fileEntry[1]);
-        }
-        else if(fileEntry.size() == 2 && fileEntry[0].contains("volume-id", Qt::CaseInsensitive))
-        {
-            if (!fileEntry[1].isEmpty())
-                sigVolumeIdParsed(fileEntry[1]);
+            if (QFileInfo(lines[i+1]).exists())
+                importISOContentToViso(lines[i+1]);
         }
     }
-    file.close();
     createLoadedFileEntries(fileEntries);
     processRemovedEntries(removedEntries);
 }

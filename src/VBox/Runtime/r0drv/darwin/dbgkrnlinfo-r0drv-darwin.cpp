@@ -160,8 +160,12 @@ RT_C_DECLS_END
 /** @} */
 
 #if defined(IN_RING3) || !defined(DEBUG)
-# define PTR_FMT    "%p"
-# define PTR_ARG(p) (void *)(p)
+# if ARCH_BITS == 32
+#  define PTR_FMT   "%08zx"
+# else
+#  define PTR_FMT   "%016zx" /* %p isn't 16 char wide, so sect table get jagged */
+# endif
+# define PTR_ARG(p) (size_t)(p)
 #elif ARCH_BITS == 32
 # define PTR_FMT    "%08lx"
 # define PTR_ARG(p) (uintptr_t)(p)
@@ -430,7 +434,8 @@ static int rtR0DbgKrnlDarwinInitLoadDisplacements(RTDBGKRNLINFOINT *pThis)
 # define KNOWN_ENTRY(a_Sym)  { #a_Sym, 0 }
 #endif
         KNOWN_ENTRY(vm_map_unwire),   /* __TEXT */
-        KNOWN_ENTRY(kernel_map),      /* __HIB */
+        KNOWN_ENTRY(kernel_map),      /* __DATA_CONST (on 14.7), formerly (?) __HIB */
+        KNOWN_ENTRY(bcopy),           /* __HIB */
         KNOWN_ENTRY(gIOServicePlane), /* __DATA (__HIB on ElCapitan) */
         KNOWN_ENTRY(page_mask)        /* __DATA on ElCapitan */
 #undef KNOWN_ENTRY
@@ -657,7 +662,7 @@ static int rtR0DbgKrnlDarwinParseSymTab(RTDBGKRNLINFOINT *pThis, const char *psz
         }
         const char *pszSym = &pThis->pachStrTab[(uint32_t)pSym->n_un.n_strx];
 #ifdef IN_RING3
-        RTAssertMsg2("%05i: %02x:%08llx %02x %04x %s\n", iSym, pSym->n_sect, (uint64_t)pSym->n_value, pSym->n_type, pSym->n_desc, pszSym);
+        printf("%05i: %02x:%08llx %02x %04x %s\n", iSym, pSym->n_sect, (uint64_t)pSym->n_value, pSym->n_type, pSym->n_desc, pszSym);
 #endif
 
         if (strcmp(pszSym, pszPrev) < 0)
@@ -856,8 +861,10 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                 MY_SEGMENT_COMMAND const *pSeg = (MY_SEGMENT_COMMAND const *)pCmd;
                 if (pSeg->cmdsize < sizeof(*pSeg))
                     RETURN_VERR_BAD_EXE_FORMAT;
-#if 0
+#if defined(IN_RING3) || 0
+# ifndef IN_RING3
                 if (pThis->fIsInMem)
+# endif
                     printf("cmd %i seg #%u: vmaddr=" PTR_FMT " vmsize=" PTR_FMT " fileoff=%#09lx filesize=%#09lx prot=%#03x/%1x nsect=%u flags=%#010x %s\n",
                            iCmd, pThis->cSegments, PTR_ARG(pSeg->vmaddr), PTR_ARG(pSeg->vmsize), (unsigned long)pSeg->fileoff,
                            (unsigned long)pSeg->filesize, (unsigned)pSeg->maxprot, (unsigned)pSeg->initprot, (unsigned)pSeg->nsects,
@@ -894,9 +901,11 @@ static int rtR0DbgKrnlDarwinParseCommands(RTDBGKRNLINFOINT *pThis)
                 MY_SECTION const   *paSects    = (MY_SECTION const *)(pSeg + 1);
                 for (uint32_t i = 0; i < pSeg->nsects; i++)
                 {
-#if 0
-                    if (pThis->fIsInMem)
-                        printf("sect #%u/%u: addr=" PTR_FMT " size=" PTR_FMT " offset=%#09x align=%#06x flags=%010x %s.%s\n",
+#if defined(IN_RING3) || 0
+# ifndef IN_RING3
+//                    if (pThis->fIsInMem)
+# endif
+                        printf("sect #%u/%x: addr=" PTR_FMT " size=" PTR_FMT " offset=%#09x align=%#06x flags=%010x %s.%s\n",
                                i, pThis->cSections, PTR_ARG(paSects[i].addr), PTR_ARG(paSects[i].size), (unsigned)paSects[i].offset,
                                (unsigned)paSects[i].align, (unsigned)paSects[i].flags, paSects[i].segname, paSects[i].sectname);
 #endif

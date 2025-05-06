@@ -234,8 +234,6 @@ AssertCompileMemberAlignment(GITSDEV, uCmdReadReg, 4);
 AssertCompileMemberAlignment(GITSDEV, uCmdWriteReg, 4);
 AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 4);
 AssertCompileMemberAlignment(GITSDEV, aCtes, 4);
-AssertCompileMemberAlignment(GITSDEV, aItes, 4);
-AssertCompileMemberAlignment(GITSDEV, aDtes, 4);
 AssertCompileMemberAlignment(GITSDEV, uArchRev, 4);
 AssertCompileMemberSize(GITSDEV, aCtes, RT_ELEMENTS(GITSDEV::aCtes) * sizeof(GITSCTE));
 

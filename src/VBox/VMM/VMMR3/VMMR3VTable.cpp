@@ -50,7 +50,13 @@ static const VMMR3VTABLE g_VMMR3VTable =
 {
     /* .uMagicVersion = */      VMMR3VTABLE_MAGIC_VERSION,
     /* .fFlags = */             0,
+#ifdef VBOX_VMM_TARGET_X86
     /* .pszDescription = */     "x86 & amd64",
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    /* .pszDescription = */     "armv8",
+#else
+# error "port me"
+#endif
 
 #define VTABLE_ENTRY(a_Api)     a_Api,
 #define VTABLE_RESERVED(a_Name) vmmR3ReservedVTableEntry,

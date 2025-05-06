@@ -75,6 +75,16 @@ static DECLCALLBACK(int) vmmR3ReservedVTableEntry(void)
 }
 
 
+#ifndef VBOX_WITH_DEBUGGER
+/** Stub */
+DBGDECL(int) DBGCCreate(PUVM pUVM, PCDBGCIO pIo, unsigned fFlags)
+{
+    RT_NOREF(pUVM, pIo, fFlags);
+    return VERR_NOT_IMPLEMENTED;
+}
+#endif
+
+
 VMMR3DECL(PCVMMR3VTABLE) VMMR3GetVTable(void)
 {
     return &g_VMMR3VTable;

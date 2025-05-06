@@ -894,12 +894,12 @@ void UIVisoContentBrowser::parseVisoFileContent(const QString &strFileName)
     QTextStream stream(&file);
     QString strFileContent = stream.readAll();
     QMap<QString, QString> fileEntries;
-    strFileContent.replace("\'", "\"");
+    strFileContent.replace('\'', '\"');
     bool fInsideQuotes = false;
     /* Replace spaces with new lines expect those within quotes: */
     for (int i = 0; i < strFileContent.length(); ++i)
     {
-        if (strFileContent[i] == "\"")
+        if (strFileContent[i] == '\"')
             fInsideQuotes = !fInsideQuotes;
         if (strFileContent[i] == ' ' && !fInsideQuotes)
             strFileContent[i] = '\n';

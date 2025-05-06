@@ -122,6 +122,46 @@ typedef enum GITSDIAG
 } GITSDIAG;
 AssertCompileSize(GITSDIAG, 4);
 
+typedef struct GITSITE
+{
+    uint32_t        uDevId;
+    uint32_t        uEventId;
+    uint16_t        uIntId;
+    uint16_t        uIcId;
+} GITSITE;
+AssertCompileSizeAlignment(GITSITE, 4);
+
+typedef struct GITSCTE
+{
+    VMCPUID         idTargetCpu;
+} GITSCTE;
+AssertCompileSizeAlignment(GITSCTE, 4);
+
+/**
+ * Device Table Entry (DTE).
+ */
+#pragma pack(1)
+typedef struct GITSDTE
+{
+    /** Whether this entry is valid. */
+    uint8_t         fValid;
+    uint8_t         afPadding;
+    /** The index of the cached interrupt translation table. */
+    uint16_t        idxItt;
+    /** The device ID. */
+    uint32_t        uDevId;
+    /** The physical address of the interrupt translation table. */
+    RTGCPHYS        GCPhysItt;
+    /** The size of the interrupt translation table in bytes. */
+    uint32_t        cbItt;
+} GITSDTE;
+#pragma pack()
+/** Pointer to a GITS device table entry. */
+typedef GITSDTE *PGITSDTE;
+/** Pointer to a const GITS device table entry. */
+typedef GITSDTE const *PCGITSDTE;
+AssertCompileSize(GITSDTE, 20);
+
 /**
  * The GIC Interrupt Translation Service device state.
  */
@@ -163,9 +203,7 @@ typedef struct GITSDEV
      * @{
      */
     /** The collection table. */
-    uint32_t                auCtes[255];
-    /** Padding. */
-    uint32_t                auPadding0;
+    GITSCTE                 aCtes[255];
     /** @} */
 
     /** @name Configurables.
@@ -194,10 +232,12 @@ AssertCompileSizeAlignment(GITSDEV, 8);
 AssertCompileMemberAlignment(GITSDEV, aItsTableRegs, 8);
 AssertCompileMemberAlignment(GITSDEV, uCmdReadReg, 4);
 AssertCompileMemberAlignment(GITSDEV, uCmdWriteReg, 4);
-AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 8);
-AssertCompileMemberAlignment(GITSDEV, auCtes, 8);
-AssertCompileMemberAlignment(GITSDEV, uArchRev, 8);
-AssertCompileMemberSize(GITSDEV, auCtes, RT_ELEMENTS(GITSDEV::auCtes) * GITS_CTE_SIZE);
+AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 4);
+AssertCompileMemberAlignment(GITSDEV, aCtes, 4);
+AssertCompileMemberAlignment(GITSDEV, aItes, 4);
+AssertCompileMemberAlignment(GITSDEV, aDtes, 4);
+AssertCompileMemberAlignment(GITSDEV, uArchRev, 4);
+AssertCompileMemberSize(GITSDEV, aCtes, RT_ELEMENTS(GITSDEV::aCtes) * sizeof(GITSCTE));
 
 DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);
 DECL_HIDDEN_CALLBACK(int)          gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc);

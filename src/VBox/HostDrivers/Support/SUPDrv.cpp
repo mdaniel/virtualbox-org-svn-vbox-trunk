@@ -7312,12 +7312,12 @@ static void supdrvIOCtl_ArmGetSysRegsOnCpu(PSUPARMGETSYSREGS pReq, uint32_t cons
     READ_SYS_REG_NAMED(3, 0, 0, 0, 0, MIDR_EL1);
     READ_SYS_REG_NAMED(3, 0, 0, 0, 5, MPIDR_EL1);
     READ_SYS_REG_NAMED(3, 0, 0, 0, 6, REVIDR_EL1);
-    READ_SYS_REG__TODO(3, 1, 0, 0, 0, CCSIDR_EL1);
+    READ_SYS_REG__TODO(3, 1, 0, 0, 0, CCSIDR_EL1); /** @todo CCSIDR_EL1? */
     READ_SYS_REG__TODO(3, 1, 0, 0, 1, CLIDR_EL1);
     READ_SYS_REG__TODO(3, 1, 0, 0, 7, AIDR_EL1);
+    READ_SYS_REG_NAMED(3, 3, 0, 0, 1, CTR_EL0);
     READ_SYS_REG_NAMED(3, 3, 0, 0, 7, DCZID_EL0);
     READ_SYS_REG_NAMED(3, 3,14, 0, 0, CNTFRQ_EL0);
-
 
     READ_SYS_REG_NAMED(3, 0, 0, 4, 0, ID_AA64PFR0_EL1);
     uint64_t const fPfr0 = uRegVal;

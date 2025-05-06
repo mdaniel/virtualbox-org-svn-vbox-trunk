@@ -5236,7 +5236,7 @@ endif
 
 ifdef VBOX_WITH_LIBLZMA
  SDK_VBoxLibLzma                 := liblzma for dll linking.
- SDK_VBoxLibLzma_DEFAULT_INCS    := $(PATH_ROOT)/src/libs/liblzma-5.4.1/api
+ SDK_VBoxLibLzma_DEFAULT_INCS    := $(PATH_ROOT)/src/libs/liblzma-5.8.1/api
  SDK_VBoxLibLzma_INCS            ?= $(SDK_VBoxLibLzma_DEFAULT_INCS)
  SDK_VBoxLibLzma_LIBS            ?= $(PATH_STAGE_LIB)/VBox-liblzma$(VBOX_SUFF_LIB)
 

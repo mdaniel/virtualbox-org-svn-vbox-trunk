@@ -135,9 +135,8 @@ VBox-liblzma_SOURCES := \
 	common/microlzma_decoder.c \
 	common/lzip_decoder.c \
 	check/check.c \
-	check/crc32_table.c \
+	check/crc_clmul_consts_gen.c \
 	check/crc32_fast.c \
-	check/crc64_table.c \
 	check/crc64_fast.c \
 	check/sha256.c \
 	lz/lz_encoder.c \
@@ -164,6 +163,7 @@ VBox-liblzma_SOURCES := \
 	simple/arm.c \
 	simple/armthumb.c \
 	simple/arm64.c \
+	simple/riscv.c \
 	simple/sparc.c
 
 
@@ -183,4 +183,3 @@ endif
 
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

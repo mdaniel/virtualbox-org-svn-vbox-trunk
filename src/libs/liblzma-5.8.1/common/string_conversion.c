@@ -14,7 +14,7 @@
 
 // liblzma itself doesn't use gettext to translate messages.
 // Mark the strings still so that xz can translate them.
-#define N_(msgid) msgid
+// #define N_(msgid) msgid
 
 
 /////////////////////

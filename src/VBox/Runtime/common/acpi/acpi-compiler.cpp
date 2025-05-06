@@ -2972,6 +2972,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
     {
         pThis->hVfsIosIn  = hVfsIosIn;
         pThis->pErrInfo   = pErrInfo;
+        pThis->hAcpiTbl   = NIL_RTACPITBL;
         RTListInit(&pThis->LstExternals);
         RTListInit(&pThis->LstStmts);
 
@@ -3041,6 +3042,9 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                     }
                     else
                         rc = RTErrInfoSetF(pErrInfo, rc, "Dumping AST to ACPI table failed with %Rrc", rc);
+
+                    if (pThis->hAcpiTbl != NIL_RTACPITBL)
+                        RTAcpiTblDestroy(pThis->hAcpiTbl);
                 }
 
                 RTScriptLexDestroy(pThis->hLexSource);

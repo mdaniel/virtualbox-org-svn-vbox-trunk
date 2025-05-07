@@ -185,10 +185,22 @@ def findModulePath(sModule = 'vboxapi'):
             pass
     return sPath
 
-try:
-    from distutils.command.install import install # Only for < Python 3.12.
-except:
-    pass
+#
+# Make sure we have all the stuff to serve VBoxSetupInstallClass below.
+#
+if sys.version_info >= (3, 12): # Since Python >= 3.12 there are no distutils anymore. See PEP632.
+    try:
+        from setuptools import setup
+        from setuptools.command.install import install
+    except ImportError:
+        print("ERROR: setuptools package not installed, can't continue. Exiting.")
+        sys.exit(1)
+else: # Python < 3.12
+    try:
+        from distutils.command.install import install
+    except:
+        print("ERROR: distutils package not installed or too old, can't continue. Exiting.")
+        sys.exit(1)
 
 class VBoxSetupInstallClass(install):
     """

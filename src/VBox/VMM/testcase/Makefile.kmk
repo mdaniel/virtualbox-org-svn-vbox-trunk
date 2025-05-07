@@ -1003,37 +1003,37 @@ endif
 #
 # ARMv8 PGM guest page table walking testcase.
 #
-TST_PGMALLGST_ARMV8_FILE = $(tstPGMAllGst-armv8_0_OUTDIR)/tstPGMAllGst-armv8-tests.cpp
-TST_PGMALLGST_ARMV8_SOURCES := \
-	tstPGMAllGst_armv8_1=tstPGMAllGst-armv8.json
-
-TST_PGMALLGST_ARMV8_PATH_SOURCES := $(PATH_SUB_CURRENT)
-
-$$(TST_PGMALLGST_ARMV8_FILE): $(MAKEFILE_CURRENT) \
-		$(foreach source,$(TST_PGMALLGST_ARMV8_SOURCES),$(TST_PGMALLGST_ARMV8_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))) \
-		$(VBOX_BIN2C) \
-		| $$(dir $$@)
-	$(QUIET)$(RM) -f -- $@
-	$(QUIET)$(APPEND) -n "$@" \
-      	'' \
-      	'#include "tstPGMAllGst-armv8-tests.h"' \
-              ''
-	$(foreach source,$(TST_PGMALLGST_ARMV8_SOURCES), $(NLTAB)$(VBOX_BIN2C) -ascii --append \
-		"$(firstword $(subst =,$(SP),$(source)))" \
-		"$(TST_PGMALLGST_ARMV8_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))" \
-		"$@")
-
-OTHER_CLEAN += $(TST_PGMALLGST_ARMV8_FILE)
-
-tstPGMAllGst-armv8_TEMPLATE         = VBoxR3TstExe
+tstPGMAllGst-armv8_TEMPLATE        := VBoxR3TstExe
 tstPGMAllGst-armv8_INCS             = \
 	$(VBOX_PATH_VMM_SRC)/include \
 	.
 tstPGMAllGst-armv8_DEFS             = IN_VMM_R3 VBOX_VMM_TARGET_ARMV8 $(VMM_COMMON_DEFS)
 tstPGMAllGst-armv8_SOURCES          = \
 	tstPGMAllGst-armv8.cpp \
-	$(TST_PGMALLGST_ARMV8_FILE)
-tstPGMAllGst-armv8_LIBS             = $(LIB_RUNTIME)
+	$(tstPGMAllGst-armv8_0_OUTDIR)/tstPGMAllGst-armv8-tests.cpp
+tstPGMAllGst-armv8_CLEAN            = \
+	$(tstPGMAllGst-armv8_0_OUTDIR)/tstPGMAllGst-armv8-tests.cpp
+
+$(call KB_FN_DO_PASS0_ON_TARGET,tstPGMAllGst-armv8)
+
+TST_PGMALLGST_ARMV8_SOURCES        := \
+	tstPGMAllGst_armv8_1=tstPGMAllGst-armv8.json
+
+TST_PGMALLGST_ARMV8_PATH_SOURCES   := $(PATH_SUB_CURRENT)
+
+$(tstPGMAllGst-armv8_0_OUTDIR)/tstPGMAllGst-armv8-tests.cpp: $(MAKEFILE_CURRENT) \
+		$(foreach source,$(TST_PGMALLGST_ARMV8_SOURCES),$(TST_PGMALLGST_ARMV8_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))) \
+		$(VBOX_BIN2C) \
+		| $$(dir $$@)
+	$(QUIET)$(RM) -f -- $@
+	$(QUIET)$(APPEND) -n "$@" \
+		'' \
+		'#include "tstPGMAllGst-armv8-tests.h"' \
+		''
+	$(foreach source,$(TST_PGMALLGST_ARMV8_SOURCES), $(NLTAB)$(VBOX_BIN2C) -ascii --append \
+		"$(firstword $(subst =,$(SP),$(source)))" \
+		"$(TST_PGMALLGST_ARMV8_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))" \
+		"$@")
 
 
 #

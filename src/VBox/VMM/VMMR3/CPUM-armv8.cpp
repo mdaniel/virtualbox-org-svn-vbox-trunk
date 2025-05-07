@@ -47,7 +47,6 @@
 #define LOG_GROUP LOG_GROUP_CPUM
 #define CPUM_WITH_NONCONST_HOST_FEATURES
 #include <VBox/vmm/cpum.h>
-#include <VBox/vmm/cpumdis.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/em.h>
